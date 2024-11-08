@@ -1,0 +1,78 @@
+Anwendungsfeatures:
+- Watch-Providers je Film anzeigen
+
+
+
+Modellierung:
+- Dokumentbasierte Datenbank
+- Übersetzung der englischen Titel auf deutsch!?!?!?
+- Filme nur mit original language "en" nehmen??? => Filme mit gleichem Namen aber ohne Bewertung, teilweise keine "crew" ...
+-> Oder nur Filme nehmen, die eine "imdb_id" haben!?!?!?
+
+
+
+Nutzerprofil/Worum geht es in dem Film tatsächlich:
+- Filmgenre
+
+- Schauspieler im Film (Schauspielerevaluation hierfür machen)
+-> Man könnte auch "known_for_department" nehmen (wahrscheinlicha eine Kombination aus meiste Filmgenres + gut angekommen bei Zuschauern)
+
+- Produzenten ("department": "Production", "Sound", "Art", "Camera", "Editing", "Writing", "Costume & Make-Up", "Crew", "Acting", "Directing", "Lighting", "Visual Effects")
+-> "known_for_department" auch nützlich???
+
+- Production companies (wie Schauspieler und Produzenten)
+-> Könnte einen starken Zusammenhang zu Schauspielern und Produzenten haben, weil Unternehmen evtl. nur deswegen dabei sein/mitfinanzierern bzw. bestimmte Schauspieler dabei haben wollen
+
+- Sortieren nach:
+	1. Tatsächlichem Filminhalt, der am ehesten zum Nutzerprofil passt
+	2. Thema (als zweites Sortierkriterium, sonst werden nur Filme eines Themas angezeigt => evtl. auch in Einstellungen vom Nutzer ändern lassen) => mit KI oder wie???
+	3. Filmbewertungen
+	4. Laufzeit
+
+
+
+Schauspielerevaluation:
+- Schauspielerid (inkl. Name und Geburtsdatum) speichern für eindeutige Zuordnung, also nur über IDs arbeiten!!!
+
+- Genres der mitgespielten Filme zählen und prozentuale Verteilung machen
+-> Miteingewichten, wie oft ein Schauspieler in den jeweiligen Filmgenres mitgespielt hat, damit Gewichtung nicht unverhätlnismäßig stark ist
+-> Popularität (muss aber gar nichts mit Filmen zu tun haben!?!?!?) eines Schauspielers miteingewichten
+
+
+
+Thema eines Filmes bestimmen:
+- Thema aus Overview und Keywords eines Filmes mittels KI (= ChatGPT oder anderes Modell aus Vorlesung vom Dahms) finden
+-> Problem jeder Film hat evtl. sein eigenes Thema => Thema darf nur ein Wort lang sein???
+
+- Themen weiter kategorisieren, bspw.:
+	Zeit: Mittelalter
+	Ort: Burg, Höhle, Natur, Wald
+	...
+-> Hauptsächlich mit Schlüsselwörtern dann???
+
+- Soll es eine Suche nach Themen geben???
+-> KI müsste schauen, welche Themen der Filme dann in Frage kommen => Riesenrechenaufwand???
+
+
+
+Filmbewertungen/Wie gut ist ein Film wirklich?:
+- ???
+
+- Nutzerbewertungen von TMDB, Google, ... => 2 - 4 Sterne???
+-> Verknüpfung zu IMDB über "imdb_id" -> Ratings von IMDB miteinbeziehen
+
+- Popularität des Filmes miteingewichten/-werten
+
+- Budget und Einnahmen des Filmes miteingewichten/-werten => Gegenbeispiel Netflix: viel Geld rein viel Geld raus, aber Leute finden es evtl. random gut oder sogar schlecht, aber alle schauen es
+
+
+
+
+
+Nutzerprofilupdate/Bewertung von gesehenen Filmen:
+- Film in Genres teilen mit Schauspieler etc. und evaluieren
+-> Addieren der Evaluation zu dem bisherigen Nutzerprofil und dann normieren???
+
+- Besitzt Geschlecht und Alter eine siginifikante Relevanz? => prüfen = viele Nutzerprofile auswerten!?!?!?
+
+- Liste von Lieblingsthemen oder geschauten Themen mitspeichern

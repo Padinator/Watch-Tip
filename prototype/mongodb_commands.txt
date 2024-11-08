@@ -1,0 +1,9 @@
+mongodump --db watch_tip --archive > /home/ubuntu/all_movies-backup.archive
+mongorestore --nsInclude="watch_tip.*" --archive < /home/ubuntu/all_movies-backup.archive
+mongorestore --nsInclude="watch_tip.*" --archive < /mongo_backup/all_movies-backup.archive
+
+db.collection.aggregate([
+    {"$group" : { "_id": "$original_title", "count": { "$sum": 1 } } },
+    {"$match": {"_id" :{ "$ne" : null } , "count" : {"$gt": 1} } }, 
+    {"$project": {"original_title" : "$_id", "_id" : 0} }
+]);
