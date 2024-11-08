@@ -1,0 +1,4 @@
+# Ignore MacOS File
+.DS_Store
+prototype/data/*
+prototype/updated_data/*
