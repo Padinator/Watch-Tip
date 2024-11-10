@@ -2,7 +2,7 @@ Vorbereitende Maßnahmen:
 - CI/CD-Pipeline
 - Netflix hat anonymisierte Nutzerdaten veröffentlicht
 -> Auswerten und analysieren: Nutzerprofile nach unserem System erstellen
-
+- Verhätlnis zwischen Budget und revenue hinsichtlich der subjektiven ratings analysieren
 
 
 Anwendungsfeatures:
@@ -34,7 +34,7 @@ Nutzerprofil/Worum geht es in dem Film tatsächlich:
 
 - Sortieren nach:
 	1. Tatsächlichem Filminhalt, der am ehesten zum Nutzerprofil passt
-	2. Thema (als zweites Sortierkriterium, sonst werden nur Filme eines Themas angezeigt => evtl. auch in Einstellungen vom Nutzer ändern lassen) => mit KI oder wie???
+	2. Thema (als zweites (-> erstes) Sortierkriterium, sonst werden nur Filme eines Themas angezeigt => evtl. auch in Einstellungen vom Nutzer ändern lassen) => mit KI oder wie???
 	3. Filmbewertungen
 	4. Laufzeit
 
