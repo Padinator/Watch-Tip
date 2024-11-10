@@ -4,7 +4,11 @@ Vorbereitende Maßnahmen:
 -> Auswerten und analysieren: Nutzerprofile nach unserem System erstellen
 - Verhätlnis zwischen Budget und revenue hinsichtlich der subjektiven ratings analysieren
 
+1. Möglichkeit:
+- 2. Möglichkeit als Datenoptimierung (bessere Filmgenres und Filmbewertungen) auffassen und ein ML-Model mit optimierten Daten trainieren/optimieren
+-> "Movie recommendation system based on a collaborative filtering approach using the alternating least squared (ALS) model to predict the best-rated movies.": https://www.mdpi.com/2079-9292/10/10/1215
 
+2. Möglichkeit:
 Anwendungsfeatures:
 - Watch-Providers je Film anzeigen
 
@@ -60,8 +64,8 @@ Thema eines Filmes bestimmen:
 -> Hauptsächlich mit Schlüsselwörtern dann???
 
 - Soll es eine Suche nach Themen geben???
--> KI müsste schauen, welche Themen der Filme dann in Frage kommen => Riesenrechenaufwand???
---> Thema eines FIlmes einmal bestimmen
+-> KI müsste schauen, welche Themen der Filme dann in Frage kommen basierend auf bsp. den keywords
+--> Thema eines Filmes einmal bestimmen
 
 
 
