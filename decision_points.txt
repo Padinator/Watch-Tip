@@ -1,3 +1,10 @@
+Vorbereitende Maßnahmen:
+- CI/CD-Pipeline
+- Netflix hat anonymisierte Nutzerdaten veröffentlicht
+-> Auswerten und analysieren: Nutzerprofile nach unserem System erstellen
+
+
+
 Anwendungsfeatures:
 - Watch-Providers je Film anzeigen
 
@@ -15,13 +22,15 @@ Nutzerprofil/Worum geht es in dem Film tatsächlich:
 - Filmgenre
 
 - Schauspieler im Film (Schauspielerevaluation hierfür machen)
--> Man könnte auch "known_for_department" nehmen (wahrscheinlicha eine Kombination aus meiste Filmgenres + gut angekommen bei Zuschauern)
+-> Man könnte auch "known_for_department" nehmen (wahrscheinlich eine Kombination aus meiste Filmgenres + gut angekommen bei Zuschauern)
 
 - Produzenten ("department": "Production", "Sound", "Art", "Camera", "Editing", "Writing", "Costume & Make-Up", "Crew", "Acting", "Directing", "Lighting", "Visual Effects")
 -> "known_for_department" auch nützlich???
 
 - Production companies (wie Schauspieler und Produzenten)
 -> Könnte einen starken Zusammenhang zu Schauspielern und Produzenten haben, weil Unternehmen evtl. nur deswegen dabei sein/mitfinanzierern bzw. bestimmte Schauspieler dabei haben wollen
+
+- Genrespezifische Oskars/Preise?
 
 - Sortieren nach:
 	1. Tatsächlichem Filminhalt, der am ehesten zum Nutzerprofil passt
@@ -52,26 +61,33 @@ Thema eines Filmes bestimmen:
 
 - Soll es eine Suche nach Themen geben???
 -> KI müsste schauen, welche Themen der Filme dann in Frage kommen => Riesenrechenaufwand???
+--> Thema eines FIlmes einmal bestimmen
 
 
 
 Filmbewertungen/Wie gut ist ein Film wirklich?:
 - ???
 
-- Nutzerbewertungen von TMDB, Google, ... => 2 - 4 Sterne???
+- Nutzerbewertungen/Rezensionen von TMDB, Google, ... => 2 - 4 Sterne??? (ausprobieren, ob 1 & 5 Sterne Kommentare optimieren)
+-> Große Menge an Rezensionen/Kommentaren und kleine differenzieren bzw. normalisieren
+--> Gerade für neue Filme mit weniger Bewertungen und weniger Rezensionen sehr wichtig
 -> Verknüpfung zu IMDB über "imdb_id" -> Ratings von IMDB miteinbeziehen
 
 - Popularität des Filmes miteingewichten/-werten
+-> Es geht nicht um Trends, sondern um Berümtheit/Bekanntheitsgrad
 
 - Budget und Einnahmen des Filmes miteingewichten/-werten => Gegenbeispiel Netflix: viel Geld rein viel Geld raus, aber Leute finden es evtl. random gut oder sogar schlecht, aber alle schauen es
+-> Verhätlnis analysieren
 
-
+- Oskars/Preise für Filme als Kriterium, wie gut der Film ist
 
 
 
 Nutzerprofilupdate/Bewertung von gesehenen Filmen:
 - Film in Genres teilen mit Schauspieler etc. und evaluieren
 -> Addieren der Evaluation zu dem bisherigen Nutzerprofil und dann normieren???
+--> Nur Kriterien über einem gewissen Threshold (z.B. 0.2) User fragen, wie sehr die im Film vertreten waren (nicht wie gut umgesetzt!!!)
+    und damit das Profil updaten
 
 - Besitzt Geschlecht und Alter eine siginifikante Relevanz? => prüfen = viele Nutzerprofile auswerten!?!?!?
 
