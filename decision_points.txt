@@ -4,6 +4,11 @@ Vorbereitende Maßnahmen:
 -> Auswerten und analysieren: Nutzerprofile nach unserem System erstellen
 - Verhätlnis zwischen Budget und revenue hinsichtlich der subjektiven ratings analysieren
 
+Interessante Paper:
+1. https://dl.acm.org/doi/pdf/10.1145/2843948 Punkt 2.9 Related Work?
+2. https://amatria.in/pubs/Recsys-in-industry.pdf Punkt 5.2 Models
+3. https://www.scitepress.org/Papers/2021/107275/107275.pdf TF-IDF Algorithmus (NLP??)
+
 1. Möglichkeit:
 - 2. Möglichkeit als Datenoptimierung (bessere Filmgenres und Filmbewertungen) auffassen und ein ML-Model mit optimierten Daten trainieren/optimieren
 -> "Movie recommendation system based on a collaborative filtering approach using the alternating least squared (ALS) model to predict the best-rated movies.": https://www.mdpi.com/2079-9292/10/10/1215
