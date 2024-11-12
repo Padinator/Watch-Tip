@@ -1,9 +1,3 @@
-Vorbereitende Maßnahmen:
-- CI/CD-Pipeline
-- Netflix hat anonymisierte Nutzerdaten veröffentlicht
--> Auswerten und analysieren: Nutzerprofile nach unserem System erstellen
-- Verhätlnis zwischen Budget und revenue hinsichtlich der subjektiven ratings analysieren
-
 Interessante Paper:
 1. https://dl.acm.org/doi/pdf/10.1145/2843948 Punkt 2.9 Related Work?
 2. https://amatria.in/pubs/Recsys-in-industry.pdf Punkt 5.2 Models
@@ -26,8 +20,29 @@ Modellierung:
 -> Oder nur Filme nehmen, die eine "imdb_id" haben!?!?!?
 
 
+Vorbereitende Maßnahmen:
+- CI/CD-Pipeline
+- Netflix hat anonymisierte Nutzerdaten veröffentlicht
+-> Auswerten und analysieren: Nutzerprofile nach unserem System erstellen
+- Verhätlnis zwischen Budget und revenue hinsichtlich der subjektiven ratings analysieren
 
-Nutzerprofil/Worum geht es in dem Film tatsächlich:
+
+Nutzerprofil:
+- Initialisierung oder raus lesen aus der Historie der bisherigen Filme (prozentual)
+
+- Nutzerprofilupdate/Bewertung von gesehenen Filmen:
+-> Film in Genres teilen mit Schauspieler etc. und evaluieren
+--> Addieren der Evaluation zu dem bisherigen Nutzerprofil und dann normieren???
+---> Nur Kriterien über einem gewissen Threshold (z.B. 0.2) User fragen, wie sehr die im Film vertreten waren (nicht wie gut umgesetzt!!!)
+    und damit das Profil updaten
+
+-> Besitzt Geschlecht und Alter eine siginifikante Relevanz? => prüfen = viele Nutzerprofile auswerten!?!?!?
+
+-> Liste von Lieblingsthemen oder geschauten Themen mitspeichern
+
+
+
+Filmprofil: Worum geht es in dem Film tatsächlich:
 - Filmgenre
 
 - Schauspieler im Film (Schauspielerevaluation hierfür machen)
@@ -89,15 +104,3 @@ Filmbewertungen/Wie gut ist ein Film wirklich?:
 -> Verhätlnis analysieren
 
 - Oskars/Preise für Filme als Kriterium, wie gut der Film ist
-
-
-
-Nutzerprofilupdate/Bewertung von gesehenen Filmen:
-- Film in Genres teilen mit Schauspieler etc. und evaluieren
--> Addieren der Evaluation zu dem bisherigen Nutzerprofil und dann normieren???
---> Nur Kriterien über einem gewissen Threshold (z.B. 0.2) User fragen, wie sehr die im Film vertreten waren (nicht wie gut umgesetzt!!!)
-    und damit das Profil updaten
-
-- Besitzt Geschlecht und Alter eine siginifikante Relevanz? => prüfen = viele Nutzerprofile auswerten!?!?!?
-
-- Liste von Lieblingsthemen oder geschauten Themen mitspeichern

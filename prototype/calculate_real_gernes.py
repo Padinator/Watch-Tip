@@ -21,7 +21,9 @@ all_movies = mongodb["all_movies"]
 with open("data/all_genres.txt", 'rb') as file:
     all_genres = pickle.loads(file.read())
 
-print(all_genres)
+for i, (genre_id, genre) in enumerate(all_genres.items()):
+    print(f"{genre}: {i}")
+print()
 
 # Load all movies from database
 # all_movies_cursor = all_movies.find({})  # Cursor for iterating over all movies
@@ -43,17 +45,13 @@ with open("updated_data/all_production_companies.txt", 'rb') as file:
 movie_to_get_genre = 1726  # 24: Kill Bill 1, 1726: Iron Man 1, 38757: Rapunzel
 movie = all_movies.find_one({"id": movie_to_get_genre})  # Cursor for iterating over all movies
 
-"""
-with open("example-data/example-movies.txt", "w") as file:
-    for movie in all_movies.find().limit(10):
-        file.write(str(movie) + "\n")
-exit()
-"""
-
 if movie is None:
     print(f"Could not find movie with ID: {movie_to_get_genre}")
     exit(1)
 else:
+    movie_name = movie["name"]
+    print(f"Found movie Iron man 1")
+
     # movie = all_movies[movie_to_get_genre]
     real_genres_actors = np.zeros(len(all_genres), dtype=np.float64)
     real_genres_producers = np.zeros(len(all_genres), dtype=np.float64)
@@ -62,32 +60,23 @@ else:
     sum_popularities = 0
 
     # Find genres of all actors
-    with open("example-data/example-actors.txt", "w") as file:
-        for actor_id in movie["credits"]["cast"]:
-            actor = all_actors[actor_id]
-            try:
-                file.write(str(actor) + "\n")
-            except Exception:
-                pass
-            real_genres_actors += actor["genres"] / actor["played_movies"]
-            real_genres_actors += actor["genres"] / actor["played_movies"] * actor["popularity"]
-            # sum_popularities += actor["popularity"]
+    for actor_id in movie["credits"]["cast"]:
+        actor = all_actors[actor_id]
+        real_genres_actors += actor["genres"] / actor["played_movies"]
+        real_genres_actors += actor["genres"] / actor["played_movies"] * actor["popularity"]
+        # sum_popularities += actor["popularity"]
 
     # Find genres of all producers
-    with open("example-data/example-producers.txt", "w") as file:
-        for producer_id in movie["credits"]["crew"]:
-            producer = all_producers[producer_id]
-            file.write(str(producer) + "\n")
-            real_genres_producers += producer["genres"] / producer["produced_movies"]
-            real_genres_producers += producer["genres"] / producer["produced_movies"] * producer["popularity"]
-            # sum_popularities += producer["popularity"]
+    for producer_id in movie["credits"]["crew"]:
+        producer = all_producers[producer_id]
+        real_genres_producers += producer["genres"] / producer["produced_movies"]
+        real_genres_producers += producer["genres"] / producer["produced_movies"] * producer["popularity"]
+        # sum_popularities += producer["popularity"]
 
     # Find genres of all producers
-    with open("example-data/example-company.txt", "w") as file:
-        for company_id in movie["production_companies"]:
-            company = all_production_companies[company_id]
-            file.write(str(company) + "\n")
-            real_genres_production_companies += company["genres"] / company["financed_movies"]
+    for company_id in movie["production_companies"]:
+        company = all_production_companies[company_id]
+        real_genres_production_companies += company["genres"] / company["financed_movies"]
 
     # Find genres of the movie
     movie_gernes[movie["genres"]] += 1
