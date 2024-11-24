@@ -1,4 +1,6 @@
 # Ignore MacOS File
 .DS_Store
+
+# Ignore prootype data files
 prototype/data/*
 prototype/updated_data/*
