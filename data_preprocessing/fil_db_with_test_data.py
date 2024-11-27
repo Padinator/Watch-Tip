@@ -15,7 +15,7 @@ from threading import Thread, Semaphore
 # url_data_all_movies = "http://files.tmdb.org/p/exports/movie_ids_09_23_2024.json.gz"
 # url_data_all_producers_and_actors = "http://files.tmdb.org/p/exports/person_ids_09_23_2024.json.gz"
 # url_data_all_companies = "http://files.tmdb.org/p/exports/production_company_ids_09_23_2024.json.gz"
-api_key = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiNGY1YTQ0ZWM2NGM0YTY3NWY0NTJmMTFmMmVhY2QxYyIsIm5iZiI6MTcyNjk5OTc1My4xMzkwMDYsInN1YiI6IjY2ZWQ2MjQzNTc2ZTJjY2ExYWZlMDY1ZSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.8wWEC2bZ5fdXwWvpEfCGsJ6CNBDNA1gqCFiBGS0PNe4"
+api_key = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiNGY1YTQ0ZWM2NGM0YTY3NWY0NTJmMTFmMmVhY2QxYyIsIm5iZiI6MTczMTI0NzU1OC4wOTcxOTk0LCJzdWIiOiI2NmVkNjI0MzU3NmUyY2NhMWFmZTA2NWUiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.WPajvzzzoD8U1vqoJuwpkKFcczmFHZOFzb_1xhpDryM"
 abstract_url = "https://api.themoviedb.org/3/movie/movie_id?append_to_response=credits&language=en-US"
 headers = {
     "accept": "application/json",
@@ -99,61 +99,25 @@ with open("data/movie_ids_09_23_2024.json", "rb") as file:
                     # continue  # For single threaded execution
                     exit()  # For parallel execution with multiple threads 
 
-                data = {"id": data["id"], "imdb_id": data["imdb_id"], "original_title": data["original_title"], "overview": data["overview"], "popularity": data["popularity"],
-                        "budget": data["budget"], "genres": data["genres"], "production_companies": data["production_companies"], "revenue": data["revenue"], "credits": data["credits"]}
-
-                """
-                # Find new actors
-                for actor in data["credits"]["cast"]:
-                    all_actors[actor["id"]] = {"name": actor["name"], "gender": actor["gender"], "popularity": actor["popularity"]}
-                # all_actors.update([{"id": person["id"], "name": person["name"], "gender": person["gender"], "popularity": person["popularity"]} for person in data["credits"]["cast"]])
-
-                # Find new production crew members
-                for crew_member in data["credits"]["cast"]:
-                    all_producers[crew_member["id"]] = {"name": crew_member["name"], "gender": crew_member["gender"], "popularity": crew_member["popularity"]}
-                # all_producers.update([{"id": person["id"], "name": person["name"], "gender": person["gender"], "popularity": person["popularity"]} for person in data["credits"]["crew"]])
-
-                # Find new production companies
-                for company in data["production_companies"]:
-                    all_production_companies[company["id"]] = {"name": company["name"]}
-                # all_production_companies.update([{"id": company["id"], "name": company["name"]} for company in data["production_companies"]])
-                """
-
-                # Find new genres
-                """
-                for genre in data["genres"]:
-                    all_genres[genre["id"]] = {"name": genre["name"]}
-                # all_genres.update([{"id": genre["id"], "name": genre["name"]} for genre in data["genres"]])
-                """
+                # data = {"id": data["id"], "adult": data["adult"], "imdb_id": data["imdb_id"], "original_title": data["original_title"], "overview": data["overview"],
+                #         "popularity": data["popularity"], "budget": data["budget"], "genres": data["genres"],
+                #         "production_companies": data["production_companies"], "release_date": data["release_date"], "revenue": data["revenue"],
+                #         "runtime": data["runtime"], "status": data["status"], "vote_average": data["vote_average"], "vote_count": data["vote_count"],
+                #         "credits": data["credits"]}
 
                 # Remove duplicate infos from movie
-                data["credits"]["cast"] = [person["id"] for person in data["credits"]["cast"]]
-                data["credits"]["crew"] = [person["id"] for person in data["credits"]["crew"]]
+                data["credits"]["cast"] = [{"id": person["id"], "known_for_department": person["known_for_department"], "popularity": person["popularity"],
+                                            "profile_path": person["profile_path"] } for person in data["credits"]["cast"]]
+                data["credits"]["crew"] = [{"id": person["id"], "known_for_department": person["known_for_department"], "popularity": person["popularity"],
+                                            "profile_path": person["profile_path"], "department": person["department"], "job": person["job"]
+                                            } for person in data["credits"]["crew"]]
                 data["production_companies"] = [company["id"] for company in data["production_companies"]]
 
-                # 1. variant of genres
-                # data["genres"] = [genre["id"] for genre in data["genres"]]
-
-                # 2. variant of genres
-                # genre_indices = np.array([all_genres_indices[genre["id"]] for genre in data["genres"]], dtype=np.int64)
-                # data["genres"] = np.zeros(len(all_genres), dtype=np.int64)
-                # data["genres"][genre_indices] += 1
-
-                # 3. variant of genres
-                # data["genres"] = np.array([all_genres_indices[genre["id"]] for genre in data["genres"]])  # Convert genre IDs to indices for efficient updating values
-                data["genres"] = [all_genres_indices[genre["id"]] for genre in data["genres"]]  # Convert genre IDs to indices for efficient updating values
+                # Convert genre IDs to indices for efficient updating values
+                data["genres"] = [all_genres_indices[genre["id"]] for genre in data["genres"]]
 
                 # Add movies to list of all movies
-                """
-                with open("data/all_movies.txt", "a") as file:
-                    data_str = re.sub("\"", "'", str(data))
-                    data_str = re.sub("'", "\"", data_str)
-                    file.write(f"\t{data_str},\n")
-                """
                 all_movies.insert_one(data)  # Insert into database (parallel execution possible)
-
-#                 with open(index_of_next_movie_file, "w") as file:  # Update next index
-#                     file.write(str(i + 1))
 
                 # Save index, if index is maximum index => for savin next index while interrupting program
                 max_i_mutex.acquire()
@@ -198,22 +162,6 @@ with open("data/movie_ids_09_23_2024.json", "rb") as file:
             print("Terminate program with KeyboardInterrupt")
             exit(0)
 
-# Write all data to file
-"""
-with open("data/all_movies.txt", 'wb') as file:
-    pickle.dump(all_movies, file)
-"""
-
-"""
-with open("data/all_actors.txt", 'wb') as file:
-    pickle.dump(all_actors, file)
-
-with open("data/all_producers.txt", 'wb') as file:
-    pickle.dump(all_producers, file)
-
-with open("data/all_production_companies.txt", 'wb') as file:
-    pickle.dump(all_production_companies, file)
-"""
-
+# Write all genres to file
 with open("data/all_genres.txt", 'wb') as file:
     pickle.dump(all_genres, file)

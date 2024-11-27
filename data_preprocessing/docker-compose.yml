@@ -6,5 +6,5 @@ services:
     hostname: mongodb
     ports:
       - 27017:27017
-    volumes:
-      - ./updated_data/calculate_real_genres/${MONGO_BACKUP_FILE}:/mongo_backup/${MONGO_BACKUP_FILE}
+    # volumes:
+    #   - ./updated_data/calculate_real_genres/${MONGO_BACKUP_FILE}:/mongo_backup/${MONGO_BACKUP_FILE}
