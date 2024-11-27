@@ -1,18 +1,6 @@
-import unittest
+# content of test_sample.py
+def inc(x):
+    return x + 1
 
-def add(a, b):
-    return a + b
-
-class TestAddFunction(unittest.TestCase):
-    def test_add_positive_numbers(self):
-        self.assertEqual(add(1, 2), 3)
-
-    def test_add_negative_numbers(self):
-        self.assertEqual(add(-1, -2), -3)
-
-    def test_add_mixed_numbers(self):
-        self.assertEqual(add(1, -2), -1)
-        self.assertEqual(add(-1, 2), 1)
-
-if __name__ == '__main__':
-    unittest.main()
+def test_answer():
+    assert inc(4) == 5
