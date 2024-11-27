@@ -7,4 +7,4 @@ services:
     ports:
       - 27017:27017
     volumes:
-      - ./data/${MONGO_BACKUP_FILE}:/mongo_backup/${MONGO_BACKUP_FILE}
+      - ./updated_data/${MONGO_BACKUP_FILE}:/mongo_backup/${MONGO_BACKUP_FILE}
