@@ -2,5 +2,5 @@
 .DS_Store
 
 # Ignore prootype data files
-prototype/data/*
-prototype/updated_data/*
+data_preprocessing/data/*
+data_preprocessing/updated_data/*
