@@ -1,3 +1,4 @@
+import copy as cp
 import numpy as np
 import pickle
 import pymongo
@@ -80,6 +81,22 @@ def calculate_real_genres(movie: Dict[str, Any], all_actors: Dict[str, Dict[str,
     return real_genres
 
 
+def read_from_database_as_dict(db: pymongo.synchronous.database.Database, collection_name: str) -> Dict[int, Any]:
+    """Reads a collection from database and passes user a deep
+       copy for not manipulating the data by accident."""
+
+    data = {}
+
+    for entity in db[collection_name].find():  # Cursor for iterating over all genres
+        entity_id = entity["id"]
+        entity_copied = cp.copy(entity)
+        del entity_copied["_id"]
+        del entity_copied["id"]
+        data[entity_id] = entity_copied
+
+    return data
+
+
 if __name__ == "__main__":
     # Define variables
     all_actors = {}
@@ -95,28 +112,10 @@ if __name__ == "__main__":
     all_movies = mongodb["all_movies"]
 
     # Load all data sets from file/database
-    # Load and all genres from file
-    with open("data/all_genres.txt", 'rb') as file:
-        all_genres = pickle.loads(file.read())
-
-    # for i, (genre_id, genre) in enumerate(all_genres.items()):
-    #     print(f"{genre}: {i}")
-    # print()
-
-    # Load all movies from database
-    # all_movies_cursor = all_movies.find({})  # Cursor for iterating over all movies
-
-    # Load all updated actors from file
-    with open("updated_data/all_actors.txt", 'rb') as file:
-        all_actors = pickle.loads(file.read())
-
-    # Load all updated producer from file
-    with open("updated_data/all_producers.txt", 'rb') as file:
-        all_producers = pickle.loads(file.read())
-
-    # Load all updated production companies from file
-    with open("updated_data/all_production_companies.txt", 'rb') as file:
-        all_production_companies = pickle.loads(file.read())
+    all_genres = read_from_database_as_dict(mongodb, "all_genres")  # Load all genres
+    all_actors = read_from_database_as_dict(mongodb, "all_actors")  # Load all actors
+    all_producers = read_from_database_as_dict(mongodb, "all_producers")  # Load all producers
+    all_production_companies = read_from_database_as_dict(mongodb, "all_production_companies")  # Load all production companies
 
     # Calculate real genres for one movie
     # movie_to_get_genre = 1726  # 24: Kill Bill 1, 1726: Iron Man 1, 38757: Rapunzel
@@ -125,7 +124,7 @@ if __name__ == "__main__":
     # Calculate real genres for all movies
     i = 0
 
-    for movie in all_movies.find():
+    for movie in all_movies.find():  # Cursor for iterating over all movies
         if i % 100000 == 0:
             print(f"Iteration {i}")
 

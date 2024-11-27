@@ -90,7 +90,7 @@ for movie in all_movies_cursor:
     if len(movie_genres) == 0:  # Skip empty array
         skipped_movies += 1
         movie_str = str(movie)
-        with open("data/skipped_movies.txt", "w", encoding="utf-8") as file:
+        with open("updated_data/skipped_movies.txt", "w", encoding="utf-8") as file:
             file.write(f"{movie_str}\n")
         continue
 
@@ -155,6 +155,13 @@ with open("updated_data/all_producers.txt", 'wb') as file:
 with open("updated_data/all_production_companies.txt", 'wb') as file:
     pickle.dump(all_production_companies, file)
 '''
+
+# Write all genres
+all_genres_db = mongodb["all_genres"]
+
+for genre_id, genre in all_genres.items():
+    genre["id"] = genre_id
+    all_genres_db.insert_one(genre)
 
 # Write all updated actors
 all_actors_collection = mongodb["all_actors"]
