@@ -1,7 +1,7 @@
 name: Inspect code quality
 
-# on: [pull_request]
-on: [push]
+on: [pull_request]
+# on: [push]
 
 jobs:
   build:
