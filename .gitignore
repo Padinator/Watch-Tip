@@ -1,5 +1,9 @@
 # Ignore MacOS File
-.DS_Store
+*DS_Store
+
+# Ignore python files
+*__pycache__
+*venv
 
 # Ignore prootype data files
 data_preprocessing/data/*
