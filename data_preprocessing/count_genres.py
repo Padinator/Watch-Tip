@@ -1,40 +1,43 @@
 import copy as cp
 import json
 import numpy as np
-import pickle
-import pymongo
-import re
+
+import variables as vars
+
+from database.actor import Actors
+from database.genre import Genres
+from database.movie import Movies
+from database.producer import Producers
+from database.production_company import ProductionCompanies
 
 
 # Define variables
 all_actors = {}
 all_producers = {}
 all_production_companies = {}
-all_genres = {}
 all_genres_indices = {}
+skipped_movies_file_path = "updated_data/count_genres/skipped_movies.txt"
 
+# Connect to database
+all_movies_table = Movies()
+all_genres_table = Genres()
+all_actors_table = Actors()
+all_producers_table = Producers()
+all_production_companies_table = ProductionCompanies()
 
-# Connect to MongoDB
-mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")
-mongodb = mongo_client["watch_tip"]
-all_movies = mongodb["all_movies"]
+# Read all genres from database
+print("Read all genres from database")
+all_genres = all_genres_table.get_all()
+genre_counters = np.zeros(len(all_genres), dtype=np.float64)  # Add to each actor, producer and company all genres dict of counters starting with zero
 
-
-# Load and all genres from file
-print("\nRead all genres")
-with open("data/all_genres.txt", 'rb') as file:
-    all_genres = pickle.loads(file.read())
-
-genre_counters = np.zeros(len(all_genres))  # Add to each actor, producer and company all genres dict of counters starting with zero
-
-# Load all movies from database
-print("\nRead all movies")
-all_movies_cursor = all_movies.find({})  # Cursor for iterating over all movies
+# Read all movies from database
+print("\nRead all movies from database")
+all_movies = all_movies_table.get_all()  # Cursor for iterating over all movies
 
 # Load all actors from file
-print("\nRead all actors")
+print("\nRead all actors from file")
 
-with open("data/person_ids_09_23_2024.json", 'rb') as file:
+with open(vars.local_producers_and_actors_data_set_path, 'rb') as file:
     for i, line in enumerate(file.readlines()):
         if i % 500000 == 0:
             print(f"Iteration: {i}")
@@ -46,23 +49,24 @@ with open("data/person_ids_09_23_2024.json", 'rb') as file:
 
         # Save actor in dict of all actors
         actor_id = actor["id"]
-        # del actor["id"]
         all_actors[actor_id] = actor
 
+
 # Load all producer from file
-print("\nRead all producers")
+print("\nRead all producers from file")
 all_producers = cp.deepcopy(all_actors)
 
 for i, (producer_id, producer) in enumerate(all_producers.items()):
     if i % 500000 == 0:
-        print(f"Iteration: {i}")
+        print(f"Iteration: {i}", flush=True)
     producer["produced_movies"] = 0  # Add counter for produced movies
     del producer["played_movies"]  # Remove counter for played movies
+
 
 # Load all production companies from file
 print("\nRead all production companies")
 
-with open("data/production_company_ids_09_23_2024.json", 'rb') as file:  # {"id":1,"name":"Lucasfilm Ltd."}
+with open(vars.local_producer_company_data_set_path, 'rb') as file:  # {"id":1,"name":"Lucasfilm Ltd."}
     for line in file.readlines():
         if i % 50000 == 0:
             print(f"Iteration: {i}")
@@ -72,26 +76,22 @@ with open("data/production_company_ids_09_23_2024.json", 'rb') as file:  # {"id"
 
         # Save producer in dict of all production companies
         company_id = company["id"]
-        # del company["id"]
         all_production_companies[company_id] = company
 
 
 # Count genres for actors from movies
-print("\nCount real genres")
-skipped_movies = 0
+print("\nCount real genres of all movies")
+skipped_movies = []
 i = 0
 
-for movie in all_movies_cursor:
+for movie_id, movie in all_movies.items():
     if i % 10000 == 0:
         print(f"Iteration: {i}")
 
     movie_genres = movie["genres"]
 
     if len(movie_genres) == 0:  # Skip empty array
-        skipped_movies += 1
-        movie_str = str(movie)
-        with open("updated_data/skipped_movies.txt", "w", encoding="utf-8") as file:
-            file.write(f"{movie_str}\n")
+        skipped_movies.append(movie)
         continue
 
     # Count genres of all actors of a movie
@@ -112,6 +112,7 @@ for movie in all_movies_cursor:
     # Count genres of all producers of a movie
     for producer_id in movie["credits"]["crew"]:
         try:
+            producer_id = int(producer_id)
             all_producers[producer_id]["genres"][movie_genres] += 1  # Increment counters of each genre
             all_producers[producer_id]["produced_movies"] += 1
         except Exception as e:
@@ -141,54 +142,39 @@ for movie in all_movies_cursor:
 
     i += 1
 
-print(f"Skipped {skipped_movies} movies")
-
-
-# Write all updated data sets
-'''
-with open("updated_data/all_actors.txt", 'wb') as file:
-    pickle.dump(all_actors, file)
-
-with open("updated_data/all_producers.txt", 'wb') as file:
-    pickle.dump(all_producers, file)
-
-with open("updated_data/all_production_companies.txt", 'wb') as file:
-    pickle.dump(all_production_companies, file)
-'''
-
-# Write all genres
-all_genres_db = mongodb["all_genres"]
-
-for genre_id, genre in all_genres.items():
-    genre["id"] = genre_id
-    all_genres_db.insert_one(genre)
-
-# Write all updated actors
-all_actors_collection = mongodb["all_actors"]
+# Write all updated actors into database
+print("\nWrite all updated actors into database")
 
 for i, (actor_id, actor) in enumerate(all_actors.items()):
     if i % 500000 == 0:
         print(f"Iteration: {i}")
     actor["id"] = actor_id
     actor["genres"] = actor["genres"].tolist()
-    all_actors_collection.insert_one(actor)
+    all_actors_table.insert_one(actor)
 
-# Write all updated producers
-all_producers_collection = mongodb["all_producers"]
+# Write all updated producers into database
+print("\nWrite all updated producers into database")
 
 for i, (producer_id, producer) in enumerate(all_producers.items()):
     if i % 500000 == 0:
         print(f"Iteration: {i}")
     producer["id"] = producer_id
     producer["genres"] = producer["genres"].tolist()
-    all_producers_collection.insert_one(producer)
+    all_producers_table.insert_one(producer)
 
-# Write all updated production companies
-all_production_companies_collection = mongodb["all_production_companies"]
+# Write all updated production companies into database
+print("\nWrite all updated production companies into database")
 
 for i, (company_id, company) in enumerate(all_production_companies.items()):
     if i % 50000 == 0:
         print(f"Iteration: {i}")
     company["id"] = company_id
     company["genres"] = company["genres"].tolist()
-    all_production_companies_collection.insert_one(company)
+    all_production_companies_table.insert_one(company)
+
+
+# Save all skipped movies
+print(f"\nSkipped {len(skipped_movies)} movies")
+
+with open(skipped_movies_file_path, "w", encoding="utf-8") as file:
+    file.writelines([str(movie) + "\n" for movie in skipped_movies])

@@ -1,25 +1,42 @@
-import copy as cp
 import numpy as np
-import pickle
-import pymongo
 
+from threading import Thread, Semaphore
 from typing import Any, Dict
+
+from database.actor import Actors
+from database.genre import Genres
+from database.movie import Movies
+from database.producer import Producers
+from database.production_company import ProductionCompanies
 
 
 # Predfined optins for execution
 np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
 
 
-def calculate_real_genres(movie: Dict[str, Any], all_actors: Dict[str, Dict[str, Any]], all_producers: Dict[str, Dict[str, Any]],
-                          all_production_companies: Dict[str, Dict[str, str]]) -> float:
+# Define variables for logging errors while computing real genres
+error_file_actors =  "updated_data/calculate_real_genres/error_calc_real_genres_actors.txt"
+error_file_producers =  "updated_data/calculate_real_genres/error_calc_real_genres_producers.txt"
+error_file_production_companies =  "updated_data/calculate_real_genres/error_calc_real_genres_production_companies.txt"
+error_file_actors_sem = Semaphore(1)  # Mutex for accessing "error_file_actors"
+error_file_producers_sem = Semaphore(1)  # Mutex for accessing "error_file_producers"
+error_file_production_companies_sem = Semaphore(1)  # Mutex for accessing "error_file_production_companies"
+
+# Define variables for parallel execution
+COUNT_OF_MAX_RUNNING_THREADS = 16  # Windows: look up in task manager; Linux: look up with command "nproc" (output number of virtual CPUs)
+count_of_running_threads_sem = Semaphore(COUNT_OF_MAX_RUNNING_THREADS)
+
+
+def calculate_real_genres(all_movies_table: 'Movies', movie_id: int, movie: Dict[str, Any], all_actors: Dict[str, Dict[str, Any]], all_genres: Dict[int, Dict[str, str]],
+                          all_producers: Dict[str, Dict[str, Any]], all_production_companies: Dict[str, Dict[str, str]]) -> float:
     """Calculate real genres of a movie, based on the genres of its actors,
     producers and production comanies."""
 
-    movie_name = movie["original_title"]
-    movie_id = movie["_id"]
-    # print(f"Calculate real genres of {movie_name}")
+    global error_file_actors, error_file_producers, error_file_production_companies,\
+        error_file_actors_sem, error_file_producers_sem, error_file_production_companies_sem,\
+        count_of_running_threads_sem
 
-    # movie = all_movies[movie_to_get_genre]
+    # Define variables for computing and storing real genres
     real_genres_actors = np.zeros(len(all_genres), dtype=np.float64)
     real_genres_producers = np.zeros(len(all_genres), dtype=np.float64)
     real_genres_production_companies = np.zeros(len(all_genres), dtype=np.float64)
@@ -30,32 +47,39 @@ def calculate_real_genres(movie: Dict[str, Any], all_actors: Dict[str, Dict[str,
     for actor_id in movie["credits"]["cast"]:
         try:
             actor = all_actors[actor_id]
-            real_genres_actors += actor["genres"] / actor["played_movies"]
+            real_genres_actors += np.array(actor["genres"], dtype=np.float64) / actor["played_movies"]
+            # real_genres_actors += actor["genres"] / actor["played_movies"] * actor["popularity"]
+            # sum_popularities += actor["popularity"]
         except Exception as ex:
-            with open("updated_data/error_calc_real_genres_actors.txt", "a") as file:
+            error_file_actors_sem.acquire()
+            with open(error_file_actors, "a") as file:
                 file.write(f"Error: {str(ex), {movie_id}}\n")
-        # real_genres_actors += actor["genres"] / actor["played_movies"] * actor["popularity"]
-        # sum_popularities += actor["popularity"]
+            error_file_actors_sem.release()
 
     # Find genres of all producers
     for producer_id in movie["credits"]["crew"]:
         try:
+            producer_id = int(producer_id)
             producer = all_producers[producer_id]
-            real_genres_producers += producer["genres"] / producer["produced_movies"]
+            real_genres_producers += np.array(producer["genres"], dtype=np.float64) / producer["produced_movies"]
+            # real_genres_producers += producer["genres"] / producer["produced_movies"] * producer["popularity"]
+            # sum_popularities += producer["popularity"]
         except Exception as ex:
-            with open("updated_data/error_calc_real_genres_producers.txt", "a") as file:
+            error_file_producers_sem.acquire()
+            with open(error_file_producers, "a") as file:
                 file.write(f"Error: {str(ex), {movie_id}}\n")
-        # real_genres_producers += producer["genres"] / producer["produced_movies"] * producer["popularity"]
-        # sum_popularities += producer["popularity"]
+            error_file_producers_sem.release()
 
     # Find genres of all producers
     for company_id in movie["production_companies"]:
         try:
             company = all_production_companies[company_id]
-            real_genres_production_companies += company["genres"] / company["financed_movies"]
+            real_genres_production_companies += np.array(company["genres"], dtype=np.float64) / company["financed_movies"]
         except Exception as ex:
-            with open("updated_data/error_calc_real_genres_production_companies.txt", "a") as file:
+            error_file_production_companies_sem.acquire()
+            with open(error_file_production_companies, "a") as file:
                 file.write(f"Error: {str(ex), {movie_id}}\n")
+            error_file_production_companies_sem.release()
 
     # Find genres of the movie
     movie_gernes[movie["genres"]] += 1
@@ -76,59 +100,38 @@ def calculate_real_genres(movie: Dict[str, Any], all_actors: Dict[str, Dict[str,
     # print(f"Production company genres: {real_genres_production_companies}")
     # print(f"Movie genres: {movie_gernes}")
     # print(f"Sum of genres and actor genres: {(movie_gernes + real_genres_actors + real_genres_producers + real_genres_production_companies) * 100}")
-    # print(f"Normalized sum of genres and actor genres: {(movie_gernes + real_genres_actors + real_genres_producers + real_genres_production_companies) / 4 * 100}")
+    # print(f"Normized sum of genres and actor genres: {(movie_gernes + real_genres_actors + real_genres_producers + real_genres_production_companies) / 4 * 100}")
 
-    return real_genres
-
-
-def read_from_database_as_dict(db: pymongo.synchronous.database.Database, collection_name: str) -> Dict[int, Any]:
-    """Reads a collection from database and passes user a deep
-       copy for not manipulating the data by accident."""
-
-    data = {}
-
-    for entity in db[collection_name].find():  # Cursor for iterating over all genres
-        entity_id = entity["id"]
-        entity_copied = cp.copy(entity)
-        del entity_copied["_id"]
-        del entity_copied["id"]
-        data[entity_id] = entity_copied
-
-    return data
+    # Save real genres in database
+    res = all_movies_table.update_one_by_attr("id", movie_id, "real_genres", real_genres.tolist())
+    count_of_running_threads_sem.release()  # Thread is done calculating, another one can be created
+    return res
 
 
 if __name__ == "__main__":
-    # Define variables
-    all_actors = {}
-    all_producers = {}
-    all_production_companies = {}
-    all_genres = {}
-    all_genres_indices = {}
-    real_genres_of_a_movie = {}
+    # Connect to database
+    all_movies_table = Movies()
+    all_genres_table = Genres()
+    all_actors_table = Actors()
+    all_producers_table = Producers()
+    all_production_companies_table = ProductionCompanies()
 
-    # Connect to MongoDB
-    mongo_client = pymongo.MongoClient("mongodb://localhost:27017/")
-    mongodb = mongo_client["watch_tip"]
-    all_movies = mongodb["all_movies"]
-
-    # Load all data sets from file/database
-    all_genres = read_from_database_as_dict(mongodb, "all_genres")  # Load all genres
-    all_actors = read_from_database_as_dict(mongodb, "all_actors")  # Load all actors
-    all_producers = read_from_database_as_dict(mongodb, "all_producers")  # Load all producers
-    all_production_companies = read_from_database_as_dict(mongodb, "all_production_companies")  # Load all production companies
-
-    # Calculate real genres for one movie
-    # movie_to_get_genre = 1726  # 24: Kill Bill 1, 1726: Iron Man 1, 38757: Rapunzel
-    # movie = all_movies.find_one({"id": movie_to_get_genre})  # Cursor for iterating over all movies
+    # Read all entries from database
+    # Some movie IDs: 24 = Kill Bill 1; 1726 = Iron Man 1; 38757 = Rapunzel
+    all_movies = all_movies_table.get_all()
+    all_genres = all_genres_table.get_all()
+    all_actors = all_actors_table.get_all()
+    all_producers = all_producers_table.get_all()
+    all_production_companies = all_production_companies_table.get_all()
 
     # Calculate real genres for all movies
     i = 0
 
-    for movie in all_movies.find():  # Cursor for iterating over all movies
+    for movie_id, movie in all_movies.items():  # Cursor for iterating over all movies
         if i % 100000 == 0:
             print(f"Iteration {i}")
 
-        real_genres_of_a_movie = calculate_real_genres(movie, all_actors, all_producers, all_production_companies)
-        movie["real_genres"] = real_genres_of_a_movie
-        res = all_movies.find_one_and_update({"_id": movie["_id"]}, {"$set" : {"real_genres": real_genres_of_a_movie.tolist() }})
+        count_of_running_threads_sem.acquire()
+        t = Thread(target=calculate_real_genres, args=[all_movies_table, movie_id, movie, all_actors, all_genres, all_producers, all_production_companies])
+        t.start()
         i += 1
