@@ -8,5 +8,5 @@ class ProductionCompanies(m.DatabaseModel):
     """
 
     def __init__(self):
-        """"Creates an genre object for modifying genres in database"""
+        """"Creates a production company object for modifying production companies in database"""
         super().__init__(self._database_name, "all_production_companies")

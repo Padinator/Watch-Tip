@@ -8,5 +8,5 @@ class Actors(m.DatabaseModel):
     """
 
     def __init__(self):
-        """"Creates an genre object for modifying genres in database"""
+        """Creates an actor object for modifying actors in database"""
         super().__init__(self._database_name, "all_actors")

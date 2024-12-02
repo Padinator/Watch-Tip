@@ -3,6 +3,8 @@ import numpy as np
 from threading import Thread, Semaphore
 from typing import Any, Dict
 
+import helper.variables as vars
+
 from database.actor import Actors
 from database.genre import Genres
 from database.movie import Movies
@@ -15,9 +17,6 @@ np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
 
 
 # Define variables for logging errors while computing real genres
-error_file_actors =  "updated_data/calculate_real_genres/error_calc_real_genres_actors.txt"
-error_file_producers =  "updated_data/calculate_real_genres/error_calc_real_genres_producers.txt"
-error_file_production_companies =  "updated_data/calculate_real_genres/error_calc_real_genres_production_companies.txt"
 error_file_actors_sem = Semaphore(1)  # Mutex for accessing "error_file_actors"
 error_file_producers_sem = Semaphore(1)  # Mutex for accessing "error_file_producers"
 error_file_production_companies_sem = Semaphore(1)  # Mutex for accessing "error_file_production_companies"
@@ -52,7 +51,7 @@ def calculate_real_genres(all_movies_table: 'Movies', movie_id: int, movie: Dict
             # sum_popularities += actor["popularity"]
         except Exception as ex:
             error_file_actors_sem.acquire()
-            with open(error_file_actors, "a") as file:
+            with open(vars.calc_real_genres_error_file_actors, "a", encoding="utf-8") as file:
                 file.write(f"Error: {str(ex), {movie_id}}\n")
             error_file_actors_sem.release()
 
@@ -66,7 +65,7 @@ def calculate_real_genres(all_movies_table: 'Movies', movie_id: int, movie: Dict
             # sum_popularities += producer["popularity"]
         except Exception as ex:
             error_file_producers_sem.acquire()
-            with open(error_file_producers, "a") as file:
+            with open(vars.calc_real_genres_error_file_producers, "a", encoding="utf-8") as file:
                 file.write(f"Error: {str(ex), {movie_id}}\n")
             error_file_producers_sem.release()
 
@@ -77,7 +76,7 @@ def calculate_real_genres(all_movies_table: 'Movies', movie_id: int, movie: Dict
             real_genres_production_companies += np.array(company["genres"], dtype=np.float64) / company["financed_movies"]
         except Exception as ex:
             error_file_production_companies_sem.acquire()
-            with open(error_file_production_companies, "a") as file:
+            with open(vars.calc_real_genres_error_file_production_companies, "a", encoding="utf-8") as file:
                 file.write(f"Error: {str(ex), {movie_id}}\n")
             error_file_production_companies_sem.release()
 

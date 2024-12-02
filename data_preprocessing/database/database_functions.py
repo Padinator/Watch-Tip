@@ -43,7 +43,7 @@ def get_mongo_db_specific_collection(mongo_client: pymongo.MongoClient, collecti
     return collection
 
 
-def read_all_entries_from_database_as_dict(table: pymongo.synchronous.collection.Collection) -> List[Dict[str, Any]]:
+def read_all_entries_from_database_as_dict(table: pymongo.synchronous.collection.Collection) -> Dict[int, Dict[str, Any]]:
     """
         Reads a collection from database and passes user a deep
         copy for not manipulating the data by accident.
@@ -61,7 +61,7 @@ def read_all_entries_from_database_as_dict(table: pymongo.synchronous.collection
     return data
 
 
-def get_all_entries_from_database(table: pymongo.synchronous.collection.Collection) -> List[Dict[str, Any]]:
+def get_all_entries_from_database(table: pymongo.synchronous.collection.Collection) -> Dict[int, Dict[str, Any]]:
     """
         Reads all entries from passed collection from database and returns
         user a deep copy for not manipulating the data by accident.

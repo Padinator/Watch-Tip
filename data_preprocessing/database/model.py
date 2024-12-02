@@ -27,12 +27,13 @@ class DatabaseModel(ABC):
     # Create functions
     def insert_one(self, entity: Dict[str, Any]) -> Dict[str, Any]:
         """
-            Insert passed entity and returns it, if operation was successful.
+            Insert passed entity and returns it, if operation was successful
+            (parallel execution possible).
         """
         return dbf.insert_one_element(table=self._table, enitity=entity)
 
     # Read functions
-    def get_all(self) -> List[Dict[str, Any]]:
+    def get_all(self) -> Dict[int, Dict[str, Any]]:
         """
             Returns all existing entites.
         """
@@ -58,7 +59,8 @@ class DatabaseModel(ABC):
     def update_one_by_attr(self, attr: str, attr_value: Any, attr_to_update: str, attr_to_update_value: Any) -> Dict[str, Any]:
         """
             Updates entity with passed id 'id' by changes 'changes_on_entity'.
-            Returns saved object, if operation was successful.
+            Returns saved object, if operation was successful
+            (parallel execution possible).
         """
 
         return dbf.update_one_by_attr(table=self._table, attr=attr,
@@ -68,7 +70,8 @@ class DatabaseModel(ABC):
     def update_one_by_id(self, id: int, attr_to_update: str, attr_to_update_value: Any) -> Dict[str, Any]:
         """
             Updates entity with passed id 'id' by changes 'changes_on_entity'.
-            Returns saved object, if operation was successful.
+            Returns saved object, if operation was successful
+            (parallel execution possible).
         """
 
         return dbf.update_one_by_id(table=self._table, id=id,
@@ -79,7 +82,7 @@ class DatabaseModel(ABC):
     def delete_one_by_attr(self, attr: str, attr_value: Any) -> Dict[str, Any]:
         """
             Deletes entity with passed id 'id' and returns it, if
-            operation was successful.
+            operation was successful (parallel execution possible).
         """
 
         return dbf.delete_one_by_attr(table=self._table, attr=attr, attr_value=attr_value)
@@ -87,7 +90,7 @@ class DatabaseModel(ABC):
     def delete_one_by_id(self, id: int) -> Dict[str, Any]:
         """
             Deletes entity with passed id 'id' and returns it, if
-            operation was successful.
+            operation was successful (parallel execution possible).
         """
 
         return dbf.delete_one_by_id(table=self._table, id=id)
