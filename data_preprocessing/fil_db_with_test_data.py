@@ -6,7 +6,7 @@ import re
 import time
 
 from threading import Thread, Semaphore
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import helper.variables as vars
 
