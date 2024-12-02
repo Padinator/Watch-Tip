@@ -40,7 +40,7 @@ all_movies = all_movies_table.get_all()  # Cursor for iterating over all movies
 # Load all actors from file
 print("\nRead all actors from file")
 
-with open(vars.local_producers_and_actors_data_set_path, 'rb') as file:
+with open(vars.local_actors_file_path, 'rb') as file:
     for i, line in enumerate(file.readlines()):
         if i % 500000 == 0:
             print(f"Iteration: {i}")
@@ -58,20 +58,26 @@ with open(vars.local_producers_and_actors_data_set_path, 'rb') as file:
 
 # Load all producer from file
 print("\nRead all producers from file")
-all_producers = cp.deepcopy(all_actors)
 
-for i, (producer_id, producer) in enumerate(all_producers.items()):
-    if i % 500000 == 0:
-        print(f"Iteration: {i}", flush=True)
+with open(vars.local_producers_file_path, 'rb') as file:
+    for i, line in enumerate(file.readlines()):
+        if i % 500000 == 0:
+            print(f"Iteration: {i}")
 
-    producer["produced_movies"] = 0  # Add counter for produced movies
-    del producer["played_movies"]  # Remove counter for played movies
+        producer = json.loads(line.decode("utf-8"))
+        producer["id"] = int(producer["id"])
+        producer["popularity"] = float(producer["popularity"])
+        producer["genres"] = np.copy(genre_counters)
+
+        # Save producer in dict of all producers
+        producer_id = producer["id"]
+        all_producers[producer_id] = producer
 
 
 # Load all production companies from file
 print("\nRead all production companies")
 
-with open(vars.local_producer_company_data_set_path, 'rb') as file:  # {"id":1,"name":"Lucasfilm Ltd."}
+with open(vars.local_production_companies_file_path, 'rb') as file:  # {"id":1,"name":"Lucasfilm Ltd."}
     for line in file.readlines():
         if i % 50000 == 0:
             print(f"Iteration: {i}")

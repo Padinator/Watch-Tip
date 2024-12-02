@@ -25,10 +25,10 @@ missing_movies_file = fil_db_with_test_data_path / "missing_movies.txt"
 index_of_next_movie_file = fil_db_with_test_data_path / "index_of_next_movie.txt"
 all_reviews_tmp_data_file = fil_db_with_test_data_path / "all_reviews.pickle"
 
-# Define file paths for collected actors' IDs (fil_db_with_test_data.py)
-local_actors_ids_file_path = fil_db_with_test_data_path / "/all_actor_ids"
-local_producers_ids_file_path = fil_db_with_test_data_path / "all_producer_ids"
-local_producction_companies_ids_file_path = fil_db_with_test_data_path / "all_production_company_ids"
+# Define file paths for collected actors, producers and production companies (fil_db_with_test_data.py)
+local_actors_file_path = fil_db_with_test_data_path / "/all_actor.json"
+local_producers_file_path = fil_db_with_test_data_path / "all_producer.json"
+local_production_companies_file_path = fil_db_with_test_data_path / "all_production_company.json"
 
 # Define error file paths (count_genres.py)
 skipped_movies_file_path = count_genres_data_path / "skipped_movies.txt"
@@ -50,8 +50,10 @@ url_data_all_companies = f"http://files.tmdb.org/p/exports/{producer_company_dat
 api_key = "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiNGY1YTQ0ZWM2NGM0YTY3NWY0NTJmMTFmMmVhY2QxYyIsIm5iZiI6MTczMTI0NzU1OC4wOTcxOTk0LCJzdWIiOiI2NmVkNjI0MzU3NmUyY2NhMWFmZTA2NWUiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.WPajvzzzoD8U1vqoJuwpkKFcczmFHZOFzb_1xhpDryM"
 
 # Define URLs and for fetching detail data of movies and genres
-abstract_movie_url = "https://api.themoviedb.org/3/movie/movie_id?append_to_response=credits&language=en-US"
-abstract_movie_reviews_url = "https://api.themoviedb.org/3/movie/movie_id/reviews?language=en-US&page=page_number"
+abstract_movie_url = "https://api.themoviedb.org/3/movie/replace_id?append_to_response=credits&language=en-US"
+abstract_movie_reviews_url = "https://api.themoviedb.org/3/movie/replace_id/reviews?language=en-US&page=page_number"
+abstract_person_url = "https://api.themoviedb.org/3/person/replace_id?language=en-US"
+abstract_production_company_url = "https://api.themoviedb.org/3/company/replace_id"
 genre_url = "https://api.themoviedb.org/3/genre/movie/list?language=en"
 headers = {
     "accept": "application/json",
