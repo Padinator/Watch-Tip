@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import database.database_functions as dbf
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 
 class DatabaseModel(ABC):

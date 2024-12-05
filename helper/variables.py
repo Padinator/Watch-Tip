@@ -1,12 +1,13 @@
 from pathlib import Path
 
 
+# --------------- Define some variables for pre processing ---------------
 # Define some basic paths, where (updated) data will be stored
 original_data_path = Path("data")
 updated_data_path = Path("updated_data")
-fil_db_with_test_data_path = Path(f"{updated_data_path}/fil_db_with_test_data")
-count_genres_data_path = Path(f"{updated_data_path}/count_genres")
-calculate_real_genres_data_path = Path(f"{updated_data_path}/calculate_real_genres")
+fil_db_with_test_data_path = updated_data_path / "fil_db_with_test_data"
+count_genres_data_path = updated_data_path / "count_genres"
+calculate_real_genres_data_path = updated_data_path / "calculate_real_genres"
 
 # Define location of data sets
 data_set_date = "11_28_2024"
@@ -59,3 +60,10 @@ headers = {
     "accept": "application/json",
     "Authorization": f"Bearer {api_key}"
 }
+
+
+# --------------- Define some variables for feature extraction ---------------
+prepared_data_folder = Path("prepared_data")
+user_history_file_path_with_real_genres = prepared_data_folder / "user_histories_with_real_genres.pickle"
+user_history_file_path_with_real_genres_visualization = prepared_data_folder / "user_histories_with_real_genres.dataframe"
+extracted_features_file_path = prepared_data_folder / "extracted_features.pickle"

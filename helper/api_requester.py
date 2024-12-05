@@ -66,7 +66,7 @@ def request_movie_reviews(url: str, movie_id: int, page_number: int) -> Dict[str
         return {}
     else:
         # Save only important parts of recommendations (rc)
-        movie_reviews = dict([(rc["author_details"]["username"], {"movie_id": movie_id,
+        movie_reviews = dict([(rc["author_details"]["username"], {"movie_id": int(movie_id),
             "rating": rc["author_details"]["rating"], "id": rc["id"], "content": rc["content"],
             "created_at": rc["created_at"], "updated_at": rc["updated_at"], "url": rc["url"]})
             for rc in requested_data["results"]])

@@ -70,6 +70,18 @@ def get_all_entries_from_database(table: pymongo.synchronous.collection.Collecti
     return read_all_entries_from_database_as_dict(table=table)
 
 
+def get_entries_by_attr_from_database(table: pymongo.synchronous.collection.Collection, attr: str, attr_value: str) -> Dict[int, Dict[str, Any]]:
+    """
+        Reads all entries from passed collection from database matching the
+        value "attr_value" of the attribute "attr" and returns user a deep
+        copy for not manipulating the data by accident.
+    """
+
+    if attr == "" and attr_value == "":
+        return [cp.copy(entity) for entity in table.find()]
+    return [cp.copy(entity) for entity in table.find({attr: attr_value})]
+
+
 def get_one_by_attr(table: pymongo.synchronous.collection.Collection, attr: str, attr_value: Any) -> Dict[str, Any]:
     """
         Searches in database for a specific entity by the value 'attr_value' of the
