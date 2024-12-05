@@ -4,9 +4,13 @@ import os
 import pickle
 import re
 import time
+import sys
 
 from threading import Thread, Semaphore
 from typing import Any, Dict, List
+
+# ---------- Import own python files ----------
+sys.path.append("../")
 
 import helper.variables as vars
 

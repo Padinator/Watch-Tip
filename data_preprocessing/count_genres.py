@@ -1,8 +1,12 @@
 import copy as cp
 import json
 import numpy as np
+import sys
 
 from typing import Any, Dict
+
+# ---------- Import own python files ----------
+sys.path.append("../")
 
 import helper.parallelizer as para
 import helper.variables as vars
@@ -13,6 +17,8 @@ from database.model import DatabaseModel
 from database.movie import Movies
 from database.producer import Producers
 from database.production_company import ProductionCompanies
+
+exit()
 
 
 # Define variables

@@ -1,7 +1,11 @@
 import numpy as np
+import sys
 
 from threading import Thread, Semaphore
 from typing import Any, Dict
+
+# ---------- Import own python files ----------
+sys.path.append("../")
 
 import helper.variables as vars
 
