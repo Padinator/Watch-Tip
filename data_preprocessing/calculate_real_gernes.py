@@ -50,6 +50,8 @@ def calculate_real_genres(all_movies_table: 'Movies', movie_id: int, movie: Dict
     for actor_id in movie["credits"]["cast"]:
         try:
             actor = all_actors[actor_id]
+            if actor["played_movies"] == 0:
+                print(movie_id, actor)
             real_genres_actors += np.array(actor["genres"], dtype=np.float64) / actor["played_movies"]
             # real_genres_actors += actor["genres"] / actor["played_movies"] * actor["popularity"]
             # sum_popularities += actor["popularity"]
@@ -90,11 +92,21 @@ def calculate_real_genres(all_movies_table: 'Movies', movie_id: int, movie: Dict
     # movie_gernes *= len(movie["credits"]["cast"]) * sum_popularities / len(movie["credits"]["cast"])
 
     # Normize genres
+    non_zero_genres = 1
     # movie_gernes /= np.max(movie_gernes)  # Is already normized
-    real_genres_actors /= np.max(real_genres_actors)
-    real_genres_producers /= np.max(real_genres_producers)
-    real_genres_production_companies /= np.max(real_genres_production_companies)
-    real_genres = (movie_gernes + real_genres_actors + real_genres_producers + real_genres_production_companies) / 4 * 100
+
+    if np.any(real_genres_actors != 0):  # Avoid dividing by zero => nan array
+        real_genres_actors /= np.max(real_genres_actors)
+        non_zero_genres += 1
+
+    if np.any(real_genres_producers != 0):  # Avoid dividing by zero => nan array
+        real_genres_producers /= np.max(real_genres_producers)
+        non_zero_genres += 1
+
+    if np.any(real_genres_production_companies != 0):  # Avoid dividing by zero => nan array
+        real_genres_production_companies /= np.max(real_genres_production_companies)
+        non_zero_genres += 1
+    real_genres = (movie_gernes + real_genres_actors + real_genres_producers + real_genres_production_companies) / non_zero_genres * 100
 
     # Output results
     # print(f"Movie {movie['original_title']} before:\n{movie['genres']}")
@@ -102,8 +114,9 @@ def calculate_real_genres(all_movies_table: 'Movies', movie_id: int, movie: Dict
     # print(f"Producer genres: {real_genres_producers}")
     # print(f"Production company genres: {real_genres_production_companies}")
     # print(f"Movie genres: {movie_gernes}")
+    # print(f"Number of non-zero genres: {non_zero_genres}")
     # print(f"Sum of genres and actor genres: {(movie_gernes + real_genres_actors + real_genres_producers + real_genres_production_companies) * 100}")
-    # print(f"Normized sum of genres and actor genres: {(movie_gernes + real_genres_actors + real_genres_producers + real_genres_production_companies) / 4 * 100}")
+    # print(f"Normized sum of genres and actor genres: {(movie_gernes + real_genres_actors + real_genres_producers + real_genres_production_companies) / non_zero_genres * 100}")
 
     # Save real genres in database
     res = all_movies_table.update_one_by_attr("id", movie_id, "real_genres", real_genres.tolist())

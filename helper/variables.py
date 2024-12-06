@@ -32,7 +32,9 @@ local_producers_file_path = fil_db_with_test_data_path / "all_producer.json"
 local_production_companies_file_path = fil_db_with_test_data_path / "all_production_company.json"
 
 # Define error file paths (count_genres.py)
-skipped_movies_file_path = count_genres_data_path / "skipped_movies.txt"
+missing_actors_file_path = count_genres_data_path / "missing_actors.txt"
+missing_producers_file_path = count_genres_data_path / "missing_producers.txt"
+missing_production_companies_file_path = count_genres_data_path / "missing_production_companies.txt"
 
 # Define error file paths (calculate_real_genres.py)
 calc_real_genres_error_file_actors =  calculate_real_genres_data_path / "error_calc_real_genres_actors.txt"

@@ -18,8 +18,6 @@ from database.movie import Movies
 from database.producer import Producers
 from database.production_company import ProductionCompanies
 
-exit()
-
 
 # Define variables
 all_actors = {}
@@ -46,7 +44,8 @@ all_movies = all_movies_table.get_all()  # Cursor for iterating over all movies
 # Load all actors from file
 print("\nRead all actors from file")
 
-with open(vars.local_actors_file_path, 'rb') as file:
+# with open(vars.local_actors_file_path, 'rb') as file:
+with open("data/person_ids_11_28_2024.json", 'rb') as file:
     for i, line in enumerate(file.readlines()):
         if i % 500000 == 0:
             print(f"Iteration: {i}")
@@ -65,7 +64,8 @@ with open(vars.local_actors_file_path, 'rb') as file:
 # Load all producer from file
 print("\nRead all producers from file")
 
-with open(vars.local_producers_file_path, 'rb') as file:
+# with open(vars.local_producers_file_path, 'rb') as file:
+with open("data/person_ids_11_28_2024.json", 'rb') as file:
     for i, line in enumerate(file.readlines()):
         if i % 500000 == 0:
             print(f"Iteration: {i}")
@@ -74,6 +74,7 @@ with open(vars.local_producers_file_path, 'rb') as file:
         producer["id"] = int(producer["id"])
         producer["popularity"] = float(producer["popularity"])
         producer["genres"] = np.copy(genre_counters)
+        producer["produced_movies"] = 0
 
         # Save producer in dict of all producers
         producer_id = producer["id"]
@@ -83,7 +84,8 @@ with open(vars.local_producers_file_path, 'rb') as file:
 # Load all production companies from file
 print("\nRead all production companies")
 
-with open(vars.local_production_companies_file_path, 'rb') as file:  # {"id":1,"name":"Lucasfilm Ltd."}
+# with open(vars.local_production_companies_file_path, 'rb') as file:  # {"id":1,"name":"Lucasfilm Ltd."}
+with open("data/production_company_ids_11_28_2024.json", 'rb') as file:
     for line in file.readlines():
         if i % 50000 == 0:
             print(f"Iteration: {i}")
@@ -99,7 +101,7 @@ with open(vars.local_production_companies_file_path, 'rb') as file:  # {"id":1,"
 
 # Count genres for actors from movies
 print("\nCount real genres of all movies")
-skipped_movies = []
+missing_actors, missing_producers, missing_production_companies = {}, {}, {}
 
 for i, (movie_id, movie) in enumerate(all_movies.items()):
     movie = all_movies[movie_id]
@@ -108,10 +110,6 @@ for i, (movie_id, movie) in enumerate(all_movies.items()):
     if i % 10000 == 0:
         print(f"Iteration: {i}")
 
-    if movie["release_date"] == "":  # Skip movie without a release data
-        skipped_movies.append(movie)
-        continue
-
     # Count genres of all actors of a movie
     for actor_id in movie["credits"]["cast"]:
         try:
@@ -119,12 +117,15 @@ for i, (movie_id, movie) in enumerate(all_movies.items()):
             all_actors[actor_id]["played_movies"] += 1
         except Exception as e:
             if actor_id not in all_actors:  # Actor not in database
-                pass
+                if movie_id not in missing_actors:
+                    missing_actors[movie_id] = []
+                missing_actors[movie_id].append(actor_id)
             else:
                 print(e)
                 print(actor_id)
                 print(all_actors[actor_id])
                 print(all_actors[actor_id]["genres"])
+                print()
                 # raise e
 
     # Count genres of all producers of a movie
@@ -135,12 +136,15 @@ for i, (movie_id, movie) in enumerate(all_movies.items()):
             all_producers[producer_id]["produced_movies"] += 1
         except Exception as e:
             if producer_id not in all_producers:  # Producer not in database
-                pass
+                if movie_id not in missing_producers:
+                    missing_producers[movie_id] = []
+                missing_producers[movie_id].append(producer_id)
             else:
                 print(e)
                 print(producer_id)
                 print(all_producers[producer_id])
                 print(all_producers[producer_id]["genres"])
+                print()
                 # raise e
 
     # Count genres of all production companies of a movie
@@ -150,21 +154,37 @@ for i, (movie_id, movie) in enumerate(all_movies.items()):
             all_production_companies[company_id]["financed_movies"] += 1
         except Exception as e:
             if company_id not in all_production_companies:  # Production company not in database
-                pass
+                if movie_id not in missing_production_companies:
+                    missing_production_companies[movie_id] = []
+                missing_production_companies[movie_id].append(company_id)
             else:
                 print(e)
                 print(company_id)
                 print(all_production_companies[company_id])
                 print(all_production_companies[company_id]["genres"])
+                print()
                 # raise e
 
 
-# Save all skipped movies
-print(f"\nSkipped {len(skipped_movies)} movies")
+# Save number of missing actors, producers and production companies
+print(f"\nNumber of missing actors: {len(missing_actors)}")
+print(f"\nNumber of missing producers: {len(missing_producers)}")
+print(f"\nNumber of missing production companies: {len(missing_production_companies)}")
 
-with open(vars.skipped_movies_file_path, "w", encoding="utf-8") as file:
-    file.writelines([str(movie) + "\n" for movie in skipped_movies])
+with open(vars.missing_actors_file_path, "w", encoding="utf-8") as file:
+    for movie_id, actor_ids in missing_actors.items():
+        file.write(f"Movie ID: {movie_id}\n")
+        file.write(str(actor_ids) + "\n\n")
 
+with open(vars.missing_producers_file_path, "w", encoding="utf-8") as file:
+    for movie_id, producer_ids in missing_producers.items():
+        file.write(f"Movie ID: {movie_id}\n")
+        file.write(str(producer_ids) + "\n\n")
+
+with open(vars.missing_production_companies_file_path, "w", encoding="utf-8") as file:
+    for movie_id, production_company_ids in missing_production_companies.items():
+        file.write(f"Movie ID: {movie_id}\n")
+        file.write(str(production_company_ids) + "\n\n")
 
 
 def insert_one(table: 'DatabaseModel', id: int, entity: Dict[str, Any]) -> None:
