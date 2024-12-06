@@ -1,0 +1,34 @@
+1. Request API for data: ("fil_db_with_test_data.py")
+    - Start with downloading ".json"-files from TMDB with all actors, producers and production companies
+    - Requesting takes much time
+    - Parallelization lowers the requesting from ~80 sec per 1,000 movies to ~25 sec (16 threads)
+    -> Side effect: the server of TMDB blocks/don't respond client with too many requests
+    --> Some movies missing, request again
+
+    - Save actors playing in a movie and proof, if some actors in ".json"-file from TMDB are missing
+    -> Request these actors from API and extend local ".json"-file with all actors
+    -> Do same for producers and production companies
+
+    - Request API for each requested movie the reviews
+    -> One movie has eventually many reviews => takes more time to request all user reviews, than all movies (45sec with 60 threads)
+
+2. Count genres: ("count_genres.py")
+    - Count for each actor, in which genres of movies he played and the overall count of played movies
+    -> Same for producers with produced movies and for production companies with the financed movies
+    => What's with movies with missing data like genres, actors, producers, production companies, release data?
+        - Movies without a release data: 100,000 -> so can't ignore them + they have reviews
+        -> Same for other missing fields -> probably forgotten to input
+        => Work with missing fields/ignore missing fields as the absence of data is not important
+
+    - Write data of all actors, producers and productin companies into database
+    -> Writing sequentially millions of entries into database takes many hours
+
+3. Calculate real genres: ("calculate_real_genres.py")
+    - Takes parallelized (16 threads) ~4 hours
+
+4. Netflix prize data set not usable, because Netflix used movies names and release data that doesn't origin from any official
+   database like TMDB or IMDB (they said it)
+    - Many names of movies are not identical with names in TMDB
+    -> Finding similiar names parallelized (16 threads) takes probably 30 hours and then it's not clear, if the names are really correctly matched
+    --> Use for this e.g. Levenshtein distance
+    => Hardware for doing this is missing!!! => cannot be used, request reviews from TMDB and later form IMDB (many more reviews than TMDB)
