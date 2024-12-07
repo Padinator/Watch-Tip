@@ -4,7 +4,8 @@ import copy as cp
 import database.model as m
 import database.database_functions as dbf
 
-from typing import Any, Dict, override
+# from typing import Any, Dict, override
+from typing import Any, Dict
 
 
 class Users(m.DatabaseModel):
@@ -18,7 +19,7 @@ class Users(m.DatabaseModel):
         super().__init__(self._database_name, "all_users")
 
     # Read functions
-    @override
+    # @override
     def get_all(self) -> Dict[int, Dict[str, Any]]:
         """
             Returns all existing entites. This method uses the method
