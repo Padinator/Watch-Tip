@@ -73,7 +73,7 @@ def request_movie_reviews(url: str, movie_id: int, page_number: int) -> Dict[str
         total_pages = int(requested_data["total_pages"])
 
         if page_number + 1 <= total_pages:
-            further_reviews = request_movie_reviews(url, page_number + 1)
+            further_reviews = request_movie_reviews(url, movie_id, page_number + 1)
             movie_reviews.update(further_reviews)
 
         return movie_reviews
