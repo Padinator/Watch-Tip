@@ -4,9 +4,20 @@ import pandas as pd
 import sys
 import tensorflow as tf
 
+from sklearn.decomposition import PCA
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from typing import Any, Dict, List, Tuple
+
+# ---------- Import own python files ----------
+sys.path.append('../')
+
+import helper.variables as vars
+
+from database.movie import Movies
+from database.user import Users
+from database.genre import Genres
+from helper.file_system_interaction import load_object_from_file, save_object_in_file
 
 
 # Define constants
@@ -20,19 +31,6 @@ SEED = 1234
 EPSILON = 50
 INDEPENDENT_MAX_DIFF_PER_GENRE = 5
 NUMBER_OF_INTERVALS = 5
-
-
-# ---------- Import own python files ----------
-sys.path.append('../')
-
-import helper.variables as vars
-
-from database.movie import Movies
-from database.user import Users
-from database.genre import Genres
-from helper.file_system_interaction import load_object_from_file, save_object_in_file
-
-
 # nan_movies = []
 
 
@@ -231,16 +229,43 @@ if __name__ == "__main__":
     # print(nan_movies)
 
     # Visualize data
-    # df_user_movie_histories = load_object_from_file(vars.user_history_file_path_with_real_genres_visualization)
-    # print(df_user_movie_histories.iloc[68])
-    # print([i for i, row in df_user_movie_histories.iterrows() if row.isnull().any()])
+    # TODO: Look for mean genres
+    # TODO: Compare genres
+    # TODO: Cluster genres
+    # TODO: View history of movies, the user have watched => progress change of genres
+    # TODO: Eigene Loss-Funktion definieren
+    df_user_movie_histories = load_object_from_file(vars.user_history_file_path_with_real_genres_visualization)
+    pca = PCA(n_components=19)
+    res = pca.fit_transform(df_user_movie_histories.values[:,:-1])
+    print(pca.explained_variance_ratio_)
+    print(pca.explained_variance_)
+    df = pd.DataFrame(data=res, columns=[f"c{i}" for i in range(len(res[0]))])
+    
+    for col_i in df.columns:
+        for col_j in df.columns:
+            if col_i == col_j:  # Do a box plot
+                plt.boxplot(df[col_i])
+            else:
+                plt.scatter(df[col_i].values, df[col_j].values)
+                plt.title(f"Components: {col_i} and {col_j}")
+                plt.ylabel(f"component {col_j}")
+            plt.xlabel(f"component {col_i}")
+            plt.show()
+
+    # fig = plt.figure(figsize=(12, 12))
+    # ax = fig.add_subplot(projection='3d')
+    # colors = ["orange", "yellow", "red", "blue", "green", "purple", "black", "gold", "cyan", "bisque", "forestgreen", "deepskyblue", "slategrey", "violet", "salmon", "tan", "crimson", "lime", "darkgreen"]
+    # for i, column in enumerate(df.columns):
+    #     ax.scatter(list(range(df.shape[0])), df[column].values, [i * df.shape[0] // df.shape[1] for _ in range(df.shape[0])], color=colors[i])
+    plt.show()
+    exit()
 
     # Compute based on this extracted features
-    # user_movie_histories = load_object_from_file(vars.user_history_file_path_with_real_genres)
-    # used_histories, extracted_features = extract_features(user_movie_histories, HISTORY_LEN, MIN_MOVIE_HISTORY_LEN, fill_history_len_with_zero_movies=False)
-    # save_object_in_file(vars.extracted_features_file_path, (used_histories, extracted_features))
+    user_movie_histories = load_object_from_file(vars.user_history_file_path_with_real_genres)
+    used_histories, extracted_features = extract_features(user_movie_histories, HISTORY_LEN, MIN_MOVIE_HISTORY_LEN, fill_history_len_with_zero_movies=False)
+    save_object_in_file(vars.extracted_features_file_path, (used_histories, extracted_features))
 
-    # # Read extracted features
+    # Read extracted features
     used_histories, extracted_features = load_object_from_file(vars.extracted_features_file_path)
     shapes = set([len(f) for f, l in extracted_features])
     print(used_histories, shapes)
@@ -252,78 +277,79 @@ if __name__ == "__main__":
     test_data = extracted_features[train_data_len:]
 
     # Split data into X and y
-    X_train, y_train = np.array([np.array(x).ravel() for x, _ in train_data], dtype=np.float64), np.array([y for _, y in train_data], dtype=np.float64)
-    X_test, y_test = np.array([np.array(x).ravel() for x, _ in test_data], dtype=np.float64), np.array([y for _, y in test_data], dtype=np.float64)
-    # X_train, y_train = np.array([np.array(x) for x, _ in train_data], dtype=np.float64), np.array([y for _, y in train_data], dtype=np.float64)
-    # X_test, y_test = np.array([np.array(x) for x, _ in test_data], dtype=np.float64), np.array([y for _, y in test_data], dtype=np.float64)
+    # X_train, y_train = np.array([np.array(x).ravel() for x, _ in train_data], dtype=np.float64), np.array([y for _, y in train_data], dtype=np.float64)  # RFR
+    # X_test, y_test = np.array([np.array(x).ravel() for x, _ in test_data], dtype=np.float64), np.array([y for _, y in test_data], dtype=np.float64)  # RFR
+    X_train, y_train = np.array([np.array(x) for x, _ in train_data], dtype=np.float64), np.array([y for _, y in train_data], dtype=np.float64)  # LSTM
+    X_test, y_test = np.array([np.array(x) for x, _ in test_data], dtype=np.float64), np.array([y for _, y in test_data], dtype=np.float64)  # LSTM
     print(f"Train shapes: X: {X_train.shape}, y: {y_train.shape}")
     print(f"Test shapes: X: {X_test.shape}, y: {y_test.shape}")
 
     # Train model
-    # model = LinearRegression(positive=True)  # Only positive coefficients = no negative results/genres
-    """
-        criterion: friedman_mse < absolute_error == squared_error < poisson
-        max_features: log2 < sqrt < 19 < 1.0
-    """
-    model = RandomForestRegressor(random_state=SEED, n_estimators=2 * HISTORY_LEN,
-                                  max_features=19, criterion="poisson", max_depth=30,
-                                  min_samples_split=2, min_samples_leaf=1)
-    model.fit(X_train, y_train)
-
-    # Summarize model
-    print("Max depths of decision trees in forest:", [estimator.get_depth() for estimator in model.estimators_])
-    print(model.estimators_)  # Trees in the forest
-    print(model.n_features_in_)  # dimension of input features x = 190
-    print(model.feature_importances_)  # Contribution value of each value in features (dimension 190)
-    print(model.n_outputs_)  # dimension of outputs y = 19
-    print(model.oob_score)
-    print(model.get_params())
-
-    # Test model
     predictions = []
-    predictions = model.predict(X_test)
 
-    # # Define hyper parameters of the LSTM
-    # epochs = 12
-    # steps_per_epoch = 50
-    # batch_size = 3
+    # # model = LinearRegression(positive=True)  # Only positive coefficients = no negative results/genres
+    # """
+    #     Random Forest Regressor (RFR)
+    #     criterion: friedman_mse < absolute_error == squared_error < poisson
+    #     max_features: log2 < sqrt < 19 < 1.0
+    # """
+    # model = RandomForestRegressor(random_state=SEED, n_estimators=2 * HISTORY_LEN,
+    #                               max_features=19, criterion="poisson", max_depth=30,
+    #                               min_samples_split=2, min_samples_leaf=1)
+    # model.fit(X_train, y_train)
 
-    # # Build the LSTM
-    # model = tf.keras.models.Sequential([
-    #     # Shape [batch, time, features] => [batch, time, lstm_units]
-    #     tf.keras.layers.LSTM(32, return_sequences=True),
-    #     # Shape => [batch, time, features]
-    #     tf.keras.layers.Flatten(),
-    #     tf.keras.layers.Dense(19, activation="relu")
-    # ])
+    # # Summarize model
+    # print("Max depths of decision trees in forest:", [estimator.get_depth() for estimator in model.estimators_])
+    # print(model.estimators_)  # Trees in the forest
+    # print(model.n_features_in_)  # dimension of input features x = 190
+    # print(model.feature_importances_)  # Contribution value of each value in features (dimension 190)
+    # print(model.n_outputs_)  # dimension of outputs y = 19
+    # print(model.oob_score)
+    # print(model.get_params())
 
-    # # Compile/Set solver, loss and metrics
-    # model.compile(
-    #     optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
-    #     # optimizer='rmsprop',
-    #     loss=tf.keras.losses.BinaryCrossentropy(),
+    # # Test model
+    # predictions = model.predict(X_test)
+
+    # Define hyper parameters of the LSTM
+    epochs = 30
+    steps_per_epoch = 40
+    batch_size = 3
+
+    # Build the LSTM
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.LSTM(10, seed=SEED),  # , go_backwards=True),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(19, activation="relu")
+    ])
+
+    # Compile/Set solver, loss and metrics
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+        # optimizer='rmsprop',
+        loss=tf.keras.losses.BinaryCrossentropy(),
         
-    #     metrics=[
-    #         'acc'
-    #         # tf.keras.metrics.FalseNegatives(),
-    #         ],
-    # )
+        metrics=[
+            'acc'
+            # tf.keras.metrics.FalseNegatives(),
+            ],
+    )
 
-    # # Train und test model
-    # history = model.fit(X_train / 100, y_train / 100, validation_split=0.05, epochs=epochs, steps_per_epoch=steps_per_epoch, batch_size=batch_size)
-    # model.evaluate(X_test / 100, y_test / 100, batch_size=batch_size)
+    # Train und test model
+    history = model.fit(X_train / 100, y_train / 100, validation_split=0.05, epochs=epochs, steps_per_epoch=steps_per_epoch, batch_size=batch_size)
+    model.evaluate(X_test / 100, y_test / 100, batch_size=batch_size)
 
-    # # Plot accuracy
-    # plt.plot(history.history['acc'], label='accuracy')
-    # plt.legend()
-    # plt.show()
+    # Plot accuracy
+    plt.plot(history.history['acc'], label='accuracy')
+    plt.legend()
+    plt.show()
 
-    # # Plot loss
-    # plt.plot(history.history['loss'], label='loss')
-    # plt.legend()
+    # Plot loss
+    plt.plot(history.history['loss'], label='loss')
+    plt.legend()
+    plt.show()
 
-    # # Test model with own evaluation function
-    # predictions = model.predict(X_test / 100, batch_size=batch_size) * 100
+    # Test model with own evaluation function
+    predictions = model.predict(X_test / 100, batch_size=batch_size) * 100
     evaluate_model(y_test, predictions)
 
     # Output some predictions and true values/target labels
