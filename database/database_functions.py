@@ -1,7 +1,8 @@
 import copy as cp
-import pymongo
 
-from typing import Any, Dict, List
+from pymongo import MongoClient
+from pymongo.collection import Collection
+from typing import Any, Dict
 
 
 # Define basic URL
@@ -11,18 +12,18 @@ default_database_name = "watch_tip"
 
 
 # Connect function
-def connect_with_database(url: str=basic_database_url, port: int = default_port) -> pymongo.MongoClient:
+def connect_with_database(url: str=basic_database_url, port: int = default_port) -> MongoClient:
     """
         Connects to database and returns a database object
     """
 
-    return pymongo.MongoClient(f"{url}:{port}/")
+    return MongoClient(f"{url}:{port}/")
 
 
 # ------------------------- CRUD functions -------------------------
 # Crud functions will bee database specific (here MongoDB-specific)
 # Create functions
-def insert_one_element(table: pymongo.synchronous.collection.Collection, enitity: Dict) -> None:
+def insert_one_element(table: Collection, enitity: Dict) -> None:
     """
         Inserts the passed dictionary with any format into the database.
         The entity must have the correct format!
@@ -32,7 +33,7 @@ def insert_one_element(table: pymongo.synchronous.collection.Collection, enitity
 
 
 # Read functions
-def get_mongo_db_specific_collection(mongo_client: pymongo.MongoClient, collection_name: str, database_name: str=default_database_name):
+def get_mongo_db_specific_collection(mongo_client: MongoClient, collection_name: str, database_name: str=default_database_name):
     """
         Returns requested collection of MongoDB.
     """
@@ -43,7 +44,7 @@ def get_mongo_db_specific_collection(mongo_client: pymongo.MongoClient, collecti
     return collection
 
 
-def read_all_entries_from_database_as_dict(table: pymongo.synchronous.collection.Collection) -> Dict[int, Dict[str, Any]]:
+def read_all_entries_from_database_as_dict(table: Collection) -> Dict[int, Dict[str, Any]]:
     """
         Reads a collection from database and passes user a deep
         copy for not manipulating the data by accident.
@@ -61,7 +62,7 @@ def read_all_entries_from_database_as_dict(table: pymongo.synchronous.collection
     return data
 
 
-def get_all_entries_from_database(table: pymongo.synchronous.collection.Collection) -> Dict[int, Dict[str, Any]]:
+def get_all_entries_from_database(table: Collection) -> Dict[int, Dict[str, Any]]:
     """
         Reads all entries from passed collection from database and returns
         user a deep copy for not manipulating the data by accident.
@@ -70,7 +71,7 @@ def get_all_entries_from_database(table: pymongo.synchronous.collection.Collecti
     return read_all_entries_from_database_as_dict(table=table)
 
 
-def get_entries_by_attr_from_database(table: pymongo.synchronous.collection.Collection, attr: str, attr_value: str) -> Dict[int, Dict[str, Any]]:
+def get_entries_by_attr_from_database(table: Collection, attr: str, attr_value: str) -> Dict[int, Dict[str, Any]]:
     """
         Reads all entries from passed collection from database matching the
         value "attr_value" of the attribute "attr" and returns user a deep
@@ -82,7 +83,7 @@ def get_entries_by_attr_from_database(table: pymongo.synchronous.collection.Coll
     return [cp.copy(entity) for entity in table.find({attr: attr_value})]
 
 
-def get_one_by_attr(table: pymongo.synchronous.collection.Collection, attr: str, attr_value: Any) -> Dict[str, Any]:
+def get_one_by_attr(table: Collection, attr: str, attr_value: Any) -> Dict[str, Any]:
     """
         Searches in database for a specific entity by the value 'attr_value' of the
         attribute 'attr' and returns it.
@@ -91,7 +92,7 @@ def get_one_by_attr(table: pymongo.synchronous.collection.Collection, attr: str,
     return table.find_one({attr: attr_value})
 
 
-def get_one_by_id(table: pymongo.synchronous.collection.Collection, id: int) -> Dict[str, Any]:
+def get_one_by_id(table: Collection, id: int) -> Dict[str, Any]:
     """
         Searches in database for a specific entity by the passed ID and
         returns found entity.
@@ -101,7 +102,7 @@ def get_one_by_id(table: pymongo.synchronous.collection.Collection, id: int) -> 
 
 
 # Update functions
-def update_one_by_attr(table: pymongo.synchronous.collection.Collection, attr: str, attr_value: Any,
+def update_one_by_attr(table: Collection, attr: str, attr_value: Any,
                        attr_to_update: str, attr_to_update_value: Any) -> Dict[str, Any]:
     """
         Searches in database for a specific entity by the value 'attr_value' of the
@@ -113,7 +114,7 @@ def update_one_by_attr(table: pymongo.synchronous.collection.Collection, attr: s
         {"$set" : {attr_to_update: attr_to_update_value }})
 
 
-def update_one_by_id(table: pymongo.synchronous.collection.Collection, id: int,
+def update_one_by_id(table: Collection, id: int,
                      attr_to_update: str, attr_to_update_value: Any) -> Dict[str, Any]:
     """
         Searches in database for a specific entity by the passed ID, updates
@@ -128,7 +129,7 @@ def update_one_by_id(table: pymongo.synchronous.collection.Collection, id: int,
 
 # Delete functions
 # Update functions
-def delete_one_by_attr(table: pymongo.synchronous.collection.Collection, attr: str, attr_value: Any) -> Dict[str, Any]:
+def delete_one_by_attr(table: Collection, attr: str, attr_value: Any) -> Dict[str, Any]:
     """
         Searches in database for a specific entity by the value 'attr_value'
         of the attribute 'attr', deletes the found entity and returns
@@ -138,7 +139,7 @@ def delete_one_by_attr(table: pymongo.synchronous.collection.Collection, attr: s
     return table.find_one_and_delete({attr: attr_value})
 
 
-def delete_one_by_id(table: pymongo.synchronous.collection.Collection, id: int) -> Dict[str, Any]:
+def delete_one_by_id(table: Collection, id: int) -> Dict[str, Any]:
     """
         Searches in database for a specific entity by the passed ID, deletes
         the found entity and returns the modified entity.
