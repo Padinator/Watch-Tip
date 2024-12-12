@@ -19,6 +19,8 @@ Necessary packages:
 - nvidia::cuda-cupti
 - cudatoolkit=10.1.243
 
-Command for building anaconda environment under Windows:
+Commands for building anaconda environment under Windows:
 
 conda create --name kint python=3 pymongo pandas numba numpy matplotlib pathlib scipy seaborn statsmodels numba scikit-learn cudnn nvidia::cuda-cupti cudatoolkit=10.1.243
+conda activate kint
+python -m pip install "tensorflow<2.11"
