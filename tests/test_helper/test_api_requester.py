@@ -36,7 +36,6 @@ class TestApiRequester(unittest.TestCase):
 
         self.assertEqual(result, {})
 
-    # TODO: Is this test realy correct so???
     @patch('helper.api_requester.requests.get')
     def test_request_url_status_429(self, request):
         """ Test the method 'request_url' with status code 429 """
@@ -45,11 +44,8 @@ class TestApiRequester(unittest.TestCase):
 
         request.return_value = response
 
-        # with self.assertRaises(Exception) as result:
-        #     request_url("https://www.test.com", max_retries=1)
         result = request_url("https://www.test.com", max_retries=1, connection_error_timeout=1)
 
-        # self.assertEqual("Too many requests, try again", str(result.exception))
         self.assertEqual(result, {})
 
     @patch("helper.api_requester.request_url")
