@@ -13,7 +13,7 @@ class TestApiRequester(unittest.TestCase):
         response = MagicMock()
         response.status_code = 200
 
-        with open("tests/test_jsons_files/test_request_url_status_200.json") as json_file:
+        with open("tests/test_jsons_files/test_api_requester_jsons/test_request_url_status_200.json") as json_file:
             test_json_file = json.load(json_file)
 
         response.json.return_value = test_json_file
@@ -53,7 +53,7 @@ class TestApiRequester(unittest.TestCase):
         """Test the method 'request_movie' successfully"""
         movie_id = 1
 
-        with open ("tests/test_jsons_files/test_request_movie_successfully.json") as json_file:
+        with open ("tests/test_jsons_files/test_api_requester_jsons/test_request_movie_successfully.json") as json_file:
             test_json_file = json.load(json_file)
 
         request.return_value = test_json_file
@@ -87,7 +87,7 @@ class TestApiRequester(unittest.TestCase):
     def test_request_movie_single_page(self, request):
         """Test the method 'request_movie_reviews' with one single page"""
 
-        with open ("tests/test_jsons_files/test_request_movie_single_page.json") as json_file:
+        with open ("tests/test_jsons_files/test_api_requester_jsons/test_request_movie_single_page.json") as json_file:
             test_json_file = json.load(json_file)
 
         request.return_value = test_json_file
@@ -106,7 +106,7 @@ class TestApiRequester(unittest.TestCase):
     def test_request_movie_multiple_page(self, request):
         """Test the method 'request_movie_reviews' with multiple pages"""
 
-        with open ("tests/test_jsons_files/test_request_movie_multiple_page.json") as json_file:
+        with open ("tests/test_jsons_files/test_api_requester_jsons/test_request_movie_multiple_page.json") as json_file:
             test_json_file = json.load(json_file)
 
         request.side_effect = [test_json_file[0], test_json_file[1]]

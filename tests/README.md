@@ -16,7 +16,7 @@ pip install -r requirements.txt
 ```
 
 ## Running tests
-To run the tests, execute the following command in your terminal
+To run the tests, execute the following command in the base directory of this project in your terminal
 ```bash
 python3 -m pytest
 ```
