@@ -37,7 +37,7 @@ def save_json_objects_in_file(path: Path, json_objects: List[Any]) -> None:
 
     with open(path, "w", encoding="utf-8") as file:
         for obj in json_objects:
-            json.dump(obj)
+            json.dump(obj, file)
             file.write("\n")  # Each object will be saved on its own line
 
 
