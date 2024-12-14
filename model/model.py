@@ -31,67 +31,6 @@ SEED = 1234
 EPSILON = 50
 INDEPENDENT_MAX_DIFF_PER_GENRE = 5
 NUMBER_OF_INTERVALS = 5
-# nan_movies = []
-
-
-def find_real_genres_to_all_user_movies(movies: Dict[int, Dict[str, Any]], users: Dict[int, Dict[str, Any]]) -> Dict[int, List[np.array]]:
-    """
-        Find real genres of users (= watched movies) with real genres of movies.
-        Returns a dict of all movies as real genres = numpy arrays.
-    """
-
-    user_movie_histories = {}
-    i = 0
-
-    for user_id, reviews in users.items():
-        reviews = dict(sorted(reviews.items()))  # Sort user reviews by creation date
-        user_movie_histories[user_id] = []
-
-        for _, review in reviews.items():
-            if i % 1000 == 0:
-                print(f"Iteration: {i}")
-            movie_id = int(review["movie_id"])
-            real_movie_genres = movies[movie_id]["real_genres"]
-            user_movie_histories[user_id].append(np.array(real_movie_genres, dtype=np.float64))
-            i += 1
-
-    return user_movie_histories
-
-
-def find_real_genres_to_all_user_movies_for_visualization(movies: Dict[int,
-        Dict[str, Any]], users: Dict[int, Dict[str, Any]],
-        genres: Dict[int, Dict[str, str]]) -> pd.DataFrame:
-    """
-        Find real genres of users (= watched movies) with real genres of movies.
-        Returns a pandas DataFrame containing all movies with real genres
-        watched by users. It's useful for visualizations and analyzations of
-        read data.
-    """
-
-    # global nan_movies
-
-    genre_names = [genre["name"] for genre in genres.values()]
-    user_movie_histories = dict(zip(genre_names + ["username"], [[] for _ in range(len(genre_names) + 1)]))
-    i = 0
-
-    for user_id, reviews in users.items():
-        reviews = dict(sorted(reviews.items()))  # Sort user reviews by creation date
-
-        for _, review in reviews.items():
-            if i % 1000 == 0:
-                print(f"Iteration: {i}")
-            movie_id = int(review["movie_id"])
-            real_movie_genres = movies[movie_id]["real_genres"]
-
-            for j, genre in enumerate(genre_names):
-                user_movie_histories[genre].append(real_movie_genres[j])
-            user_movie_histories["username"].append(user_id)
-            i += 1
-
-            # if np.isnan(np.min(real_movie_genres)):
-            #     nan_movies.append(movie_id)
-
-    return pd.DataFrame(user_movie_histories)
 
 
 def extract_features(user_movie_histories: Dict[int, List[np.array]],
@@ -208,56 +147,15 @@ def evaluate_model(y_test: np.array, predictions: np.array) -> float:
     return len(correct_classifications_distances) / len(distances)
 
 
-
 if __name__ == "__main__":
     # Set seed
     np.random.seed(SEED)
     tf.random.set_seed(SEED)
 
-    # Read data from database
-    # all_movies = Movies().get_all()
-    # all_users = Users().get_all()
-    # all_genres = Genres().get_all()
-
-    # Find real genres to movies, users have watched
-    # user_movie_histories = find_real_genres_to_all_user_movies(all_movies, all_users)
-    # save_object_in_file(vars.user_history_file_path_with_real_genres, user_movie_histories)
-
-    # Read data again and create a pandas DataFrame with the 
-    # df_user_movie_histories = find_real_genres_to_all_user_movies_for_visualization(all_movies, all_users, all_genres)
-    # save_object_in_file(vars.user_history_file_path_with_real_genres_visualization, df_user_movie_histories)
-    # print(nan_movies)
-
     # Visualize data
     # TODO: Look for mean genres
     # TODO: Compare genres
-    # TODO: Cluster genres
     # TODO: Eigene Loss-Funktion definieren
-    df_user_movie_histories = load_object_from_file(vars.user_history_file_path_with_real_genres_visualization)
-    pca = PCA(n_components=19)
-    res = pca.fit_transform(df_user_movie_histories.values[:,:-1])
-    print(pca.explained_variance_ratio_)
-    print(pca.explained_variance_)
-    df = pd.DataFrame(data=res, columns=[f"c{i}" for i in range(len(res[0]))])
-    
-    for col_i in df.columns:
-        for col_j in df.columns:
-            if col_i == col_j:  # Do a box plot
-                plt.boxplot(df[col_i])
-            else:
-                plt.scatter(df[col_i].values, df[col_j].values)
-                plt.title(f"Components: {col_i} and {col_j}")
-                plt.ylabel(f"component {col_j}")
-            plt.xlabel(f"component {col_i}")
-            plt.show()
-
-    # fig = plt.figure(figsize=(12, 12))
-    # ax = fig.add_subplot(projection='3d')
-    # colors = ["orange", "yellow", "red", "blue", "green", "purple", "black", "gold", "cyan", "bisque", "forestgreen", "deepskyblue", "slategrey", "violet", "salmon", "tan", "crimson", "lime", "darkgreen"]
-    # for i, column in enumerate(df.columns):
-    #     ax.scatter(list(range(df.shape[0])), df[column].values, [i * df.shape[0] // df.shape[1] for _ in range(df.shape[0])], color=colors[i])
-    plt.show()
-    exit()
 
     # Compute based on this extracted features
     user_movie_histories = load_object_from_file(vars.user_history_file_path_with_real_genres)
