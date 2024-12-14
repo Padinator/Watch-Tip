@@ -232,7 +232,6 @@ if __name__ == "__main__":
     # TODO: Look for mean genres
     # TODO: Compare genres
     # TODO: Cluster genres
-    # TODO: View history of movies, the user have watched => progress change of genres
     # TODO: Eigene Loss-Funktion definieren
     df_user_movie_histories = load_object_from_file(vars.user_history_file_path_with_real_genres_visualization)
     pca = PCA(n_components=19)
