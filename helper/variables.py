@@ -64,8 +64,13 @@ headers = {
 }
 
 
-# --------------- Define some variables for feature extraction ---------------
+# ---------------- Define some variables for data preparation ----------------
 prepared_data_folder = Path("prepared_data")
 user_history_file_path_with_real_genres = prepared_data_folder / "user_histories_with_real_genres.pickle"
 user_history_file_path_with_real_genres_visualization = prepared_data_folder / "user_histories_with_real_genres.dataframe"
-extracted_features_file_path = prepared_data_folder / "extracted_features.pickle"
+user_history_file_path_with_real_genres_and_reduced_dimensions = prepared_data_folder / "user_histories_with_real_genres_and_reduced_dimensions.pickle"
+user_history_file_path_with_real_genres_and_reduced_dimensions_visualization = prepared_data_folder / "user_histories_with_real_genres_and_reduced_dimensions.dataframe"
+
+# --------------- Define some variables for feature extraction ---------------
+extracted_features_folder = Path("extracted_features")
+extracted_features_file_path = extracted_features_folder / "extracted_features.pickle"
