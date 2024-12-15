@@ -6,11 +6,13 @@ import re
 import time
 import sys
 
+from pathlib import Path
 from threading import Thread, Semaphore
 from typing import Any, Dict, List
 
-# ---------- Import own python files ----------
-sys.path.append("../")
+# ---------- Import own python modules ----------
+project_dir = Path(__file__).parents[1]
+sys.path.append(str(project_dir))
 
 import helper.variables as vars
 

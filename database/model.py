@@ -1,7 +1,15 @@
-from abc import ABC, abstractmethod
-import database.database_functions as dbf
+import sys
 
+from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any, Dict
+# from typing import Any, Dict, override
+
+# ---------- Import own python modules ----------
+project_dir = Path(__file__).parents[1]
+sys.path.append(str(project_dir))
+
+import database.database_functions as dbf
 
 
 class DatabaseModel(ABC):

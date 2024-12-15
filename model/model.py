@@ -4,14 +4,16 @@ import pandas as pd
 import sys
 import tensorflow as tf
 
+from pathlib import Path
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.layers import Bidirectional, Dense, Dropout, Embedding, LSTM
 from typing import Dict, List, Tuple
 
-# ---------- Import own python files ----------
-sys.path.append('../')
+# ---------- Import own python modules ----------
+project_dir = Path(__file__).parents[1]
+sys.path.append(str(project_dir))
 
 import helper.variables as vars
 

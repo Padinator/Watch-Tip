@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-# ---------- Import own python files ----------
+# ---------- Import own python modules ----------
 project_dir = Path(__file__).parents[2]
 sys.path.append(str(project_dir))
 

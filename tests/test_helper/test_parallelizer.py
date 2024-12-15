@@ -3,7 +3,7 @@ import unittest
 
 from pathlib import Path
 
-# ---------- Import own python files ----------
+# ---------- Import own python modules ----------
 project_dir = Path(__file__).parents[2]
 sys.path.append(str(project_dir))
 
