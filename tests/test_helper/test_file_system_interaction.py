@@ -17,14 +17,20 @@ from helper.file_system_interaction import (
 )
 
 
+# Define constants
+BASIC_PATH = Path("../test_jsons_files/test_file_system_interaction_jsons")
+
+
 class TestFileSystemInteraction(unittest.TestCase):
+
+    def setUp(self):
+        self.__test_object_path = BASIC_PATH / "test_object.json"
+        self.__test_object_in_separate_line = BASIC_PATH / "test_object_in_separate_line.json"
 
     def test_save_object_in_file(self):
         """Test the method 'save_object_in_file' in file_system_interaction.py"""
 
-        with open(
-            "tests/test_jsons_files/test_file_system_interaction_jsons/test_object.json"
-        ) as json_file:
+        with open(self.__test_object_path) as json_file:
             test_json_file = json.load(json_file)
             
         with NamedTemporaryFile(delete=False, mode="wb") as temp_file:
@@ -37,17 +43,13 @@ class TestFileSystemInteraction(unittest.TestCase):
                 loaded_data = pickle.load(file)
 
             self.assertEqual(loaded_data, test_json_file)
-
         finally:
             temp_path.unlink()
-
 
     def test_load_object_from_file(self):
         """Test the method 'load_object_from_file' in file_system_interaction.py"""
 
-        with open(
-            "tests/test_jsons_files/test_file_system_interaction_jsons/test_object.json"
-        ) as json_file:
+        with open(self.__test_object_path) as json_file:
             test_json_file = json.load(json_file)
 
         with NamedTemporaryFile(delete=False, mode="wb") as temp_file:
@@ -56,18 +58,14 @@ class TestFileSystemInteraction(unittest.TestCase):
 
         try:
             loaded_data = load_object_from_file(temp_path)
-
             self.assertEqual(loaded_data, test_json_file)
-
         finally:
             temp_path.unlink()
 
     def test_save_json_objects_in_file(self):
         """Test the method 'save_json_objects_in_file' in file_system_interaction.py"""
 
-        with open(
-            "tests/test_jsons_files/test_file_system_interaction_jsons/test_object.json"
-        ) as json_file:
+        with open(self.__test_object_path) as json_file:
             test_json_file = json.load(json_file)
 
         with NamedTemporaryFile(delete=False, mode="w", suffix=".json") as temp_file:
@@ -80,18 +78,12 @@ class TestFileSystemInteraction(unittest.TestCase):
                 lines = file.readlines()
 
             result = [json.loads(line.strip()) for line in lines]
-
             self.assertEqual(result, test_json_file)
-
         finally:
             temp_path.unlink()
 
     def test_load_json_objects_from_file(self):
         """Test the method 'load_json_objects_from_file' in file_system_interaction.py"""
-
-        path = Path(
-            "tests/test_jsons_files/test_file_system_interaction_jsons/test_object_in_separate_line.json"
-        )
 
         expected_result = [
             {"title": "Iron Man", "genre": "Sci-Fi"},
@@ -103,6 +95,5 @@ class TestFileSystemInteraction(unittest.TestCase):
             {"title": "The Godfather", "genre": "Crime"},
         ]
 
-        result = load_json_objects_from_file(path)
-
+        result = load_json_objects_from_file(self.__test_object_in_separate_line)
         self.assertEqual(result, expected_result)
