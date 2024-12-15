@@ -7,8 +7,8 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 # ---------- Import own python files ----------
-sys.path.append('../../')
-print(__file__)
+project_dir = Path(__file__).parents[2]
+sys.path.append(str(project_dir))
 
 from helper.file_system_interaction import (
     save_object_in_file,
@@ -19,7 +19,7 @@ from helper.file_system_interaction import (
 
 
 # Define constants
-BASIC_PATH = Path("../test_jsons_files/test_file_system_interaction_jsons")
+BASIC_PATH = project_dir / "tests/test_jsons_files/test_file_system_interaction_jsons"
 
 
 class TestFileSystemInteraction(unittest.TestCase):
