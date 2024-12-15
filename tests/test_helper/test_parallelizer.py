@@ -1,5 +1,8 @@
-import json
+import sys
 import unittest
+
+# ---------- Import own python files ----------
+sys.path.append('../')
 
 from helper.parallelizer import parallelize_task_and_return_results
 

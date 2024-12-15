@@ -1,8 +1,13 @@
 import json
+import sys
 import unittest
 
-from helper.api_requester import request_url, request_movie, request_movie_reviews
 from unittest.mock import patch, MagicMock
+
+# ---------- Import own python files ----------
+sys.path.append('../')
+
+from helper.api_requester import request_url, request_movie, request_movie_reviews
 
 
 class TestApiRequester(unittest.TestCase):

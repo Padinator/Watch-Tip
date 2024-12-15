@@ -1,6 +1,13 @@
 import json
 import pickle
+import sys
 import unittest
+
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+
+# ---------- Import own python files ----------
+sys.path.append('../')
 
 from helper.file_system_interaction import (
     save_object_in_file,
@@ -8,9 +15,6 @@ from helper.file_system_interaction import (
     save_json_objects_in_file,
     load_json_objects_from_file,
 )
-from unittest.mock import patch, mock_open
-from pathlib import Path
-from tempfile import NamedTemporaryFile
 
 
 class TestFileSystemInteraction(unittest.TestCase):
