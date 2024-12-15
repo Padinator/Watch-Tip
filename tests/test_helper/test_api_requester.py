@@ -6,15 +6,14 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 # ---------- Import own python files ----------
-sys.path.append('../')
-sys.path.append('../../')
-sys.path.append('../../../')
+project_dir = Path(__file__).parents[2]
+sys.path.append(str(project_dir))
 
 from helper.api_requester import request_url, request_movie, request_movie_reviews
 
 
 # Define constants
-BASIC_PATH = Path("../test_jsons_files/test_api_requester_jsons")
+BASIC_PATH = project_dir / "tests/test_jsons_files/test_api_requester_jsons"
 
 
 class TestApiRequester(unittest.TestCase):
