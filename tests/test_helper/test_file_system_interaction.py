@@ -7,7 +7,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 # ---------- Import own python files ----------
-sys.path.append('../')
+sys.path.append('../../')
 
 from helper.file_system_interaction import (
     save_object_in_file,
