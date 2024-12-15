@@ -6,7 +6,9 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 # ---------- Import own python files ----------
+sys.path.append('../')
 sys.path.append('../../')
+sys.path.append('../../../')
 
 from helper.api_requester import request_url, request_movie, request_movie_reviews
 
