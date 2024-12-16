@@ -23,7 +23,7 @@ jobs:
     - name: Lint with flake8
       run: |
         # Stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=W,E,F --show-source --max-complexity=10 --max-line-length=127 --statistics --ingore=E402,E211
+        flake8 . --count --select=W,E,F --show-source --max-complexity=10 --max-line-length=127 --statistics --ignore=E402,E211
     - name: Test with pytest
       run: |
         pytest
