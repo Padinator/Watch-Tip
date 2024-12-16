@@ -33,7 +33,7 @@ class TestFileSystemInteraction(unittest.TestCase):
 
         with open(self.__test_object_path) as json_file:
             test_json_file = json.load(json_file)
-            
+
         with NamedTemporaryFile(delete=False, mode="wb") as temp_file:
             temp_path = Path(temp_file.name)
 
