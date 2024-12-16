@@ -21,7 +21,10 @@ from database.database_functions import (
 class DatabaseFunctions(unittest.TestCase):
 
     def test_insert_one_element(self) -> None:
-        """Test the method 'insert_one_element' in the file database_functions.py"""
+        """
+        Test the method 'insert_one_element'
+        in the file database_functions.py
+        """
 
         mock_table = MagicMock()
 
@@ -32,7 +35,10 @@ class DatabaseFunctions(unittest.TestCase):
         mock_table.insert_one.assert_called_once_with(entity)
 
     def test_get_mongo_db_specific_collection(self) -> None:
-        """Test the method 'get_mongo_db_specific_collection' in the file database_functions.py"""
+        """
+        Test the method 'get_mongo_db_specific_collection'
+        in the file database_functions.py
+        """
 
         mongo_client = MagicMock(spec=MongoClient)
 
@@ -55,7 +61,10 @@ class DatabaseFunctions(unittest.TestCase):
         self.assertEqual(result, mock_collection)
 
     def test_read_all_entries_from_database_as_dict(self) -> None:
-        """Test the method 'read_all_entries_from_database_as_dict' in the file database_functions.py"""
+        """
+        Test the method 'read_all_entries_from_database_as_dict'
+        in the file database_functions.py
+        """
 
         mock_table = MagicMock(spec=Collection)
 
@@ -80,7 +89,10 @@ class DatabaseFunctions(unittest.TestCase):
         self.assertEqual(result, expected_result)
 
     def test_get_entries_by_attr_from_database(self) -> None:
-        """Test the method 'get_entries_by_attr_from_database' in the file database_functions.py"""
+        """
+        Test the method 'get_entries_by_attr_from_database'
+        in the file database_functions.py
+        """
 
         mock_table = MagicMock(spec=Collection)
 
@@ -103,18 +115,27 @@ class DatabaseFunctions(unittest.TestCase):
         self.assertEqual(result, expected_result)
 
     def test_get_one_by_attr(self) -> None:
-        """Test the method 'get_one_by_attr' in the file database_functions.py"""
+        """
+        Test the method 'get_one_by_attr'
+        in the file database_functions.py
+        """
 
         mock_table = MagicMock()
 
-        mock_table.find_one.return_value = {"movie": "Iron Man", "genre": "Sci-Fi"}
+        mock_table.find_one.return_value = {
+            "movie": "Iron Man",
+            "genre": "Sci-Fi",
+        }
 
         result = get_one_by_attr(mock_table, "movie", "Iron Man")
 
         self.assertEqual(result, {"movie": "Iron Man", "genre": "Sci-Fi"})
 
     def test_get_one_by_id(self) -> None:
-        """Test the method 'get_one_by_id' in the file database_functions.py"""
+        """
+        Test the method 'get_one_by_id'
+        in the file database_functions.py
+        """
 
         mock_collection = MagicMock(spec=Collection)
 
@@ -126,10 +147,15 @@ class DatabaseFunctions(unittest.TestCase):
 
         result = get_one_by_id(mock_collection, 1)
 
-        self.assertEqual(result, {"_id": 1, "type": "movie", "name": "Inception"})
+        self.assertEqual(
+            result, {"_id": 1, "type": "movie", "name": "Inception"}
+        )
 
     def test_update_one_by_attr(self) -> None:
-        """Test the method 'update_one_by_attr' in the file database_functions.py"""
+        """
+        Test the method 'update_one_by_attr'
+        in the file database_functions.py
+        """
 
         mock_collection = MagicMock(spec=Collection)
 
@@ -147,10 +173,15 @@ class DatabaseFunctions(unittest.TestCase):
             {"type": "movie"}, {"$set": {"name": "Interstellar"}}
         )
 
-        self.assertEqual(result, {"_id": 1, "type": "movie", "name": "Interstellar"})
+        self.assertEqual(
+            result, {"_id": 1, "type": "movie", "name": "Interstellar"}
+        )
 
     def test_update_one_by_id(self) -> None:
-        """Test the method 'update_one_by_id' in the file database_functions.py"""
+        """
+        Test the method 'update_one_by_id'
+        in the file database_functions.py
+        """
 
         mock_collection = MagicMock(spec=Collection)
 
@@ -166,10 +197,15 @@ class DatabaseFunctions(unittest.TestCase):
             {"_id": 1}, {"$set": {"name": "Interstellar"}}
         )
 
-        self.assertEqual(result, {"_id": 1, "type": "movie", "name": "Interstellar"})
+        self.assertEqual(
+            result, {"_id": 1, "type": "movie", "name": "Interstellar"}
+        )
 
     def test_delete_one_by_attr(self) -> None:
-        """Test the method 'delete_one_by_attr' in the file database_functions.py"""
+        """
+        Test the method 'delete_one_by_attr'
+        in the file database_functions.py
+        """
 
         mock_collection = MagicMock(spec=Collection)
 
@@ -183,10 +219,15 @@ class DatabaseFunctions(unittest.TestCase):
 
         mock_collection.find_one_and_delete.assert_called_with({"year": "2010"})
 
-        self.assertEqual(result, {"_id": 1, "type": "movie", "name": "Inception"})
+        self.assertEqual(
+            result, {"_id": 1, "type": "movie", "name": "Inception"}
+        )
 
     def test_delete_one_by_id(self) -> None:
-        """Test the method 'delete_one_by_id' in the file database_functions.py"""
+        """
+        Test the method 'delete_one_by_id'
+        in the file database_functions.py
+        """
 
         mock_collection = MagicMock(spec=Collection)
 
@@ -200,4 +241,6 @@ class DatabaseFunctions(unittest.TestCase):
 
         mock_collection.find_one_and_delete.assert_called_with({"_id": 1})
 
-        self.assertEqual(result, {"_id": 1, "type": "movie", "name": "Inception"})
+        self.assertEqual(
+            result, {"_id": 1, "type": "movie", "name": "Inception"}
+        )

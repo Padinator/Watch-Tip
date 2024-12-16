@@ -9,7 +9,11 @@ from unittest.mock import patch, MagicMock
 project_dir = Path(__file__).parents[2]
 sys.path.append(str(project_dir))
 
-from helper.api_requester import request_url, request_movie, request_movie_reviews
+from helper.api_requester import (
+    request_url,
+    request_movie,
+    request_movie_reviews,
+)
 
 
 # Define constants
@@ -107,7 +111,8 @@ class TestApiRequester(unittest.TestCase):
             request_movie("https://www.test.com", movie_id)
 
         self.assertEqual(
-            f"Movie {movie_id} does not exist in database!", str(result.exception)
+            f"Movie {movie_id} does not exist in database!",
+            str(result.exception),
         )
 
     @patch("helper.api_requester.request_url")
@@ -126,7 +131,8 @@ class TestApiRequester(unittest.TestCase):
         self.assertEqual(len(movie_reviews), 2)
         self.assertEqual(movie_reviews["user1"]["rating"], 8)
         self.assertEqual(
-            movie_reviews["user2"]["content"], "Good, but could have been better."
+            movie_reviews["user2"]["content"],
+            "Good, but could have been better.",
         )
 
     @patch("helper.api_requester.request_url")
