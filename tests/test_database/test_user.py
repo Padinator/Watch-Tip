@@ -1,6 +1,12 @@
+import sys
 import unittest
 
+from pathlib import Path
 from unittest.mock import patch
+
+# ---------- Import own python modules ----------
+project_dir = Path(__file__).parents[2]
+sys.path.append(str(project_dir))
 
 from database.user import Users
 

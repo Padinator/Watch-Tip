@@ -1,8 +1,14 @@
 import unittest
-from unittest.mock import MagicMock
+import sys
 
+from unittest.mock import MagicMock
+from pathlib import Path
 from pymongo import MongoClient
 from pymongo.collection import Collection
+
+# ---------- Import own python modules ----------
+project_dir = Path(__file__).parents[2]
+sys.path.append(str(project_dir))
 
 from database.database_functions import (
     delete_one_by_attr,
