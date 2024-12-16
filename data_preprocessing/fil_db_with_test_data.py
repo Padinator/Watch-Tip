@@ -221,7 +221,7 @@ with open(vars.local_movie_data_set_path, "rb") as file:
             t = Thread(target=request_movie_by_id, args=[i, line])
             threads.append(t)
             t.start()
-        except KeyboardInterrupt as ex:
+        except KeyboardInterrupt:
             # Wait for temrinating all threads
             for t in threads[-COUNT_OF_MAX_RUNNING_THREADS:]:
                 t.join()
