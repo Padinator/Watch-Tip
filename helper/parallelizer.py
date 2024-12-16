@@ -2,10 +2,16 @@ from threading import Semaphore, Thread
 from typing import Any, Callable, Dict, Iterable, List
 
 
-def parallelize_task_and_return_results(task: Callable, args: List[Any], thread_sem: Semaphore, result_storage_sem: Semaphore,
-                                        thread_number: int, result_storage: Dict[int, Any]) -> None:
+def parallelize_task_and_return_results(
+    task: Callable,
+    args: List[Any],
+    thread_sem: Semaphore,
+    result_storage_sem: Semaphore,
+    thread_number: int,
+    result_storage: Dict[int, Any],
+) -> None:
     """
-        Execute a task with a thread and save result in an on reference passed storage/variable.
+    Execute a task with a thread and save result in an on reference passed storage/variable.
     """
 
     result = task(*args)  # Store result
@@ -15,12 +21,17 @@ def parallelize_task_and_return_results(task: Callable, args: List[Any], thread_
     thread_sem.release()  # Next thread can start
 
 
-def parallelize_task_with_return_values(task: Callable, args: Iterable, max_number_of_runnings_threads: int = 8, print_iteration: int=1000) -> Dict[int, Any]:
+def parallelize_task_with_return_values(
+    task: Callable,
+    args: Iterable,
+    max_number_of_runnings_threads: int = 8,
+    print_iteration: int = 1000,
+) -> Dict[int, Any]:
     """
-        Executes a passed function "task" with passed arguments "args"
-        and returns results of each thread as list.
-        If no iteration print is desired, then set "print_iteration = 0" or
-        "print_iteration = None".
+    Executes a passed function "task" with passed arguments "args"
+    and returns results of each thread as list.
+    If no iteration print is desired, then set "print_iteration = 0" or
+    "print_iteration = None".
     """
 
     # results = []  # Results of each thread
@@ -41,14 +52,20 @@ def parallelize_task_with_return_values(task: Callable, args: Iterable, max_numb
     thread_sem = Semaphore(max_number_of_runnings_threads)
     result_storage_sem = Semaphore(1)
 
-
     # Compute tasks parallilized
     for i, args_per_function_call in enumerate(args):
         if i % print_iteration == 0:
             print(f"Iteration {i}")
 
         thread_sem.acquire()
-        args = [task, args_per_function_call, thread_sem, result_storage_sem, i, results]  # Args of function task
+        args = [
+            task,
+            args_per_function_call,
+            thread_sem,
+            result_storage_sem,
+            i,
+            results,
+        ]  # Args of function task
         thread = Thread(target=parallelize_task_and_return_results, args=args)
         threads.append(thread)
         thread.start()
@@ -60,20 +77,27 @@ def parallelize_task_with_return_values(task: Callable, args: Iterable, max_numb
     return results
 
 
-def parallelize_task(task: Callable, args: List[Any], thread_sem: Semaphore, thread_number: int) -> None:
+def parallelize_task(
+    task: Callable, args: List[Any], thread_sem: Semaphore, thread_number: int
+) -> None:
     """
-        Execute parallely a task with a thread.
+    Execute parallely a task with a thread.
     """
 
     task(*args)  # Do task
     thread_sem.release()  # Next thread can start
 
 
-def parallelize_task_without_return_values(task: Callable, args: Iterable, max_number_of_runnings_threads: int = 8, print_iteration: int=1000):
+def parallelize_task_without_return_values(
+    task: Callable,
+    args: Iterable,
+    max_number_of_runnings_threads: int = 8,
+    print_iteration: int = 1000,
+):
     """
-        Executes parallely a passed function "task" with passed arguments "args".
-        If no iteration print is desired, then set "print_iteration = 0" or
-        "print_iteration = None".
+    Executes parallely a passed function "task" with passed arguments "args".
+    If no iteration print is desired, then set "print_iteration = 0" or
+    "print_iteration = None".
     """
 
     # results = []  # Results of each thread

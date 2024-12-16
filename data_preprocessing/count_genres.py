@@ -1,4 +1,3 @@
-import copy as cp
 import json
 import numpy as np
 import sys
@@ -37,7 +36,9 @@ all_production_companies_table = ProductionCompanies()
 # Read all genres from database
 print("Read all genres from database")
 all_genres = all_genres_table.get_all()
-genre_counters = np.zeros(len(all_genres), dtype=np.float64)  # Add to each actor, producer and company all genres dict of counters starting with zero
+genre_counters = np.zeros(
+    len(all_genres), dtype=np.float64
+)  # Add to each actor, producer and company all genres dict of counters starting with zero
 
 # Read all movies from database
 print("\nRead all movies from database")
@@ -47,7 +48,7 @@ all_movies = all_movies_table.get_all()  # Cursor for iterating over all movies
 print("\nRead all actors from file")
 
 # with open(vars.local_actors_file_path, 'rb') as file:
-with open("data/person_ids_11_28_2024.json", 'rb') as file:
+with open("data/person_ids_11_28_2024.json", "rb") as file:
     for i, line in enumerate(file.readlines()):
         if i % 500000 == 0:
             print(f"Iteration: {i}")
@@ -67,7 +68,7 @@ with open("data/person_ids_11_28_2024.json", 'rb') as file:
 print("\nRead all producers from file")
 
 # with open(vars.local_producers_file_path, 'rb') as file:
-with open("data/person_ids_11_28_2024.json", 'rb') as file:
+with open("data/person_ids_11_28_2024.json", "rb") as file:
     for i, line in enumerate(file.readlines()):
         if i % 500000 == 0:
             print(f"Iteration: {i}")
@@ -87,7 +88,7 @@ with open("data/person_ids_11_28_2024.json", 'rb') as file:
 print("\nRead all production companies")
 
 # with open(vars.local_production_companies_file_path, 'rb') as file:  # {"id":1,"name":"Lucasfilm Ltd."}
-with open("data/production_company_ids_11_28_2024.json", 'rb') as file:
+with open("data/production_company_ids_11_28_2024.json", "rb") as file:
     for line in file.readlines():
         if i % 50000 == 0:
             print(f"Iteration: {i}")
@@ -115,7 +116,9 @@ for i, (movie_id, movie) in enumerate(all_movies.items()):
     # Count genres of all actors of a movie
     for actor_id in movie["credits"]["cast"]:
         try:
-            all_actors[actor_id]["genres"][movie_genres] += 1  # Increment counters of each genre
+            all_actors[actor_id]["genres"][
+                movie_genres
+            ] += 1  # Increment counters of each genre
             all_actors[actor_id]["played_movies"] += 1
         except Exception as e:
             if actor_id not in all_actors:  # Actor not in database
@@ -134,7 +137,9 @@ for i, (movie_id, movie) in enumerate(all_movies.items()):
     for producer_id in movie["credits"]["crew"]:
         try:
             producer_id = int(producer_id)
-            all_producers[producer_id]["genres"][movie_genres] += 1  # Increment counters of each genre
+            all_producers[producer_id]["genres"][
+                movie_genres
+            ] += 1  # Increment counters of each genre
             all_producers[producer_id]["produced_movies"] += 1
         except Exception as e:
             if producer_id not in all_producers:  # Producer not in database
@@ -152,10 +157,14 @@ for i, (movie_id, movie) in enumerate(all_movies.items()):
     # Count genres of all production companies of a movie
     for company_id in movie["production_companies"]:
         try:
-            all_production_companies[company_id]["genres"][movie_genres] += 1  # Increment counters of each genre
+            all_production_companies[company_id]["genres"][
+                movie_genres
+            ] += 1  # Increment counters of each genre
             all_production_companies[company_id]["financed_movies"] += 1
         except Exception as e:
-            if company_id not in all_production_companies:  # Production company not in database
+            if (
+                company_id not in all_production_companies
+            ):  # Production company not in database
                 if movie_id not in missing_production_companies:
                     missing_production_companies[movie_id] = []
                 missing_production_companies[movie_id].append(company_id)
@@ -189,7 +198,7 @@ with open(vars.missing_production_companies_file_path, "w", encoding="utf-8") as
         file.write(str(production_company_ids) + "\n\n")
 
 
-def insert_one(table: 'DatabaseModel', id: int, entity: Dict[str, Any]) -> None:
+def insert_one(table: "DatabaseModel", id: int, entity: Dict[str, Any]) -> None:
     entity["id"] = id
     entity["genres"] = entity["genres"].tolist()
     table.insert_one(entity)
@@ -197,7 +206,12 @@ def insert_one(table: 'DatabaseModel', id: int, entity: Dict[str, Any]) -> None:
 
 # Write all updated actors into database
 print("\nWrite all updated actors into database")
-para.parallelize_task_without_return_values(insert_one, [(all_actors_table, actor_id, actor) for actor_id, actor in all_actors.items()], 16, 500000)
+para.parallelize_task_without_return_values(
+    insert_one,
+    [(all_actors_table, actor_id, actor) for actor_id, actor in all_actors.items()],
+    16,
+    500000,
+)
 
 # for i, (actor_id, actor) in enumerate(all_actors.items()):
 #     if i % 500000 == 0:
@@ -208,7 +222,15 @@ para.parallelize_task_without_return_values(insert_one, [(all_actors_table, acto
 
 # # Write all updated producers into database
 print("\nWrite all updated producers into database")
-para.parallelize_task_without_return_values(insert_one, [(all_producers_table, producer_id, producer) for producer_id, producer in all_producers.items()], 16, 500000)
+para.parallelize_task_without_return_values(
+    insert_one,
+    [
+        (all_producers_table, producer_id, producer)
+        for producer_id, producer in all_producers.items()
+    ],
+    16,
+    500000,
+)
 
 # for i, (producer_id, producer) in enumerate(all_producers.items()):
 #     if i % 500000 == 0:
@@ -219,7 +241,15 @@ para.parallelize_task_without_return_values(insert_one, [(all_producers_table, p
 
 # # Write all updated production companies into database
 print("\nWrite all updated production companies into database")
-para.parallelize_task_without_return_values(insert_one, [(all_production_companies_table, company_id, company) for company_id, company in all_production_companies.items()], 16, 50000)
+para.parallelize_task_without_return_values(
+    insert_one,
+    [
+        (all_production_companies_table, company_id, company)
+        for company_id, company in all_production_companies.items()
+    ],
+    16,
+    50000,
+)
 
 # for i, (company_id, company) in enumerate(all_production_companies.items()):
 #     if i % 50000 == 0:
