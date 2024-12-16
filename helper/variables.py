@@ -1,10 +1,15 @@
 from pathlib import Path
 
+# Define project path
+project_dir_vars = Path(__file__).parents[1]
+
 
 # --------------- Define some variables for pre processing ---------------
+data_preprocessing_path = project_dir_vars / "data_preprocessing"
+
 # Define some basic paths, where (updated) data will be stored
-original_data_path = Path("data")
-updated_data_path = Path("updated_data")
+original_data_path = data_preprocessing_path / "data"
+updated_data_path = data_preprocessing_path / "updated_data"
 fil_db_with_test_data_path = updated_data_path / "fil_db_with_test_data"
 count_genres_data_path = updated_data_path / "count_genres"
 calculate_real_genres_data_path = updated_data_path / "calculate_real_genres"
@@ -64,13 +69,16 @@ headers = {
 }
 
 
-# ---------------- Define some variables for data preparation ----------------
-prepared_data_folder = Path("prepared_data")
+# -------- Define some variables for preprocessing and model training --------
+model_path = project_dir_vars / "model"
+
+# Define some variables for data preparation
+prepared_data_folder = model_path / "prepared_data"
 user_history_file_path_with_real_genres = prepared_data_folder / "user_histories_with_real_genres.pickle"
 user_history_file_path_with_real_genres_visualization = prepared_data_folder / "user_histories_with_real_genres.dataframe"
 user_history_file_path_with_real_genres_and_reduced_dimensions = prepared_data_folder / "user_histories_with_real_genres_and_reduced_dimensions.pickle"
 user_history_file_path_with_real_genres_and_reduced_dimensions_visualization = prepared_data_folder / "user_histories_with_real_genres_and_reduced_dimensions.dataframe"
 
-# --------------- Define some variables for feature extraction ---------------
-extracted_features_folder = Path("extracted_features")
+# Define some variables for feature extraction
+extracted_features_folder = model_path / "extracted_features"
 extracted_features_file_path = extracted_features_folder / "extracted_features.pickle"

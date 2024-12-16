@@ -3,10 +3,12 @@ import pandas as pd
 import sys
 
 from MulticoreTSNE import MulticoreTSNE as TSNE
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-# ---------- Import own python files ----------
-sys.path.append('../')
+# ---------- Import own python modules ----------
+project_dir = Path(__file__).parents[1]
+sys.path.append(str(project_dir))
 
 import helper.variables as vars
 

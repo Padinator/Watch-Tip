@@ -1,11 +1,16 @@
 import copy as cp
+import sys
 
-# ---------- Import own python files ----------
-import database.model as m
-import database.database_functions as dbf
-
+from pathlib import Path
 # from typing import Any, Dict, override
 from typing import Any, Dict
+
+# ---------- Import own python modules ----------
+project_dir = Path(__file__).parents[1]
+sys.path.append(str(project_dir))
+
+import database.model as m
+import database.database_functions as dbf
 
 
 class Users(m.DatabaseModel):

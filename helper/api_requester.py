@@ -1,8 +1,14 @@
 import re
 import requests
+import sys
 import time
 
+from pathlib import Path
 from typing import Any, Dict
+
+# ---------- Import own python modules ----------
+project_dir = Path(__file__).parents[1]
+sys.path.append(str(project_dir))
 
 import helper.variables as vars
 
