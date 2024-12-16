@@ -1,16 +1,17 @@
 import codecs
-import json
 import os
 import pickle
 import re
 import time
 import sys
 
+from pathlib import Path
 from threading import Thread, Semaphore
 from typing import Any, Dict, List
 
-# ---------- Import own python files ----------
-sys.path.append("../")
+# ---------- Import own python modules ----------
+project_dir = Path(__file__).parents[1]
+sys.path.append(str(project_dir))
 
 import helper.variables as vars
 
@@ -18,33 +19,49 @@ from database.movie import Movies
 from database.genre import Genres
 from database.user import Users
 from helper.api_requester import request_url, request_movie_reviews, request_movie
-from helper.file_system_interaction import save_object_in_file, load_json_objects_from_file, save_json_objects_in_file
-from helper.parallelizer import parallelize_task_with_return_values
+from helper.file_system_interaction import (
+    load_json_objects_from_file,
+    save_json_objects_in_file,
+)
 
 
 # Define constants
-COUNT_OF_MAX_RUNNING_THREADS =  16  # Windows: look up in task manager; Linux: look up with command "nproc" (output number of virtual CPUs)
+COUNT_OF_MAX_RUNNING_THREADS = 16  # Windows: look up in task manager; Linux: look up with command "nproc" (output number of virtual CPUs)
 
 # Define variables for parallel execution
 threads = []
 count_of_running_threads_sem = Semaphore(COUNT_OF_MAX_RUNNING_THREADS)
-missing_movies_semaphore = Semaphore(1)  # Mutexe for only one thread writing on this file
+missing_movies_semaphore = Semaphore(
+    1
+)  # Mutexe for only one thread writing on this file
 max_i_mutex = Semaphore(1)
 all_reviews_sem = Semaphore(1)
 
 all_actors, all_actors_ids = {}, []
 all_producers, all_producers_ids = {}, []
 all_production_companies, all_production_companies_ids = {}, []
-all_genres = request_url(vars.genre_url, vars.headers)  # Request all genres defined in TMDB
-all_genres = {} if "genres" not in all_genres else dict([(genre["id"], {"name": genre["name"]}) for genre in all_genres["genres"]])
-all_genres_indices = dict([(genre_id, i) for i, genre_id in enumerate(all_genres)])  # Map indices of all genres to their IDs
+all_genres = request_url(
+    vars.genre_url, vars.headers
+)  # Request all genres defined in TMDB
+all_genres = (
+    {}
+    if "genres" not in all_genres
+    else dict(
+        [(genre["id"], {"name": genre["name"]}) for genre in all_genres["genres"]]
+    )
+)
+all_genres_indices = dict(
+    [(genre_id, i) for i, genre_id in enumerate(all_genres)]
+)  # Map indices of all genres to their IDs
 all_reviews = {}
 
 
 # -------- Define methods for requesting data from API and storing it --------
-def merge_user_reviews_from_different_movies(user_reviews: Dict[str, Any], new_reviews: Dict[str, Any]):
+def merge_user_reviews_from_different_movies(
+    user_reviews: Dict[str, Any], new_reviews: Dict[str, Any]
+):
     """
-        Merge new reviews into dictionary of old/other reviews and return this new dictionary.
+    Merge new reviews into dictionary of old/other reviews and return this new dictionary.
     """
 
     if new_reviews != {}:
@@ -61,7 +78,7 @@ def merge_user_reviews_from_different_movies(user_reviews: Dict[str, Any], new_r
 
 def request_movie_by_id(index: int, line: str) -> None:
     """Request movies by id and save important information.
-        Parallel execution is possible."""
+    Parallel execution is possible."""
 
     global count_of_running_threads_sem, max_i, max_i_mutex, all_reviews, all_actors_ids, all_producers_ids, all_production_companies_ids
 
@@ -92,7 +109,9 @@ def request_movie_by_id(index: int, line: str) -> None:
         # Merge all perviuos reviews with new ones
         try:
             all_reviews_sem.acquire()
-            all_reviews = merge_user_reviews_from_different_movies(all_reviews, movie_reviews)
+            all_reviews = merge_user_reviews_from_different_movies(
+                all_reviews, movie_reviews
+            )
         finally:
             all_reviews_sem.release()
 
@@ -114,18 +133,27 @@ def request_movie_by_id(index: int, line: str) -> None:
 
 
 # Find all relevant actors and save them
-def find_all_necessary_entities(all_entity_ids_from_first_src: List[str], all_entity_ids_from_second_src: List[str],
-                                all_entities_from_second_src, necessary_keys: List[str], url: str) -> Dict[str, Any]:
+def find_all_necessary_entities(
+    all_entity_ids_from_first_src: List[str],
+    all_entity_ids_from_second_src: List[str],
+    all_entities_from_second_src,
+    necessary_keys: List[str],
+    url: str,
+) -> Dict[str, Any]:
     """
-        Searches in second passed source for data of first source. Similiar
-        data will be returned. The data, which is only in the first passed
-        data source, will be requested per API call with passed url "url".
-        Only passed keys "necessary_keys" will be saved from requested entity.
-        Returns all entities with ID from first source.
+    Searches in second passed source for data of first source. Similiar
+    data will be returned. The data, which is only in the first passed
+    data source, will be requested per API call with passed url "url".
+    Only passed keys "necessary_keys" will be saved from requested entity.
+    Returns all entities with ID from first source.
     """
 
-    all_entities_ids_already_in_first_src = set(all_entity_ids_from_first_src) & set(all_entity_ids_from_second_src)
-    missing_entity_ids_to_request = set(all_entity_ids_from_first_src) - all_entities_ids_already_in_first_src
+    all_entities_ids_already_in_first_src = set(all_entity_ids_from_first_src) & set(
+        all_entity_ids_from_second_src
+    )
+    missing_entity_ids_to_request = (
+        set(all_entity_ids_from_first_src) - all_entities_ids_already_in_first_src
+    )
     all_entities = {}
 
     # Collect all entities, who are listed already in first source
@@ -179,9 +207,13 @@ with open(vars.local_movie_data_set_path, "rb") as file:
                 all_reviews_sem.acquire()
                 with open(vars.all_reviews_tmp_data_file, "wb") as file:
                     pickle.dump(all_reviews, file)
-                print(f"Iteration {i}:", sum([len(reviews) for reviews in all_reviews.values()]),
-                      sum([len(reviews) for reviews in all_reviews.values()]) / len(all_reviews),
-                      max([len(reviews) for reviews in all_reviews.values()]))
+                print(
+                    f"Iteration {i}:",
+                    sum([len(reviews) for reviews in all_reviews.values()]),
+                    sum([len(reviews) for reviews in all_reviews.values()])
+                    / len(all_reviews),
+                    max([len(reviews) for reviews in all_reviews.values()]),
+                )
                 all_reviews_sem.release()
 
             # Request database parallely
@@ -189,7 +221,7 @@ with open(vars.local_movie_data_set_path, "rb") as file:
             t = Thread(target=request_movie_by_id, args=[i, line])
             threads.append(t)
             t.start()
-        except KeyboardInterrupt as ex:
+        except KeyboardInterrupt:
             # Wait for temrinating all threads
             for t in threads[-COUNT_OF_MAX_RUNNING_THREADS:]:
                 t.join()
@@ -230,22 +262,44 @@ for user, user_reviews in all_reviews.items():
 
 # Find all relevant actors and producers and save their data
 important_person_keys = ["adult", "id", "name", "popularity"]
-all_persons = load_json_objects_from_file(vars.local_producers_and_actors_data_set_path, important_person_keys)
+all_persons = load_json_objects_from_file(
+    vars.local_producers_and_actors_data_set_path, important_person_keys
+)
 all_persons_ids = list(all_persons.keys())
 
 # Find all relevant actors and producers
-all_actors = find_all_necessary_entities(all_actors_ids, all_persons_ids, all_persons, important_person_keys, vars.abstract_person_url)
-all_producers = find_all_necessary_entities(all_producers_ids, all_persons_ids, all_persons, important_person_keys, vars.abstract_person_url)
+all_actors = find_all_necessary_entities(
+    all_actors_ids,
+    all_persons_ids,
+    all_persons,
+    important_person_keys,
+    vars.abstract_person_url,
+)
+all_producers = find_all_necessary_entities(
+    all_producers_ids,
+    all_persons_ids,
+    all_persons,
+    important_person_keys,
+    vars.abstract_person_url,
+)
 
 # Find all relevant porduction companies and save their data
 important_production_company_keys = ["id", "name"]
-all_production_companies_from_file = load_json_objects_from_file(vars.local_producer_company_data_set_path, important_production_company_keys)
+all_production_companies_from_file = load_json_objects_from_file(
+    vars.local_producer_company_data_set_path, important_production_company_keys
+)
 all_production_companies_ids_from_file = list(all_production_companies_from_file.keys())
-all_production_companies = find_all_necessary_entities(all_production_companies_ids,
-    all_production_companies_ids_from_file, all_production_companies_from_file,
-    important_production_company_keys, vars.abstract_production_company_url)
+all_production_companies = find_all_necessary_entities(
+    all_production_companies_ids,
+    all_production_companies_ids_from_file,
+    all_production_companies_from_file,
+    important_production_company_keys,
+    vars.abstract_production_company_url,
+)
 
 # Save all actors, producers and production companies in a file
 save_json_objects_in_file(vars.local_actors_file_path, all_actors)
 save_json_objects_in_file(vars.local_producers_file_path, all_producers)
-save_json_objects_in_file(vars.local_production_companies_file_path, all_production_companies)
+save_json_objects_in_file(
+    vars.local_production_companies_file_path, all_production_companies
+)

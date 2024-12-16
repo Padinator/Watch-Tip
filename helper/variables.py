@@ -1,19 +1,31 @@
 from pathlib import Path
 
+# Define project path
+project_dir_vars = Path(__file__).parents[1]
+
+
+# --------------- Define some variables for pre processing ---------------
+data_preprocessing_path = project_dir_vars / "data_preprocessing"
 
 # Define some basic paths, where (updated) data will be stored
-original_data_path = Path("data")
-updated_data_path = Path("updated_data")
-fil_db_with_test_data_path = Path(f"{updated_data_path}/fil_db_with_test_data")
-count_genres_data_path = Path(f"{updated_data_path}/count_genres")
-calculate_real_genres_data_path = Path(f"{updated_data_path}/calculate_real_genres")
+original_data_path = data_preprocessing_path / "data"
+updated_data_path = data_preprocessing_path / "updated_data"
+fil_db_with_test_data_path = updated_data_path / "fil_db_with_test_data"
+count_genres_data_path = updated_data_path / "count_genres"
+calculate_real_genres_data_path = updated_data_path / "calculate_real_genres"
 
 # Define location of data sets
 data_set_date = "11_28_2024"
 local_movie_data_set_path = original_data_path / f"movie_ids_{data_set_date}.json"
-local_producers_and_actors_data_set_path = original_data_path / f"person_ids_{data_set_date}.json"
-local_producer_company_data_set_path = original_data_path / f"production_company_ids_{data_set_date}.json"
-local_netflix_movies_file_path = original_data_path / f"netflix_user_data/movie_titles.csv"
+local_producers_and_actors_data_set_path = (
+    original_data_path / f"person_ids_{data_set_date}.json"
+)
+local_producer_company_data_set_path = (
+    original_data_path / f"production_company_ids_{data_set_date}.json"
+)
+local_netflix_movies_file_path = (
+    original_data_path / "netflix_user_data/movie_titles.csv"
+)
 
 # Define name of data sets after a specific convention
 movie_data_set = f"movie_ids_{data_set_date}.json.gz"
@@ -28,22 +40,38 @@ all_reviews_tmp_data_file = fil_db_with_test_data_path / "all_reviews.pickle"
 # Define file paths for collected actors, producers and production companies (fil_db_with_test_data.py)
 local_actors_file_path = fil_db_with_test_data_path / "/all_actor.json"
 local_producers_file_path = fil_db_with_test_data_path / "all_producer.json"
-local_production_companies_file_path = fil_db_with_test_data_path / "all_production_company.json"
+local_production_companies_file_path = (
+    fil_db_with_test_data_path / "all_production_company.json"
+)
 
 # Define error file paths (count_genres.py)
-skipped_movies_file_path = count_genres_data_path / "skipped_movies.txt"
+missing_actors_file_path = count_genres_data_path / "missing_actors.txt"
+missing_producers_file_path = count_genres_data_path / "missing_producers.txt"
+missing_production_companies_file_path = (
+    count_genres_data_path / "missing_production_companies.txt"
+)
 
 # Define error file paths (calculate_real_genres.py)
-calc_real_genres_error_file_actors =  calculate_real_genres_data_path / "error_calc_real_genres_actors.txt"
-calc_real_genres_error_file_producers =  calculate_real_genres_data_path / "error_calc_real_genres_producers.txt"
-calc_real_genres_error_file_production_companies =  calculate_real_genres_data_path / "error_calc_real_genres_production_companies.txt"
+calc_real_genres_error_file_actors = (
+    calculate_real_genres_data_path / "error_calc_real_genres_actors.txt"
+)
+calc_real_genres_error_file_producers = (
+    calculate_real_genres_data_path / "error_calc_real_genres_producers.txt"
+)
+calc_real_genres_error_file_production_companies = (
+    calculate_real_genres_data_path / "error_calc_real_genres_production_companies.txt"
+)
 
 # Define path of storaging temporary dict between netflix movies and movies in database
-map_for_netflix_movies_to_db_movies = updated_data_path / "insert_user_histories_in_db/netflix_movies_map.pickle"
+map_for_netflix_movies_to_db_movies = (
+    updated_data_path / "insert_user_histories_in_db/netflix_movies_map.pickle"
+)
 
 # Define URLs to data sets of all movies, producers and production companies
 url_data_all_movies = f"http://files.tmdb.org/p/exports/{movie_data_set}"
-url_data_all_producers_and_actors = f"http://files.tmdb.org/p/exports/{producers_and_actors_data_set}"
+url_data_all_producers_and_actors = (
+    f"http://files.tmdb.org/p/exports/{producers_and_actors_data_set}"
+)
 url_data_all_companies = f"http://files.tmdb.org/p/exports/{producer_company_data_set}"
 
 # Define api token
@@ -55,7 +83,29 @@ abstract_movie_reviews_url = "https://api.themoviedb.org/3/movie/replace_id/revi
 abstract_person_url = "https://api.themoviedb.org/3/person/replace_id?language=en-US"
 abstract_production_company_url = "https://api.themoviedb.org/3/company/replace_id"
 genre_url = "https://api.themoviedb.org/3/genre/movie/list?language=en"
-headers = {
-    "accept": "application/json",
-    "Authorization": f"Bearer {api_key}"
-}
+headers = {"accept": "application/json", "Authorization": f"Bearer {api_key}"}
+
+
+# -------- Define some variables for preprocessing and model training --------
+model_path = project_dir_vars / "model"
+
+# Define some variables for data preparation
+prepared_data_folder = model_path / "prepared_data"
+user_history_file_path_with_real_genres = (
+    prepared_data_folder / "user_histories_with_real_genres.pickle"
+)
+user_history_file_path_with_real_genres_visualization = (
+    prepared_data_folder / "user_histories_with_real_genres.dataframe"
+)
+user_history_file_path_with_real_genres_and_reduced_dimensions = (
+    prepared_data_folder
+    / "user_histories_with_real_genres_and_reduced_dimensions.pickle"
+)
+user_history_file_path_with_real_genres_and_reduced_dimensions_visualization = (
+    prepared_data_folder
+    / "user_histories_with_real_genres_and_reduced_dimensions.dataframe"
+)
+
+# Define some variables for feature extraction
+extracted_features_folder = model_path / "extracted_features"
+extracted_features_file_path = extracted_features_folder / "extracted_features.pickle"
