@@ -2,11 +2,7 @@ import unittest
 
 from unittest.mock import patch
 
-from database.model import DatabaseModel
 from database.user import Users
-
-model = DatabaseModel("test_db", "test_collection")
-model._table = "mock_table"
 
 
 class TestUser(unittest.TestCase):
@@ -25,10 +21,13 @@ class TestUser(unittest.TestCase):
             "user2": {"name": "Second User", "age": 24},
         }
 
-        result = Users.get_all()
+        user = Users()
+        user._table = "mock_table"
+
+        result = user.get_all()
 
         get_entries_by_attr_from_database.assert_called_once_with(
-            table=model._table, attr="", attr_value=""
+            table="mock_table", attr="", attr_value=""
         )
 
         self.assertEqual(result, expected_result)
