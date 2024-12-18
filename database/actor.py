@@ -11,8 +11,8 @@ import database.model as m
 
 class Actors(m.DatabaseModel):
     """
-        Sub class of DatabaseModel for interacting with the table for all
-        actors.
+    Sub class of DatabaseModel for interacting with the table for all
+    actors.
     """
 
     def __init__(self):
