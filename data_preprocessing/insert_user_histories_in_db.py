@@ -55,14 +55,17 @@ def format_int(value: str, default: int) -> int:
         return default
 
 
-def compareStrings(s1: str, s2: str, min_ratio: float=0.8) -> bool:
+def compareStrings(s1: str, s2: str, min_ratio: float=0.8) -> Tuple[bool, float]:
     """
-    Returns if both strings are similar with comparing them like
+    Returns, if both strings are similar with comparing them like
     Levenshtein distance, but here:\
-    2 * <#matching chars> / ([len(s1) + len(s2)]^2)
+    2 * <#matching chars> / ([len(s1) + len(s2)]^2)\
+    Also returns the ratio, which was computed, so caller can use/proof
+    it.
     """
 
-    return min_ratio < SequenceMatcher(None, s1, s2).ratio()
+    ratio = SequenceMatcher(None, s1, s2).ratio()
+    return min_ratio < ratio, ratio
 
 
 def find_netflix_movie_in_database(netflix_movie: Dict[str, Any], all_movies: List[Dict[int, Any]],
@@ -84,16 +87,24 @@ def find_netflix_movie_in_database(netflix_movie: Dict[str, Any], all_movies: Li
 
     # Search netflix movie in database
     for movie in all_movies:
+        similarity_o_title, ratio_o_title = compareStrings(name, movie["original_title"], min_ratio)
+        similarity_title, ratio_title = compareStrings(name, movie["title"], min_ratio)
+
         if name == movie["original_title"] or name == movie["title"]\
-            or compareStrings(name, movie["original_title"], min_ratio) or compareStrings(name, movie["title"], min_ratio):
-            movie_in_database[movie["id"]] = cp.copy(movie)
+            or similarity_o_title or similarity_title:
+            movie_in_database[(movie["id"], max(ratio_o_title, ratio_title))] = cp.copy(movie)
 
     # Check, if no movie, one movie or multiple movies were found
     if len(movie_in_database) == 0:  # No movie found -> new movie or series from Netflix given
         return (0, netflix_movie)
     elif len(movie_in_database) == 1:  # Only one matching movie found
         found_netflix_movie = list(movie_in_database.values())[0]
-    elif 1 < len(movie_in_database):  # Find movie with closest release_date
+    elif 1 < len(movie_in_database):  
+        # Filter for movies with highest ratio to title or original_title of the movie in database
+        max_ratio = max(ratio for _, ratio in movie_in_database.keys())
+        movie_in_database = dict([(id, movie) for (id, ratio), movie in movie_in_database.items() if ratio >= (max_ratio - 1e-3)])
+
+        # Find movie with closest release_date
         found_netflix_movie = min(movie_in_database.items(), key=lambda x: abs(year - x[1]["release_year"]))[1]
 
         if max_year_difference < abs(year - found_netflix_movie["release_year"]):  # Difference of maximal max_year_difference years is okay
@@ -217,7 +228,7 @@ if __name__ == "__main__":
     args_for_parallel_execution = []
 
     start_time = time.time()
-    for first_letter_or_number, netflix_movies_dict in netflix_movies_and_series_grouped.items():
+    for first_letter_or_number, netflix_movies_dict in list(netflix_movies_and_series_grouped.items())[86:]:
         for sec_letter_or_number, netflix_movies in netflix_movies_dict.items():
             if first_letter_or_number in all_movies_grouped and sec_letter_or_number in all_movies_grouped[first_letter_or_number]:  # Only letters/numbers in both movie dicts
                 all_movies_of_two_words = all_movies_grouped[first_letter_or_number][sec_letter_or_number]
