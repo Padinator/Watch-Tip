@@ -21,8 +21,8 @@ from helper.file_system_interaction import load_object_from_file, save_object_in
 
 
 # Define some constants
-COUNT_OF_MAX_RUNNING_THREADS = 16
-MAX_YEAR_DIFFERENCE = 1
+MIN_MOVIE_RATIO = 0.95  # Relationship between movies while finding a matching between Netflix movies and movies from database
+MAX_YEAR_DIFFERENCE = 2  # Maximal acceptable difference between a Netflix movie and one from database
 
 
 def get_first_letter_or_number_of_a_title(title: str) -> str:
@@ -69,9 +69,10 @@ def compareStrings(s1: str, s2: str, min_ratio: float=0.8) -> Tuple[bool, float]
 
 
 def find_netflix_movie_in_database(netflix_movie: Dict[str, Any], all_movies: List[Dict[int, Any]],
-                                    max_year_difference: int=1, min_ratio:int=0.8) -> Tuple[int, Dict[str, Any]]:
+                                    max_year_difference: int=1, min_ratio:int=0.8, use_max_ratio_filter: bool=True) -> Tuple[int, Dict[str, Any]]:
     """
-    Compares passed Netlfix movie with movies from database.\
+    Compares passed Netlfix movie with movies from database by ratio and difference of years.
+    It's possible to disable filtering (not sorting) by ratio.\
     Returns (0, <passed netflix movie>), if no movie matches (maybe a series given or
     a movie, for which no movies with similiar names are in database.\
     Returns the movie (1, Dict[str, Any]), if one or more movies were found in database,
@@ -97,12 +98,11 @@ def find_netflix_movie_in_database(netflix_movie: Dict[str, Any], all_movies: Li
     # Check, if no movie, one movie or multiple movies were found
     if len(movie_in_database) == 0:  # No movie found -> new movie or series from Netflix given
         return (0, netflix_movie)
-    elif len(movie_in_database) == 1:  # Only one matching movie found
-        found_netflix_movie = list(movie_in_database.values())[0]
-    elif 1 < len(movie_in_database):  
+    else:  
         # Filter for movies with highest ratio to title or original_title of the movie in database
-        max_ratio = max(ratio for _, ratio in movie_in_database.keys())
-        movie_in_database = dict([(id, movie) for (id, ratio), movie in movie_in_database.items() if ratio >= (max_ratio - 1e-3)])
+        if use_max_ratio_filter:
+            max_ratio = max(ratio for _, ratio in movie_in_database.keys())
+            movie_in_database = dict([(id, movie) for (id, ratio), movie in movie_in_database.items() if ratio >= (max_ratio - 1e-3)])
 
         # Find movie with closest release_date
         found_netflix_movie = min(movie_in_database.items(), key=lambda x: abs(year - x[1]["release_year"]))[1]
@@ -115,6 +115,53 @@ def find_netflix_movie_in_database(netflix_movie: Dict[str, Any], all_movies: Li
     found_netflix_movie["netflix_title"] = name
     found_netflix_movie["netflix_year"] = year
     return (2, found_netflix_movie)
+
+
+def match_netflix_movies_with_movies_from_database(netflix_movies: Dict[str, Dict[str, Any]], movies_from_database: Dict[str, Dict[str, Any]],
+                                                   output_iterations: bool=True, output_time: bool=True)\
+                                                    -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """
+    Matches Netflix movies and movies from database. Returns three lists, one list with Netflix movies,
+    which exists in database and match to them 100 % or very close. The second list contains movies that
+    are probably not in database, but it could be series as well. The third list contains series, which
+    are not in database, but there could be some movies missing in database as well.\
+    It's possible to output the time and the iterations, if desired.
+    """
+
+    # Define variables for matching step
+    found_netflix_movies, no_matching_movie_found, missing_movies_in_db = [], [], []
+    i = 0
+
+    # Match Netflix movies and movies from database
+    if output_time:
+        start_time = time.time()
+
+    for first_letter_or_number, netflix_movies_dict in netflix_movies.items():
+        for sec_letter_or_number, netflix_movies in netflix_movies_dict.items():
+            if first_letter_or_number in movies_from_database and sec_letter_or_number in movies_from_database[first_letter_or_number]:  # Only letters/numbers in both movie dicts
+                all_movies_of_two_words = movies_from_database[first_letter_or_number][sec_letter_or_number]
+
+                for netflix_movie in netflix_movies:
+                    if output_iterations and i % 1000 == 0:
+                        print(f"Iteration: {i}")
+                    i += 1
+
+                    movie_is_a_movie, movie = find_netflix_movie_in_database(netflix_movie, all_movies_of_two_words, min_ratio=MIN_MOVIE_RATIO)
+
+                    if movie_is_a_movie == 0:  # Movie is very likely a series
+                        no_matching_movie_found.append(movie)
+                    elif movie_is_a_movie == 1:  # Netflix movie is very likely missing in database
+                        missing_movies_in_db.append(movie)
+                    else:  # 2: Found Netflix movie in database
+                        found_netflix_movies.append(movie)
+                        index_of_movie_to_delete = [m["id"] for m in all_movies_of_two_words].index(movie["id"])
+                        all_movies_of_two_words.pop(index_of_movie_to_delete)  # Drop movie from list, so that no other movie can match to it
+            else:
+                no_matching_movie_found.extend(netflix_movies)
+
+    if output_time:
+        print(f"Time: {time.time() - start_time}")
+    return found_netflix_movies, no_matching_movie_found, missing_movies_in_db
 
 
 if __name__ == "__main__":
@@ -201,62 +248,35 @@ if __name__ == "__main__":
     all_movies_grouped = load_object_from_file("updated_data/all_movies_db.pickle")
     netflix_movies_and_series_grouped = load_object_from_file("updated_data/all_netflix_movies_and_series_db.pickle")
 
-    # Print results
-    print("All movies:", type(all_movies_grouped), len(all_movies_grouped))
-    print(len(all_movies_grouped.keys()))
+    # # Print results
+    # print("All movies:", type(all_movies_grouped), len(all_movies_grouped))
+    # print(len(all_movies_grouped.keys()))
 
-    for first_letter_or_number, sec_letter_dict in list(all_movies_grouped.items())[::len(all_movies_grouped) // 26 + 1]:
-        print(f"{first_letter_or_number}: ", end="")
-        for sec_letter_or_number, movies in list(sec_letter_dict.items())[::len(sec_letter_dict) // 26 + 1]:
-            print(f"{sec_letter_or_number}: {len(movies)}", end=", ")
-        print()
-    print()
+    # for first_letter_or_number, sec_letter_dict in list(all_movies_grouped.items())[::len(all_movies_grouped) // 26 + 1]:
+    #     print(f"{first_letter_or_number}: ", end="")
+    #     for sec_letter_or_number, movies in list(sec_letter_dict.items())[::len(sec_letter_dict) // 26 + 1]:
+    #         print(f"{sec_letter_or_number}: {len(movies)}", end=", ")
+    #     print()
+    # print()
 
-    print("All netflix movies and series:", type(netflix_movies_and_series_grouped), len(netflix_movies_and_series_grouped))
-    print(len(netflix_movies_and_series_grouped.keys()))
+    # print("All netflix movies and series:", type(netflix_movies_and_series_grouped), len(netflix_movies_and_series_grouped))
+    # print(len(netflix_movies_and_series_grouped.keys()))
 
-    for first_letter_or_number, sec_letter_dict in list(netflix_movies_and_series_grouped.items())[::len(netflix_movies_and_series_grouped) // 26 + 1]:
-        print(f"{first_letter_or_number}: ", end="")
-        for sec_letter_or_number, movies in list(sec_letter_dict.items())[::len(sec_letter_dict) // 26 + 1]:
-            print(f"{sec_letter_or_number}: {len(movies)}", end=", ")
-        print()
-    print()
+    # for first_letter_or_number, sec_letter_dict in list(netflix_movies_and_series_grouped.items())[::len(netflix_movies_and_series_grouped) // 26 + 1]:
+    #     print(f"{first_letter_or_number}: ", end="")
+    #     for sec_letter_or_number, movies in list(sec_letter_dict.items())[::len(sec_letter_dict) // 26 + 1]:
+    #         print(f"{sec_letter_or_number}: {len(movies)}", end=", ")
+    #     print()
+    # print()
 
-    # Create arguments for parallelized task
-    print("Create arguments for parallelized task")
-    i = 0
-    args_for_parallel_execution = []
+    # # Find matching between Netlflix movies and movies from database
+    # print("Find matching between Netlflix movies and movies from database")
+    # found_netflix_movies, no_matching_movie_found, missing_movies_in_db =\
+    #     match_netflix_movies_with_movies_from_database(netflix_movies_and_series_grouped, all_movies_grouped)
 
-    start_time = time.time()
-    for first_letter_or_number, netflix_movies_dict in list(netflix_movies_and_series_grouped.items())[86:]:
-        for sec_letter_or_number, netflix_movies in netflix_movies_dict.items():
-            if first_letter_or_number in all_movies_grouped and sec_letter_or_number in all_movies_grouped[first_letter_or_number]:  # Only letters/numbers in both movie dicts
-                all_movies_of_two_words = all_movies_grouped[first_letter_or_number][sec_letter_or_number]
-
-                for netflix_movie in netflix_movies:
-                    if i % 1000 == 0:
-                        print(f"Iteraion: {i}")
-
-                    movie_is_a_movie, movie = find_netflix_movie_in_database(netflix_movie, all_movies_of_two_words, min_ratio=0.95)
-
-                    if movie_is_a_movie == 0:  # Movie is very likely a series
-                        no_matching_movie_found.append(movie)
-                    elif movie_is_a_movie == 1:  # Netflix movie is very likely missing in database
-                        missing_movies_in_db.append(movie)
-                    else:  # 2: Found Netflix movie in database
-                        found_netflix_movies.append(movie)
-                        index_of_movie_to_delete = [m["id"] for m in all_movies_of_two_words].index(movie["id"])
-                        all_movies_of_two_words.pop(index_of_movie_to_delete)  # Drop movie from list, so that no other movie can match to it
-
-                    i += 1
-            else:
-                no_matching_movie_found.extend(netflix_movies)
-    print(f"Created {len(args_for_parallel_execution)} arguments for parallelized task")
-    print(f"Time: {time.time() - start_time}")
-
-    save_object_in_file("updated_data/insert_user_histories_in_db/found_netflix_movies.pickle", found_netflix_movies)
-    save_object_in_file("updated_data/insert_user_histories_in_db/missing_movies_in_db.pickle", missing_movies_in_db)
-    save_object_in_file("updated_data/insert_user_histories_in_db/no_matching_movie_found.pickle", no_matching_movie_found)
+    # save_object_in_file("updated_data/insert_user_histories_in_db/found_netflix_movies.pickle", found_netflix_movies)
+    # save_object_in_file("updated_data/insert_user_histories_in_db/missing_movies_in_db.pickle", missing_movies_in_db)
+    # save_object_in_file("updated_data/insert_user_histories_in_db/no_matching_movie_found.pickle", no_matching_movie_found)
 
 
     found_netflix_movies = load_object_from_file("updated_data/insert_user_histories_in_db/found_netflix_movies.pickle")
@@ -267,5 +287,36 @@ if __name__ == "__main__":
     print(f"missing_movies_in_db: {len(missing_movies_in_db)}")
     print(f"no_matching_movie_found: {len(no_matching_movie_found)}")
     print(f"All in all there are {len(found_netflix_movies) + len(missing_movies_in_db) + len(no_matching_movie_found)} movies")
+
+    print(len([x for x in found_netflix_movies if x["title"] == x["netflix_title"] or x["original_title"] == x["netflix_title"] or ["release_year"] == x["netflix_year"]]))
+    print(len([x for x in found_netflix_movies if x["title"] != x["netflix_title"] and x["original_title"] != x["netflix_title"] and x["release_year"] != x["netflix_year"]]))
+    for movie in [x for x in found_netflix_movies if x["title"] != x["netflix_title"] and x["original_title"] != x["netflix_title"] and x["release_year"] != x["netflix_year"]]:
+        print(movie)
+
+    # TODO: Group movies by first two chars/numbers instead of first two words/numbers
+    # -> TODO: One method for doing it in both ways
+    # missing_movies_in_db_grouped = 
+    # all_movies_grouped = 
+
+    # TODO: Remove from all_movies_grouped movies which are already in found_netflix_movies
+    # -> TODO: Maybe with result (on reference changed) of first finding machting try
+    exit()
+
+    found_netflix_movies, no_matching_movie_found, missing_movies_in_db =\
+        match_netflix_movies_with_movies_from_database(missing_movies_in_db, all_movies_grouped)
+
+    exit()
+
+    with open("updated_data/insert_user_histories_in_db/found_netflix_movies.txt", "w", encoding="utf-8") as file:
+        for movie in found_netflix_movies:
+            file.write(str(movie) + "\n")
+
+    with open("updated_data/insert_user_histories_in_db/missing_movies_in_db.txt", "w", encoding="utf-8") as file:
+        for movie in missing_movies_in_db:
+            file.write(str(movie) + "\n")
+
+    with open("updated_data/insert_user_histories_in_db/no_matching_movie_found.txt", "w", encoding="utf-8") as file:
+        for movie in no_matching_movie_found:
+            file.write(str(movie) + "\n")
 
     # vars.map_for_netflix_movies_to_db_movies
