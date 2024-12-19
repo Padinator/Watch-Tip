@@ -55,6 +55,54 @@ def format_int(value: str, default: int) -> int:
         return default
 
 
+def build_grouping_expression(word: str, group_n_critria: List[bool]=[True]) -> str:
+    """
+    Builds an expression, which macthes the regex pattern "[a-zA-Z0-9]+" with
+    True value from an entry from "group_n_critria" and "[a-zA-Z]|[0-9]+" with
+    a False value from an entry from "group_n_critria".\
+    All sub expressions matching the regex patterns will be concatenated. Other
+    characters not in the pattern will be included as well.\
+    Returns the whole matching string.
+    """
+
+    assert 0 < len(group_n_critria)
+
+    # Find pattern in passed word
+    pattern = "[a-zA-Z0-9]+" if group_n_critria[0] else "[a-zA-Z]|[0-9]+"  # Use word/number or character/number
+    res = re.search(pattern, word)
+    expression = res.group() if res != None else ""
+
+    # Restore other characters like "." before expression occurs in word
+    occurence_in_word = word.index(expression)
+    expression = word[:occurence_in_word] + expression
+
+    if len(group_n_critria) == 1 or len(word) == len(expression):  # No group criteria is remaining or word is already empty/worked off
+        return expression
+    else:
+        return expression + build_grouping_expression(word[len(expression):], group_n_critria[1:])
+
+
+def group_movies_by_attr(movies: List[Dict[str, Any]], attr: str, group_n_critria: bool=[True]) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Groups passed array of movies by passed attribute, e.g. movie titles.
+    This will be done n times\
+        -> Grouping after first word or number of a movie title group_n_critria = [True]
+        -> Grouping after first letter or numger or a movie title group_n_critria = [False]
+        -> Grouping after first and second word or number of a movie title group_n_critria = [True, True]
+    Returns the grouped dictionary with all str expressions as keys and the corresponding
+    list of movies as values.
+    """
+
+    grouped_movies = defaultdict(list)
+
+    for movie in movies:
+        movie_attr = movie[attr]
+        groupding_expression = build_grouping_expression(movie_attr, group_n_critria)
+        grouped_movies[groupding_expression].append(movie)
+
+    return grouped_movies
+
+
 def compareStrings(s1: str, s2: str, min_ratio: float=0.8) -> Tuple[bool, float]:
     """
     Returns, if both strings are similar with comparing them like
@@ -136,28 +184,27 @@ def match_netflix_movies_with_movies_from_database(netflix_movies: Dict[str, Dic
     if output_time:
         start_time = time.time()
 
-    for first_letter_or_number, netflix_movies_dict in netflix_movies.items():
-        for sec_letter_or_number, netflix_movies in netflix_movies_dict.items():
-            if first_letter_or_number in movies_from_database and sec_letter_or_number in movies_from_database[first_letter_or_number]:  # Only letters/numbers in both movie dicts
-                all_movies_of_two_words = movies_from_database[first_letter_or_number][sec_letter_or_number]
+    for grouping_expression, netflix_movies in netflix_movies.items():
+        if grouping_expression in movies_from_database:  # Grouping expressions must be in both movie dicts
+            all_movies_of_two_words = movies_from_database[grouping_expression]
 
-                for netflix_movie in netflix_movies:
-                    if output_iterations and i % 1000 == 0:
-                        print(f"Iteration: {i}")
-                    i += 1
+            for netflix_movie in netflix_movies:
+                if output_iterations and i % 1000 == 0:
+                    print(f"Iteration: {i}")
+                i += 1
 
-                    movie_is_a_movie, movie = find_netflix_movie_in_database(netflix_movie, all_movies_of_two_words, min_ratio=MIN_MOVIE_RATIO)
+                movie_is_a_movie, movie = find_netflix_movie_in_database(netflix_movie, all_movies_of_two_words, min_ratio=MIN_MOVIE_RATIO)
 
-                    if movie_is_a_movie == 0:  # Movie is very likely a series
-                        no_matching_movie_found.append(movie)
-                    elif movie_is_a_movie == 1:  # Netflix movie is very likely missing in database
-                        missing_movies_in_db.append(movie)
-                    else:  # 2: Found Netflix movie in database
-                        found_netflix_movies.append(movie)
-                        index_of_movie_to_delete = [m["id"] for m in all_movies_of_two_words].index(movie["id"])
-                        all_movies_of_two_words.pop(index_of_movie_to_delete)  # Drop movie from list, so that no other movie can match to it
-            else:
-                no_matching_movie_found.extend(netflix_movies)
+                if movie_is_a_movie == 0:  # Movie is very likely a series
+                    no_matching_movie_found.append(movie)
+                elif movie_is_a_movie == 1:  # Netflix movie is very likely missing in database
+                    missing_movies_in_db.append(movie)
+                else:  # 2: Found Netflix movie in database
+                    found_netflix_movies.append(movie)
+                    index_of_movie_to_delete = [m["id"] for m in all_movies_of_two_words].index(movie["id"])
+                    all_movies_of_two_words.pop(index_of_movie_to_delete)  # Drop movie from list, so that no other movie can match to it
+        else:
+            no_matching_movie_found.extend(netflix_movies)
 
     if output_time:
         print(f"Time: {time.time() - start_time}")
@@ -173,67 +220,32 @@ if __name__ == "__main__":
 
     # # Connect to database and read all movies
     # all_movies_table = Movies()
-    # all_movies = [(get_first_letter_or_number_of_a_title(movie["title"]),
-    #                     {
-    #                         "original_title": movie["original_title"], "title": movie["title"],
-    #                         "release_year": format_int(movie["release_date"].split("-")[0], -100),
-    #                         "id": movie_id
-    #                     }
-    #                     ) for movie_id, movie in list(all_movies_table.get_all().items()) if get_first_letter_or_number_of_a_title(movie["title"][0]) != None]
+    # all_movies = [
+    #     {
+    #         "id": movie_id,
+    #         "original_title": movie["original_title"],
+    #         "title": movie["title"],
+    #         "release_year": format_int(movie["release_date"].split("-")[0], -100)
+    #     }
+    #     for movie_id, movie in list(all_movies_table.get_all().items())]
     # print(f"Found {len(all_movies)} movies in database")
 
-    # # Read and save Netflix movies
+    # # Read Netflix movies
     # with open(vars.local_netflix_movies_file_path, "r") as netflix_movies_file:
-    #     netflix_movies_and_series = [(get_first_letter_or_number_of_a_title(movie.split(",", 2)[2]),
+    #     netflix_movies_and_series = [
     #         {
     #             "netflix_id": movie.split(",", 2)[0],
     #             "title": movie.split(",", 2)[2].strip(),
     #             "year": format_int(movie.split(",", 2)[1], -200)
-    #         })
-    #         for movie in netflix_movies_file.readlines() if get_first_letter_or_number_of_a_title(movie.split(",", 2)[2]) != None]
+    #         }
+    #         for movie in netflix_movies_file.readlines()]
     #     print(f"Found {len(netflix_movies_and_series)} Netflix movies")
 
-    # # Group all movies from database by letters and numbers
-    # for first_letter_or_number, movie in all_movies:
-    #     # Find second letter/number
-    #     movie_title = movie["title"]
-    #     first_letter_or_number = get_first_letter_or_number_of_a_title(movie_title)
-    #     letters_to_skip = len(first_letter_or_number)
-
-    #     # Check, if movie is long enough to split it again
-    #     if letters_to_skip < len(movie_title):  # Movie title consist of multiple words
-    #         sec_letter_or_number = get_first_letter_or_number_of_a_title(movie_title[letters_to_skip + 1:])
-    #     else:  # Movie title consists only of one word
-    #         sec_letter_or_number = ""
-
-    #     # Create dictionray for new letter/number
-    #     if sec_letter_or_number not in all_movies_grouped[first_letter_or_number]:
-    #         all_movies_grouped[first_letter_or_number][sec_letter_or_number] = []
-
-    #     # Add movie to dict of all mvoies
-    #     all_movies_grouped[first_letter_or_number][sec_letter_or_number].append(movie)
-    # print(f"Grouped {sum([sum([len(ms) for ms in d.values()]) for d in all_movies_grouped.values()])} movies from database")
-
-    # for first_letter_or_number, movie in netflix_movies_and_series:
-    #     # Find second letter/number
-    #     movie_title = movie["title"]
-    #     first_letter_or_number = get_first_letter_or_number_of_a_title(movie_title)
-    #     letters_to_skip = len(first_letter_or_number)
-
-    #     # Check, if movie/series is long enough to split it again
-    #     if letters_to_skip < len(movie_title):  # Movie/series title consist of multiple words
-    #         sec_letter_or_number = get_first_letter_or_number_of_a_title(movie_title[letters_to_skip + 1:])
-    #     else:  # Movie/series title consists only of one word
-    #         sec_letter_or_number = ""
-
-    #     # Create dictionray for new letter/number
-    #     if sec_letter_or_number not in netflix_movies_and_series_grouped[first_letter_or_number]:
-    #         netflix_movies_and_series_grouped[first_letter_or_number][sec_letter_or_number] = []
-
-    #     # Add movie to dict of all mvoies/series of Netflix
-    #     netflix_movies_and_series_grouped[first_letter_or_number][sec_letter_or_number].append(movie)
-
-    # print(f"Grouped {sum([sum([len(ms) for ms in d.values()]) for d in netflix_movies_and_series_grouped.values()])} Netflix movies")
+    # # Group all movies from database and Netflix movies by words/numbers
+    # all_movies_grouped = group_movies_by_attr(all_movies, "title", [True, True])
+    # netflix_movies_and_series_grouped = group_movies_by_attr(netflix_movies_and_series, "title", [True, True])
+    # print(f"Grouped {sum([len(movies) for movies in all_movies_grouped.values()])} movies from database")
+    # print(f"Grouped {sum([len(movies) for movies in netflix_movies_and_series_grouped.values()])} Netflix movies")
 
     # # Sort movies (only first order -> for outputting results)
     # all_movies_grouped = dict(sorted(all_movies_grouped.items(), key=lambda x: x[0]))
@@ -248,35 +260,35 @@ if __name__ == "__main__":
     all_movies_grouped = load_object_from_file("updated_data/all_movies_db.pickle")
     netflix_movies_and_series_grouped = load_object_from_file("updated_data/all_netflix_movies_and_series_db.pickle")
 
-    # # Print results
-    # print("All movies:", type(all_movies_grouped), len(all_movies_grouped))
-    # print(len(all_movies_grouped.keys()))
+    # Print results
+    print("All movies:", type(all_movies_grouped), len(all_movies_grouped))
+    print(f"Grouped {sum([len(movies) for movies in all_movies_grouped.values()])} movies from database")
+    print(len(all_movies_grouped.keys()))
 
-    # for first_letter_or_number, sec_letter_dict in list(all_movies_grouped.items())[::len(all_movies_grouped) // 26 + 1]:
-    #     print(f"{first_letter_or_number}: ", end="")
-    #     for sec_letter_or_number, movies in list(sec_letter_dict.items())[::len(sec_letter_dict) // 26 + 1]:
-    #         print(f"{sec_letter_or_number}: {len(movies)}", end=", ")
-    #     print()
-    # print()
+    for grouping_expression, movies in list(all_movies_grouped.items())[::len(all_movies_grouped) // 26 + 1]:
+        print(f"{grouping_expression}: {len(movies)}")
+    print()
 
-    # print("All netflix movies and series:", type(netflix_movies_and_series_grouped), len(netflix_movies_and_series_grouped))
-    # print(len(netflix_movies_and_series_grouped.keys()))
+    print("All netflix movies and series:", type(netflix_movies_and_series_grouped), len(netflix_movies_and_series_grouped))
+    print(len(netflix_movies_and_series_grouped.keys()))
 
-    # for first_letter_or_number, sec_letter_dict in list(netflix_movies_and_series_grouped.items())[::len(netflix_movies_and_series_grouped) // 26 + 1]:
-    #     print(f"{first_letter_or_number}: ", end="")
-    #     for sec_letter_or_number, movies in list(sec_letter_dict.items())[::len(sec_letter_dict) // 26 + 1]:
-    #         print(f"{sec_letter_or_number}: {len(movies)}", end=", ")
-    #     print()
-    # print()
+    for grouping_expression, movies in list(netflix_movies_and_series_grouped.items())[::len(netflix_movies_and_series_grouped) // 26 + 1]:
+        print(f"{grouping_expression}: {len(movies)}")
+    print()
 
-    # # Find matching between Netlflix movies and movies from database
-    # print("Find matching between Netlflix movies and movies from database")
-    # found_netflix_movies, no_matching_movie_found, missing_movies_in_db =\
-    #     match_netflix_movies_with_movies_from_database(netflix_movies_and_series_grouped, all_movies_grouped)
+    # Find matching between Netlflix movies and movies from database
+    print("Find matching between Netlflix movies and movies from database")
+    number_of_movies_in_database_before = sum([len(movies) for movies in all_movies_grouped.values()])
+    found_netflix_movies, no_matching_movie_found, missing_movies_in_db =\
+        match_netflix_movies_with_movies_from_database(netflix_movies_and_series_grouped, all_movies_grouped)
+    number_of_movies_in_database_after = sum([len(movies) for movies in all_movies_grouped.values()])
+    print(f"Movies in database before: {number_of_movies_in_database_before}, number of movies in database after: {number_of_movies_in_database_after}")
+    print(f"Movies removed from database list: {number_of_movies_in_database_after - number_of_movies_in_database_before}")
 
-    # save_object_in_file("updated_data/insert_user_histories_in_db/found_netflix_movies.pickle", found_netflix_movies)
-    # save_object_in_file("updated_data/insert_user_histories_in_db/missing_movies_in_db.pickle", missing_movies_in_db)
-    # save_object_in_file("updated_data/insert_user_histories_in_db/no_matching_movie_found.pickle", no_matching_movie_found)
+
+    save_object_in_file("updated_data/insert_user_histories_in_db/found_netflix_movies.pickle", found_netflix_movies)
+    save_object_in_file("updated_data/insert_user_histories_in_db/missing_movies_in_db.pickle", missing_movies_in_db)
+    save_object_in_file("updated_data/insert_user_histories_in_db/no_matching_movie_found.pickle", no_matching_movie_found)
 
 
     found_netflix_movies = load_object_from_file("updated_data/insert_user_histories_in_db/found_netflix_movies.pickle")
@@ -293,17 +305,28 @@ if __name__ == "__main__":
     for movie in [x for x in found_netflix_movies if x["title"] != x["netflix_title"] and x["original_title"] != x["netflix_title"] and x["release_year"] != x["netflix_year"]]:
         print(movie)
 
-    # TODO: Group movies by first two chars/numbers instead of first two words/numbers
-    # -> TODO: One method for doing it in both ways
-    # missing_movies_in_db_grouped = 
-    # all_movies_grouped = 
+    # TODO: all_movies_grouped vorher in eine Datei schreiben, damit ich das nicht immer neu berechnen muss
+    # Group movies by a word/number and a char/number two words/numbers
+    # TODO: all_movies_grouped müsste man raveln oder händisch umpreparieren
+    all_movies_grouped = group_movies_by_attr(all_movies_grouped, "title", [True, False])
+    missing_movies_in_db_grouped = group_movies_by_attr(missing_movies_in_db, "title", [True, False])
+    print(f"Grouped {sum([len(movies) for movies in missing_movies_in_db_grouped.values()])} missing in database Netflix movies")
+    print(f"Grouped {sum([len(movies) for movies in all_movies_grouped.values()])} movies from database")
 
-    # TODO: Remove from all_movies_grouped movies which are already in found_netflix_movies
-    # -> TODO: Maybe with result (on reference changed) of first finding machting try
     exit()
 
     found_netflix_movies, no_matching_movie_found, missing_movies_in_db =\
         match_netflix_movies_with_movies_from_database(missing_movies_in_db, all_movies_grouped)
+        # Find matching between Netlflix movies and movies from database
+    print("Find matching between missing in database Netflix movies and remaining  movies from database")
+    number_of_movies_in_database_before = sum([len(movies) for movies in all_movies_grouped.values()])
+    
+    found_netflix_movies, no_matching_movie_found, missing_movies_in_db =\
+        match_netflix_movies_with_movies_from_database(netflix_movies_and_series_grouped, all_movies_grouped)
+    number_of_movies_in_database_after = sum([len(movies) for movies in all_movies_grouped.values()])
+    
+    print(f"Movies in database before: {number_of_movies_in_database_before}, number of movies in database after: {number_of_movies_in_database_after}")
+    print(f"Movies removed from database list: {number_of_movies_in_database_after - number_of_movies_in_database_before}")
 
     exit()
 
