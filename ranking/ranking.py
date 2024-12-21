@@ -71,15 +71,20 @@ for movie, review in filtered_reviews.items():
 # OpenAI variant
 # openai.api_key = os.environ["openai"]
 
+
 # def analyze_user_review(review):
 #     response = openai.ChatCompletion.create(
 #         model="gpt-3.5-turbo",
 #         messages=[
-#             {"role": "system", "content": "Du bist ein Experte für Sentiment-Analyse."},
-#             {"role": "user", "content": "Was ist eine Sentiment-Analyse?"},
+#             {
+#                 "role": "system",
+#                 "content": "You are a Film Critic Analyst, specializing in the evaluation of films based on user feedback. You analyze texts to evaluate the film objectively by identifying positive and negative aspects and comparing their frequency. Your goal is to create a single overall rating and indicate the ratio of positive to negative points.",
+#             },
+#             {"role": "user", "content": "Analyze the following review {review}"},
 #         ],
 #     )
 #     return response["choices"][0]["message"]["content"]
+
 
 # for movie, review in filtered_reviews.items():
 #     print(f"Rezension: {review}")
