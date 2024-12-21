@@ -17,6 +17,7 @@ import helper.variables as vars
 
 from collections import OrderedDict
 from database.movie import Movies
+from database.user import Users
 from helper.file_system_interaction import load_object_from_file, save_object_in_file
 
 
@@ -116,7 +117,7 @@ def group_movies_by_attr(movies: List[Dict[str, Any]], attr: str, group_n_critri
     return grouped_movies
 
 
-def compareStrings(s1: str, s2: str, min_ratio: float=0.8) -> Tuple[bool, float]:
+def compare_strings(s1: str, s2: str, min_ratio: float=0.8) -> Tuple[bool, float]:
     """
     Compares two strings and finds relationship as number between them.
 
@@ -179,8 +180,8 @@ def find_netflix_movie_in_database(netflix_movie: Dict[str, Any], all_movies: Li
 
     # Search netflix movie in database
     for movie in all_movies:
-        similarity_o_title, ratio_o_title = compareStrings(name, movie["original_title"], min_ratio)
-        similarity_title, ratio_title = compareStrings(name, movie["title"], min_ratio)
+        similarity_o_title, ratio_o_title = compare_strings(name, movie["original_title"], min_ratio)
+        similarity_title, ratio_title = compare_strings(name, movie["title"], min_ratio)
 
         if name == movie["original_title"] or name == movie["title"]\
             or similarity_o_title or similarity_title:
@@ -198,7 +199,8 @@ def find_netflix_movie_in_database(netflix_movie: Dict[str, Any], all_movies: Li
         # Find movie with closest release_date
         found_netflix_movie = min(movie_in_database.items(), key=lambda x: abs(year - x[1]["release_year"]))[1]
 
-        if evaluate_year_difference and (max_year_difference < abs(year - found_netflix_movie["release_year"])):  # Difference of maximal max_year_difference years is okay
+        # Difference of maximal max_year_difference years is okay
+        if evaluate_year_difference and (max_year_difference < abs(year - found_netflix_movie["release_year"])):
             return (1, netflix_movie)
 
     # Save nextlfix data in movie and return it
@@ -564,53 +566,52 @@ if __name__ == "__main__":
     # save_object_in_file("updated_data/all_netflix_movies_and_series_db.pickle", netflix_movies_and_series)
 
 
-    # Read all movies from file
-    all_movies_from_database = load_object_from_file("updated_data/all_movies_db.pickle")
-    netflix_movies_and_series = load_object_from_file("updated_data/all_netflix_movies_and_series_db.pickle")
+    # # Read all movies from file
+    # all_movies_from_database = load_object_from_file("updated_data/all_movies_db.pickle")
+    # netflix_movies_and_series = load_object_from_file("updated_data/all_netflix_movies_and_series_db.pickle")
 
-    """
-    Find matching between missing in database Netlflix movies and movies from database
-    First group by first second words/numbers and the bey first word/number and second letter/number
-    """
-    print("Find matching between missing in database Netflix movies and remaining movies from database:")
-    ratio_max_year_combis = [(0.99, MAX_YEAR_DIFFERENCE), (0.9, 0), (0.99, 3), (0.8, 0), (0.9, MAX_YEAR_DIFFERENCE), (0.8, 3)]
-    group_criteria = [(True, True), (True, False)]
-    found_netflix_movies, netflix_series, missing_movies_in_db =\
-        optimize_matchings(all_movies_from_database, netflix_movies_and_series, ratio_max_year_combis, group_criteria)
-    
-    # TODO: Aufrufhierarchie dokumentieren + Parameter besser dokumentieren!!!
+    # """
+    # Find matching between missing in database Netlflix movies and movies from database
+    # First group by first second words/numbers and the bey first word/number and second letter/number
+    # """
+    # print("Find matching between missing in database Netflix movies and remaining movies from database:")
+    # ratio_max_year_combis = [(0.99, MAX_YEAR_DIFFERENCE), (0.9, 0), (0.99, 3), (0.8, 0), (0.9, MAX_YEAR_DIFFERENCE), (0.8, 3)]
+    # group_criteria = [[True, True], [True, False]]
+    # found_netflix_movies, netflix_series, missing_movies_in_db =\
+    #     optimize_matchings(all_movies_from_database, netflix_movies_and_series, ratio_max_year_combis, group_criteria)
 
-    print("\nSample of found/matched Netlfix movies:")
-    for movie in found_netflix_movies[:10]:
-        print(movie)
+    # # Output sample movies from each category
+    # print("\nSample of found/matched Netlfix movies:")
+    # for movie in found_netflix_movies[:10]:
+    #     print(movie)
 
-    print("\nSample of still in database missing Netlfix movies:")
-    for movie in missing_movies_in_db[:10]:
-        print(movie)
+    # print("\nSample of still in database missing Netlfix movies:")
+    # for movie in missing_movies_in_db[:10]:
+    #     print(movie)
 
-    print("\nSample of movies that are very likely series:")
-    for movie in netflix_series[:10]:
-        print(movie)
+    # print("\nSample of movies that are very likely series:")
+    # for movie in netflix_series[:10]:
+    #     print(movie)
 
-    # Save movies statistics (= found/not found movies)
-    save_object_in_file(vars.map_for_netflix_movies_to_db_movies_path, found_netflix_movies)
-    save_object_in_file(vars.missing_netflix_movies_in_database_path, missing_movies_in_db)
-    save_object_in_file(vars.netflix_series_path, netflix_series)
+    # # Save movies statistics (= found/not found movies)
+    # save_object_in_file(vars.map_for_netflix_movies_to_db_movies_path, found_netflix_movies)
+    # save_object_in_file(vars.missing_netflix_movies_in_database_path, missing_movies_in_db)
+    # save_object_in_file(vars.netflix_series_path, netflix_series)
+
 
     found_netflix_movies = load_object_from_file(vars.map_for_netflix_movies_to_db_movies_path)
     missing_movies_in_db = load_object_from_file(vars.missing_netflix_movies_in_database_path)
     netflix_series = load_object_from_file(vars.netflix_series_path)
 
-    with open("updated_data/insert_user_histories_in_db/found_netflix_movies.txt", "w", encoding="utf-8") as file:
+    # Write movies into ".txt"-files for easier manual analyzing
+    with open(vars.map_for_netflix_movies_to_db_movies_path_txt, "w", encoding="utf-8") as file:
         for movie in found_netflix_movies:
             file.write(str(movie) + "\n")
 
-    with open("updated_data/insert_user_histories_in_db/netflix_series.txt", "w", encoding="utf-8") as file:
-        for movie in netflix_series:
-            file.write(str(movie) + "\n")
-
-    with open("updated_data/insert_user_histories_in_db/missing_movies_in_db.txt", "w", encoding="utf-8") as file:
+    with open(vars.missing_netflix_movies_in_database_path_txt, "w", encoding="utf-8") as file:
         for movie in missing_movies_in_db:
             file.write(str(movie) + "\n")
 
-    # vars.map_for_netflix_movies_to_db_movies
+    with open(vars.netflix_series_path, "w", encoding="utf-8") as file:
+        for movie in netflix_series:
+            file.write(str(movie) + "\n")

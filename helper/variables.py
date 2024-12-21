@@ -73,6 +73,15 @@ missing_netflix_movies_in_database_path = (
 netflix_series_path = (
     insert_user_histories_in_db_data_path / "netflix_series.pickle"
 )
+map_for_netflix_movies_to_db_movies_path_txt = (
+    insert_user_histories_in_db_data_path / "netflix_movies_mapped_to_database.txt"
+)
+missing_netflix_movies_in_database_path_txt = (
+    insert_user_histories_in_db_data_path / "missing_netflix_movies_in_database.txt"
+)
+netflix_series_path_txt = (
+    insert_user_histories_in_db_data_path / "netflix_series.txt"
+)
 
 # Define URLs to data sets of all movies, producers and production companies
 url_data_all_movies = f"http://files.tmdb.org/p/exports/{movie_data_set}"
