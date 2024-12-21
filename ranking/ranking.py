@@ -196,8 +196,8 @@ if __name__ == "__main__":
         }
     """
 
-    llm_model = set_up_llm("gemini-1.5-flash", system_instruction)
+    llm = set_up_llm("gemini-1.5-flash", system_instruction)
 
-    movies_with_their_responses = generate_ai_response(filtered_reviews, llm_model)
+    movies_with_their_responses = generate_ai_response(filtered_reviews, llm)
 
     print_in_clean_format(movies_with_their_responses)
