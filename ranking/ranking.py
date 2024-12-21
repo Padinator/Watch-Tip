@@ -1,9 +1,10 @@
-import sys
-import os
 import json
 import openai
+import os
+import sys
 
 import google.generativeai as genai
+
 from pathlib import Path
 
 # ---------- Import own python modules ----------
@@ -12,7 +13,6 @@ sys.path.append(str(project_dir))
 
 from database.movie import Movies
 from database.user import Users
-
 from helper.file_system_interaction import save_object_in_file, load_object_from_file
 
 all_users_table = Users()
@@ -101,6 +101,6 @@ model = genai.GenerativeModel(
 for movie, review in filtered_reviews.items():
     response = model.generate_content(f"Analyze the following review: {review}")
 
-    print(f"Movie: {movie}, AI analyse: {response.text}")
+    print(f"Movie: {movie}\nAI analyse: {response.text}")
 
 # TODO: Improve the prompt -> How can we "calculate" the ranking with the feedback?
