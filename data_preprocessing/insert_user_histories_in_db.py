@@ -27,7 +27,19 @@ MAX_YEAR_DIFFERENCE = 2  # Maximal acceptable difference between a Netflix movie
 
 def format_int(value: str, default: int) -> int:
     """
-    Formats passed str to int. If it is not possible, return default value.
+    Formats passed str to int.
+    
+    Parameters
+    ----------
+    value : int
+        Value to convert/format to str
+    default : int
+        Default value, if converting fails
+
+    Returns
+    -------
+    int
+        The formatted/converted value or the passed default value, if conversion failed
     """
 
     try:
@@ -38,12 +50,23 @@ def format_int(value: str, default: int) -> int:
 
 def build_grouping_expression(word: str, group_n_critria: List[bool]=[True]) -> str:
     """
-    Builds an expression, which macthes the regex pattern "[a-zA-Z0-9]+" with
-    True value from an entry from "group_n_critria" and "[a-zA-Z]|[0-9]+" with
-    a False value from an entry from "group_n_critria".\
-    All sub expressions matching the regex patterns will be concatenated. Other
-    characters not in the pattern will be included as well.\
-    Returns the whole matching string.
+    Builds an expression, which macthes the regex pattern "[a-zA-Z0-9]+" (word or number)
+    and "[a-zA-Z]|[0-9]+" (letter or number).\n
+    All sub expressions matching the regex patterns will be concatenated. Other characters
+    not in the pattern won't be included as well.
+
+    Parameters
+    ----------
+    word : str
+        A word, which will be splitted into multiple words or letters and numbers.
+    group_n_critria : List[bool], default [True]
+        Contains criteria for splitting the passed word. True means split by word/number,
+        False means split by letter/number and length of this List means number of splits
+    
+    Returns
+    -------
+    str
+        The whole matching string
     """
 
     assert 0 < len(group_n_critria)
@@ -63,12 +86,24 @@ def build_grouping_expression(word: str, group_n_critria: List[bool]=[True]) -> 
 def group_movies_by_attr(movies: List[Dict[str, Any]], attr: str, group_n_critria: bool=[True]) -> Dict[str, List[Dict[str, Any]]]:
     """
     Groups passed array of movies by passed attribute, e.g. movie titles.
-    This will be done n times\
-        -> Grouping after first word or number of a movie title group_n_critria = [True]
-        -> Grouping after first letter or numger or a movie title group_n_critria = [False]
-        -> Grouping after first and second word or number of a movie title group_n_critria = [True, True]
-    Returns the grouped dictionary with all str expressions as keys and the corresponding
-    list of movies as values.
+    This will be done n (= length of group_n_critria) times. Grouping will
+    be done based on function "build_grouping_expression".
+
+    Parameters
+    ----------
+    movies : List[Dict[str, Any]]
+        List of movie dicts to group with grouping criteria group_n_critria
+    attr : str
+        Attribute of a movie dictionary to use for grouping
+    group_n_critria : bool=[True]
+        Contains criteria for splitting the passed word. True means split by word/number,
+        False means split by letter/number and length of this List means number of splits
+
+    Returns
+    -------
+    Dict[str, List[Dict[str, Any]]]
+        The grouped dictionary with all str expressions as keys and the corresponding
+        list of movies as values
     """
 
     grouped_movies = defaultdict(list)
@@ -83,11 +118,23 @@ def group_movies_by_attr(movies: List[Dict[str, Any]], attr: str, group_n_critri
 
 def compareStrings(s1: str, s2: str, min_ratio: float=0.8) -> Tuple[bool, float]:
     """
-    Returns, if both strings are similar with comparing them like
-    Levenshtein distance, but here:\
-    2 * <#matching chars> / ([len(s1) + len(s2)]^2)\
-    Also returns the ratio, which was computed, so caller can use/proof
-    it.
+    Compares two strings and finds relationship as number between them.
+
+    Parameters
+    ----------
+    s1 : str
+        First string to compare with second one
+    s2 : str
+        Second string to compare with first one
+    min_ratio : float,d efault 0.8
+        Minimal relationship between movies for declaring them as similiar
+
+    Returns
+    -------
+    Tuple[bool, float]
+        True, if both strings are similar with comparing them like Levenshtein distance, but here:
+        2 * <#matching chars> / ([len(s1) + len(s2)]^2)\n
+        Also returns the ratio, which was computed, so caller can use/proof it
     """
 
     ratio = SequenceMatcher(None, s1, s2).ratio()
@@ -100,15 +147,31 @@ def find_netflix_movie_in_database(netflix_movie: Dict[str, Any], all_movies: Li
                                         -> Tuple[int, Dict[str, Any]]:
     """
     Compares passed Netlfix movie with movies from database by ratio and difference of years.
-    It's possible to disable filtering (not sorting) by ratio.\
-    Returns (0, <passed netflix movie>), if no movie matches (maybe a series given or
-    a movie, for which no movies with similiar names are in database.\
-    Returns the movie (1, Dict[str, Any]), if one or more movies were found in database,
-    which have a similiar names (matching with "min_ratio"), but different release years
-    (+- max_year_difference). This also could happen, if the name of a series is very
-    likely to a name of a movie or several movies.\
-    Returns (2, <passed netflix movie>), if at least Netflix movie matches more or less
-    (with "min_ratio") another movie from database. Then the best matching will be cosen.
+
+    Parameters
+    ----------
+    netflix_movie : Dict[str, Any]
+        Netflix movie or series to find a correspsonding movie in database
+    all_movies : List[Dict[int, Any]]
+        List of all movies in database
+    evaluate_year_difference : bool, default True
+        If True evaluate maximal difference of movies in criterium year, else skip this filtering
+    max_year_difference : int, default 1
+        Maximal maximal temproal/year difference between a Netflix movie and a movie from database
+    min_ratio : int, default 0.8
+        Minimal ratio for declaring a Netflix movie and a movie from database as similiar
+    use_max_ratio_filter : bool, default True
+        If True, find movie with highest ratio and filter all movies, which have a lower ratio
+
+    Returns
+    -------
+    Tuple[int, Dict[str, Any]]
+        First value is 0, if no matching movie was found in database, 1 if some matching movies
+        were found, but they have a too big year difference and 2, if a movie from database 
+        matching the Netflix movie was found.\n
+        Second value is the movie, in the first two cases it's the original Netflix movie object,
+        else the combination of both movie (Netflix movie and movie from database) object
+        keys/values in one dict.
     """
 
     id, year, name = netflix_movie["netflix_id"], netflix_movie["year"], netflix_movie["title"]
@@ -150,17 +213,48 @@ def match_netflix_movies_with_movies_from_database(movies_from_database: Dict[st
                                                    max_year_difference: int=1, output_iterations: bool=True, output_time: bool=True)\
                                                     -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
-    Matches Netflix movies and movies from database. Returns three lists, one list with Netflix movies,
-    which exists in database and match to them 100 % or very close. The second list contains movies that
-    are probably not in database, but it could be series as well. The third list contains series, which
-    are not in database, but there could be some movies missing in database as well.\
-    min_ratio: Configure minimum ratio for declaring two title as similiar.\
-    use_max_ratio_filter: True means configuring using a filter based on ratio (use only movies with highest ratio).\
-    evaluate_year_difference: If this value is True, matching movies have a maximal temporal difference (= years),
-    else no matching found.\
-    max_year_difference: Maximum time distance (= years) between movies, else no matching movie was found.\
-    output_iterations: True, if outputting iterations of computing matchings is desired.\
-    output_time: True, if outputting time of computing matchings is desired.
+    Matches Netflix movies and movies from database. This function calls
+    function "find_netflix_movie_in_database".
+
+    Parameters
+    ----------
+    movies_from_database : Dict[str, Dict[str, Any]]
+        Grouped dict of all movies in database, e.g.\n
+        {
+            "The lord": [<movies starting with "The lord">],
+            "The emperor": [<movies starting with "The emperor">],
+            ...
+        }
+    netflix_movies : Dict[str, Dict[str, Any]]
+        Grouped dict of all Netflix movies, e.g.\n
+        {
+            "The lord": [<movies starting with "The lord">],
+            "The emperor": [<movies starting with "The emperor">],
+            ...
+        }
+    min_ratio : float, default 0.8
+        Minimal ratio for declaring a Netflix movie and a movie from database as similiar
+    use_max_ratio_filter : bool, default True
+        If True, find movie with highest ratio and filter all movies, which have a lower ratio
+    evaluate_year_difference : bool, default True
+        If True evaluate maximal difference of movies in criterium year, else skip this filtering
+    max_year_difference : int, default 1
+        Maximal maximal temproal/year difference between a Netflix movie and a movie from database
+    output_iterations : bool, default True
+        If True output iterations of matching process, else not
+    output_time : bool, default True
+        If True output time the matching process took, else not
+
+    Returns
+    -------
+    Tuple[
+                List[Dict[str, Any]],\n
+                List[Dict[str, Any]],\n
+                List[Dict[str, Any]]
+    ]
+        Returns three list of movie dicts: found/matching Netflix movies, movies without any matching
+        (probably  series) and movies which had a matching, but the temporal difference was to big
+        (maybe a prequel/sequel or a series to a movie)
     """
 
     # Define variables for matching step
@@ -203,7 +297,24 @@ def match_netflix_movies_with_movies_from_database(movies_from_database: Dict[st
 def output_groups(all_movies_grouped: Dict[str, List[Dict[str, Any]]],
                   netflix_movies_and_series_grouped: Dict[str, List[Dict[str, Any]]]) -> None:
     """
-    Outputs groups of movies
+    Outputs groups of movies.
+
+    Parameters
+    ----------
+    all_movies_grouped : Dict[str, List[Dict[str, Any]]]
+        Grouped dict of all movies from database, e.g.\n
+        {
+            "The lord": [<movies starting with "The lord">],
+            "The emperor": [<movies starting with "The emperor">],
+            ...
+        }
+    netflix_movies_and_series_grouped: Dict[str, List[Dict[str, Any]]]
+        Grouped dict of Netflix movies and series, e.g.\n
+        {
+            "The lord": [<movies starting with "The lord">],
+            "The emperor": [<movies starting with "The emperor">],
+            ...
+        }
     """
 
     number_of_movies_in_database = sum([len(movies) for movies in all_movies_grouped.values()])
@@ -216,7 +327,20 @@ def output_matching_results(found_netflix_movies: List[Dict[str, Any]], no_match
                             missing_movies_in_db: List[Dict[str, Any]], number_of_movies_in_database_before: int,
                             number_of_movies_in_database_after: int) -> None:
     """
-    Outputs statistics of a matching.
+    Outputs statistics of a matching run.
+
+    Parameters
+    ----------
+    found_netflix_movies : List[Dict[str, Any]]
+        List of all Netflix movies found while matching them to all database movies
+    no_matching_movies_found : List[Dict[str, Any]]
+        List of all Netflix movies that don't match movies form database
+    missing_movies_in_db : List[Dict[str, Any]]
+        List of all Netflix movies that are missing in database
+    number_of_movies_in_database_before : int,
+        Number of movies in database before processing matching
+    number_of_movies_in_database_after : int
+        Number of movies in database after processing matching
     """
 
     print(f"found_netflix_movies: {len(found_netflix_movies)}")
@@ -228,19 +352,62 @@ def output_matching_results(found_netflix_movies: List[Dict[str, Any]], no_match
 
 
 def do_one_matching_run(grouped_database_movies: Dict[str, List[Dict[str, Any]]], ungrouped_netflix_movies: List[Dict[str, Any]],
-                        min_ratio: float, max_year_diff: int, group_criterium: List[bool], database_movies_criterium: str="title",
+                        min_ratio: float, max_year_diff: int, group_criteria: List[bool], database_movies_criterium: str="title",
                         netflix_movie_criterium: str="title")\
                             -> Tuple[Dict[str, List[Dict[str, Any]]],
                                      Tuple[List[Dict[str, Any]],
                                            List[Dict[str, Any]],
                                            List[Dict[str, Any]]]]:
     """
+    Do a matching run, which means try to match Netflix movies to movies from database.
+    This will be done by calling the function "match_netflix_movies_with_movies_from_database".
+
+    Parameters
+    ----------
+    grouped_database_movies : Dict[str, List[Dict[str, Any]]]
+        Grouped dict of all movies in database, e.g.\n
+        {
+            "The lord": [<movies starting with "The lord">],
+            "The emperor": [<movies starting with "The emperor">],
+            ...
+        }
+    ungrouped_netflix_movies : List[Dict[str, Any]]
+        List of all Netflix movies to group and to find a matching with movies from database
+    min_ratio : float
+        Minimal ratio for declaring a Netflix movie and a movie from database as similiar
+    max_year_diff : int
+        Maximal maximal temproal/year difference between a Netflix movie and a movie from database
+    group_criteria : List[bool]
+        Contains criteria for grouping (= splitting) the passed Netflix movie titles. True means
+        split by word/number, False means split by letter/number and length of this List means number
+        of splits
+    database_movies_criterium : str, default "title"
+        Use this as entry to find values in movie dicts from database. Based on these values the
+        grouping will be done.
+    netflix_movie_criterium : str, default "title"
+        Use this as entry to find values in Netflix movie dicts. Based on these values the grouping
+        will be done.
+
+    Returns
+    -------
+    Tuple[
+                Dict[str, List[Dict[str, Any]]],\n
+                Tuple[
+                            List[Dict[str, Any]],\n
+                            List[Dict[str, Any]],\n
+                            List[Dict[str, Any]]
+                ]
+    ]
+        Returns as first value a modified, grouped dict of all movies from database. Movies, which are
+        found in database, are here missing/left out.\n
+        Second entry is a dict containing three lists: found/matching Netflix movies, movies without
+        any matching, movies which had a matching, but the temporal difference
     """
 
     # Group movies by a word/number and a char/number two words/numbers
     all_remaining_movies = [movie for movies in grouped_database_movies.values() for movie in movies]  # Ravel movie groups
-    new_grouped_database_movies = group_movies_by_attr(all_remaining_movies, database_movies_criterium, group_criterium)  # Be more relaxed with word grouping
-    new_grouped_netflix_movies = group_movies_by_attr(ungrouped_netflix_movies, netflix_movie_criterium, group_criterium)  # Be more relaxed with word grouping
+    new_grouped_database_movies = group_movies_by_attr(all_remaining_movies, database_movies_criterium, group_criteria)  # Be more relaxed with word grouping
+    new_grouped_netflix_movies = group_movies_by_attr(ungrouped_netflix_movies, netflix_movie_criterium, group_criteria)  # Be more relaxed with word grouping
     output_groups(new_grouped_database_movies, new_grouped_netflix_movies)
 
     # Find matches
@@ -252,6 +419,48 @@ def optimize_matchings(database_movies: Dict[str, List[Dict[str, Any]]], netflix
                         ratio_max_year_combis: List[Tuple[float, int]], group_criteria: List[Tuple[bool, bool]])\
                         -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
+    Optimize matchings by doing many iterations of matching Netflix movies with movies from database.
+    For each matching iteration the function "do_one_matching_run" will be called.\n
+    The first matching iteration will is most restrictive, because of finding first all "100 % safe"
+    matches, so the ratio between two movies must be >= 0.99 and the temporal/year difference must
+    be 0.\n
+    Then do other iterations based on the passed parameters. Typically the restrictions will be
+    lowered to find more matches, but it's guaranteed that obvious matches between Netflix movies
+    and movies from database will be always correct matched.
+
+    Parameters
+    ----------
+    database_movies : Dict[str, List[Dict[str, Any]]]
+        Grouped dict of all movies in database, e.g.\n
+        {
+            "The lord": [<movies starting with "The lord">],
+            "The emperor": [<movies starting with "The emperor">],
+            ...
+        }
+    netflix_movies_and_series : Dict[str, List[Dict[str, Any]]]
+        Grouped dict of Netflix movies and series, e.g.\n
+        {
+            "The lord": [<movies starting with "The lord">],
+            "The emperor": [<movies starting with "The emperor">],
+            ...
+        }
+    ratio_max_year_combis : List[Tuple[float, int]]
+        List of all combinations of ratio and may year difference (temporal differene), which will
+        be executed/tried in an matching iteration.
+    group_criteria: List[Tuple[bool, bool]]
+        Execute all "ratio_max_year_combis" with a group criterium (for loop over for loop). A group
+        criterium specifies, how too split words (here movie titles) for grouping them.
+
+    Returns
+    -------
+    Tuple[
+                List[Dict[str, Any]],\n
+                List[Dict[str, Any]],\n
+                List[Dict[str, Any]]
+    ]
+        Returns three list of movie dicts: found/matching Netflix movies, movies without any matching
+        (probably  series) and movies which had a matching, but the temporal difference was to big
+        (maybe a prequel/sequel or a series to a movie)
     """
 
     # Define variables
@@ -280,22 +489,20 @@ def optimize_matchings(database_movies: Dict[str, List[Dict[str, Any]]], netflix
     # Group, find matchings and output results in further iterations
     i = 2
 
-    for group_criterium in group_criteria:  # Iterate over all groupings/word splitting arrays
+    for group_criteria_for_one_run in group_criteria:  # Iterate over all groupings/word splitting arrays
         for min_ratio, max_year_diff in ratio_max_year_combis:
             print(f"\n\nIteration: {i}")
+            print(f"Groups (split movies: True = word/number, False = letter/number): {group_criteria_for_one_run}")
+            print(f"Minimal ratio for matching movies (= similiar movies): {min_ratio}")
+            print(f"Max year/temporal differene between movies: {max_year_diff}")
             i += 1
 
             # Find matches between missing in database movies and database movies
-            # TODO: Summarize comments
-            print("Find matches between missing in database movies and database movies:")
-            print(f"Groups (split movies: True = word/number, False = letter/number): {group_criterium}")
-            print(f"Minimal ratio for matching movies (= similiar movies): {min_ratio}")
-            print(f"Max year/temporal differene between movies: {max_year_diff}")
-            # TODO: Summarize duplicate code
+            print("\nFind matches between missing in database movies and database movies:")
             number_of_movies_in_database_before = sum([len(movies) for movies in all_movies_grouped.values()])  # For statistics
             all_movies_grouped, (new_found_netflix_movies, new_no_matching_movies_found, missing_movies_in_db) =\
                 do_one_matching_run(all_movies_grouped, missing_movies_in_db, min_ratio, max_year_diff,
-                                    group_criterium, database_movies_criterium, netflix_movie_criterium)
+                                    group_criteria_for_one_run, database_movies_criterium, netflix_movie_criterium)
             number_of_movies_in_database_after = sum([len(movies) for movies in all_movies_grouped.values()])  # For statistics
 
             # Extend list of found Netflix movies and not found movies (= probably series)
@@ -306,16 +513,11 @@ def optimize_matchings(database_movies: Dict[str, List[Dict[str, Any]]], netflix
                                     number_of_movies_in_database_before, number_of_movies_in_database_after)
 
             # Find matches between movie or series (not in database) and database movies
-            # TODO: Summarize comments
             print("\nFind matches between movie or series (not in database) and database movies:")
-            print(f"Groups (split movies: True = word/number, False = letter/number): {group_criterium}")
-            print(f"Minimal ratio for matching movies (= similiar movies): {min_ratio}")
-            print(f"Max year/temporal differene between movies: {max_year_diff}")
-            # TODO: Summarize duplicate code
             number_of_movies_in_database_before = sum([len(movies) for movies in all_movies_grouped.values()])  # For statistics
             all_movies_grouped, (new_found_netflix_movies, no_matching_movies_found, new_missing_movies_in_db) =\
                 do_one_matching_run(all_movies_grouped, no_matching_movies_found, min_ratio, max_year_diff,
-                                    group_criterium, database_movies_criterium, netflix_movie_criterium)
+                                    group_criteria_for_one_run, database_movies_criterium, netflix_movie_criterium)
             number_of_movies_in_database_after = sum([len(movies) for movies in all_movies_grouped.values()])  # For statistics
 
             # Extend list of found Netflix movies and not found movies (= probably series)
@@ -332,8 +534,7 @@ if __name__ == "__main__":
     # Define variables
     all_movies, netflix_movies_and_series = {}, {}
     all_movies_grouped, netflix_movies_and_series_grouped = defaultdict(OrderedDict), defaultdict(OrderedDict)
-    found_netflix_movies, netflix_series = [], []
-    no_matching_movies_found, missing_movies_in_db = [], []
+    found_netflix_movies, netflix_series, missing_movies_in_db = [], [], []
 
     # # Connect to database and read all movies
     # all_movies_table = Movies()
@@ -367,21 +568,6 @@ if __name__ == "__main__":
     all_movies_from_database = load_object_from_file("updated_data/all_movies_db.pickle")
     netflix_movies_and_series = load_object_from_file("updated_data/all_netflix_movies_and_series_db.pickle")
 
-    # Print results
-    # number_of_movies_in_database = sum([len(movies) for movies in all_movies_grouped.values()])
-    # print("All movies:", type(all_movies_grouped), len(all_movies_grouped))
-
-    # for grouping_expression, movies in list(all_movies_grouped.items())[::len(all_movies_grouped) // 26 + 1]:
-    #     print(f"{grouping_expression}: {len(movies)}")
-    # print()
-
-    # print("All netflix movies and series:", type(netflix_movies_and_series_grouped), len(netflix_movies_and_series_grouped))
-    # print(len(netflix_movies_and_series_grouped.keys()))
-
-    # for grouping_expression, movies in list(netflix_movies_and_series_grouped.items())[::len(netflix_movies_and_series_grouped) // 26 + 1]:
-    #     print(f"{grouping_expression}: {len(movies)}")
-    # print()
-
     """
     Find matching between missing in database Netlflix movies and movies from database
     First group by first second words/numbers and the bey first word/number and second letter/number
@@ -389,69 +575,42 @@ if __name__ == "__main__":
     print("Find matching between missing in database Netflix movies and remaining movies from database:")
     ratio_max_year_combis = [(0.99, MAX_YEAR_DIFFERENCE), (0.9, 0), (0.99, 3), (0.8, 0), (0.9, MAX_YEAR_DIFFERENCE), (0.8, 3)]
     group_criteria = [(True, True), (True, False)]
-    optimize_matchings(all_movies_from_database, netflix_movies_and_series, ratio_max_year_combis, group_criteria)
+    found_netflix_movies, netflix_series, missing_movies_in_db =\
+        optimize_matchings(all_movies_from_database, netflix_movies_and_series, ratio_max_year_combis, group_criteria)
     
     # TODO: Aufrufhierarchie dokumentieren + Parameter besser dokumentieren!!!
-    exit()
 
-    # Output results of second round
-    print(f"new_found_netflix_movies: {len(new_found_netflix_movies)}")
-    print(f"new_no_matching_movies_found: {len(new_no_matching_movies_found)}")
-    print(f"missing_movies_in_db: {len(missing_movies_in_db)}")
-    print(f"All in all there are {len(new_found_netflix_movies) + len(new_no_matching_movies_found) + len(missing_movies_in_db)} movies")
-
-    number_of_movies_in_database_before = sum([len(movies) for movies in all_movies_grouped.values()])
-    print(f"Movies in database before: {number_of_movies_in_database_before}, number of movies in database after: {number_of_movies_in_database_after}")
-    print(f"Movies removed from database list: {number_of_movies_in_database_before - number_of_movies_in_database_after}")
-
-    print("\nSample of new found Netlfix movies:")
-    for movie in new_found_netflix_movies[:10]:
+    print("\nSample of found/matched Netlfix movies:")
+    for movie in found_netflix_movies[:10]:
         print(movie)
 
-    print("\nSample of new no matching Netflix movies:")
-    for movie in new_no_matching_movies_found[:10]:
-        print(movie)
-
-    print("\nSample of still missing Netlfix movies:")
+    print("\nSample of still in database missing Netlfix movies:")
     for movie in missing_movies_in_db[:10]:
         print(movie)
 
-    # TODO: Das in eine Methode abstrahieren und:
-    # Erstmal ganz streng sein mit filtern (erstes Filtern) -> ratio = 1.0 oder 0.999 wegen float
-    # Dann etwas lockerer werden (siehe oben) mit gerinerem ratio [0.9, 0.8] mit "no_matching_movies_found", "missing_movies_in_db"
-    # Dann release_year lockern [2, 3, 30=keine Evaluierung]
-    # => zwei verschachtelte for loops mit den Parametern -> das ist doof (ratio=0.8 und keine Evaluierung ist blöd)
+    print("\nSample of movies that are very likely series:")
+    for movie in netflix_series[:10]:
+        print(movie)
 
     # Save movies statistics (= found/not found movies)
-    save_object_in_file("updated_data/insert_user_histories_in_db/found_netflix_movies.pickle", found_netflix_movies)
-    save_object_in_file("updated_data/insert_user_histories_in_db/missing_movies_in_db.pickle", missing_movies_in_db)
-    save_object_in_file("updated_data/insert_user_histories_in_db/no_matching_movie_found.pickle", no_matching_movies_found)
+    save_object_in_file(vars.map_for_netflix_movies_to_db_movies_path, found_netflix_movies)
+    save_object_in_file(vars.missing_netflix_movies_in_database_path, missing_movies_in_db)
+    save_object_in_file(vars.netflix_series_path, netflix_series)
 
-    # found_netflix_movies = load_object_from_file("updated_data/insert_user_histories_in_db/found_netflix_movies.pickle")
-    # missing_movies_in_db = load_object_from_file("updated_data/insert_user_histories_in_db/missing_movies_in_db.pickle")
-    # no_matching_movie_found = load_object_from_file("updated_data/insert_user_histories_in_db/no_matching_movie_found.pickle")
-
-    exit()
-
-    found_netflix_movies, no_matching_movie_found, missing_movies_in_db =\
-        match_netflix_movies_with_movies_from_database(all_movies_grouped, netflix_movies_and_series_grouped)
-    number_of_movies_in_database_after = sum([len(movies) for movies in all_movies_grouped.values()])
-
-    print(f"Movies in database before: {number_of_movies_in_database_before}, number of movies in database after: {number_of_movies_in_database_after}")
-    print(f"Movies removed from database list: {number_of_movies_in_database_after - number_of_movies_in_database_before}")
-
-    exit()
+    found_netflix_movies = load_object_from_file(vars.map_for_netflix_movies_to_db_movies_path)
+    missing_movies_in_db = load_object_from_file(vars.missing_netflix_movies_in_database_path)
+    netflix_series = load_object_from_file(vars.netflix_series_path)
 
     with open("updated_data/insert_user_histories_in_db/found_netflix_movies.txt", "w", encoding="utf-8") as file:
         for movie in found_netflix_movies:
             file.write(str(movie) + "\n")
 
-    with open("updated_data/insert_user_histories_in_db/missing_movies_in_db.txt", "w", encoding="utf-8") as file:
-        for movie in missing_movies_in_db:
+    with open("updated_data/insert_user_histories_in_db/netflix_series.txt", "w", encoding="utf-8") as file:
+        for movie in netflix_series:
             file.write(str(movie) + "\n")
 
-    with open("updated_data/insert_user_histories_in_db/no_matching_movie_found.txt", "w", encoding="utf-8") as file:
-        for movie in no_matching_movie_found:
+    with open("updated_data/insert_user_histories_in_db/missing_movies_in_db.txt", "w", encoding="utf-8") as file:
+        for movie in missing_movies_in_db:
             file.write(str(movie) + "\n")
 
     # vars.map_for_netflix_movies_to_db_movies

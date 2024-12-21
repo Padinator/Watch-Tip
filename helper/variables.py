@@ -13,6 +13,7 @@ updated_data_path = data_preprocessing_path / "updated_data"
 fil_db_with_test_data_path = updated_data_path / "fil_db_with_test_data"
 count_genres_data_path = updated_data_path / "count_genres"
 calculate_real_genres_data_path = updated_data_path / "calculate_real_genres"
+insert_user_histories_in_db_data_path = updated_data_path / "insert_user_histories_in_db"
 
 # Define location of data sets
 data_set_date = "11_28_2024"
@@ -63,8 +64,14 @@ calc_real_genres_error_file_production_companies = (
 )
 
 # Define path of storaging temporary dict between netflix movies and movies in database
-map_for_netflix_movies_to_db_movies = (
-    updated_data_path / "insert_user_histories_in_db/netflix_movies_map.pickle"
+map_for_netflix_movies_to_db_movies_path = (
+    insert_user_histories_in_db_data_path / "netflix_movies_mapped_to_database.pickle"
+)
+missing_netflix_movies_in_database_path = (
+    insert_user_histories_in_db_data_path / "missing_netflix_movies_in_database.pickle"
+)
+netflix_series_path = (
+    insert_user_histories_in_db_data_path / "netflix_series.pickle"
 )
 
 # Define URLs to data sets of all movies, producers and production companies
