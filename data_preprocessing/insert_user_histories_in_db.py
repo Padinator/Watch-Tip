@@ -255,7 +255,7 @@ def match_netflix_movies_with_movies_from_database(movies_from_database: Dict[st
                 List[Dict[str, Any]]
     ]
         Returns three list of movie dicts: found/matching Netflix movies, movies without any matching
-        (probably  series) and movies which had a matching, but the temporal difference was to big
+        (probably series) and movies which had a matching, but the temporal difference was to big
         (maybe a prequel/sequel or a series to a movie)
     """
 
