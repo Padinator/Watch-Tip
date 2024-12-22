@@ -13,6 +13,7 @@ from data_preprocessing.insert_user_histories_in_db import *
 
 
 # Define constants
+# Define raw lists of movies
 movies_from_database = [
     {"id": 0, "original_title": "Lord of the rings 1", "title": "The lord of the rings 1", "release_year": 2001},
     {"id": 1, "original_title": "Lord of the rings 2", "title": "The lord of the rings 1", "release_year": 2005},
@@ -20,19 +21,43 @@ movies_from_database = [
     {"id": 3, "original_title": "Forrest Gump", "title": "Forrest Gump", "release_year": 2000}
 ]
 netflix_movies = [
-    {"id": 1000, "title": "The lord of the rings 1", "year": 2001},
-    {"id": 1001, "title": "The lord of the rings II", "year": 2006},
-    {"id": 1002, "title": "The lord of the rings 3", "year": 1979},
-    {"id": 1003, "title": "Edge of tomorrow", "year": 2015}
+    {"netflix_id": 1000, "title": "The lord of the rings 1", "year": 2001},
+    {"netflix_id": 1001, "title": "The lord of the rings II", "year": 2006},
+    {"netflix_id": 1002, "title": "The lord of the rings 3", "year": 1979},
+    {"netflix_id": 1003, "title": "Edge of tomorrow", "year": 2015}
 ]
+
+# Define grouped dicts of movies
+true_grouped_movies_from_database = {
+    "The": movies_from_database[:-1],
+    "Forrest": [movies_from_database[-1]]
+}  # Grouped with [True]
+true_true_grouped_movies_from_database = {
+    "Thelord": movies_from_database[:-1],
+    "ForrestGump": [movies_from_database[-1]]
+}  # Grouped with [True, True]
+true_false_grouped_movies_from_database = {
+    "Thel": movies_from_database[:-1],
+    "ForrestG": [movies_from_database[-1]]
+}  # Grouped with [True, False]
+true_grouped_netflix_movies = {
+    "The": netflix_movies[:-1],
+    "Edge": [netflix_movies[-1]]
+}  # Grouped with [True]
+true_true_grouped_netflix_movies = {
+    "Thelord": netflix_movies[:-1],
+    "Edgeof": [netflix_movies[-1]]
+}  # Grouped with [True, True]
+true_false_grouped_netflix_movies = {
+    "Thel": netflix_movies[:-1],
+    "Edgeo": [netflix_movies[-1]]
+}  # Grouped with [True, False]
 
 
 class TestInsertUserHistories(unittest.TestCase):
 
     def setUp(self):
-        # Define movies from database and Netflix movies
-        self.__movies_from_database = movies_from_database
-        self.__netflix_movies = netflix_movies
+        pass
 
     # ------------ Test function "format_int" ------------
     @parameterized.expand([
@@ -214,10 +239,10 @@ class TestInsertUserHistories(unittest.TestCase):
     @parameterized.expand([
         # ---- Test movies from database ----
         # Use for attr "title"
-        [movies_from_database, "title", [True], { "The": movies_from_database[:-1], "Forrest": [movies_from_database[-1]] }],
+        [movies_from_database, "title", [True], true_grouped_movies_from_database],
         [movies_from_database, "title", [False], { "T": movies_from_database[:-1], "F": [movies_from_database[-1]] }],
-        [movies_from_database, "title", [True, True], { "Thelord": movies_from_database[:-1], "ForrestGump": [movies_from_database[-1]] }],
-        [movies_from_database, "title", [True, False], { "Thel": movies_from_database[:-1], "ForrestG": [movies_from_database[-1]] }],
+        [movies_from_database, "title", [True, True], true_true_grouped_movies_from_database],
+        [movies_from_database, "title", [True, False], true_false_grouped_movies_from_database],
         [movies_from_database, "title", [False, True], { "The": movies_from_database[:-1], "Forrest": [movies_from_database[-1]] }],
         [movies_from_database, "title", [False, False], { "Th": movies_from_database[:-1], "Fo": [movies_from_database[-1]] }],
 
@@ -230,17 +255,17 @@ class TestInsertUserHistories(unittest.TestCase):
         [movies_from_database, "original_title", [False, False], { "Lo": movies_from_database[:-1], "Fo": [movies_from_database[-1]] }],
 
         # ---- Test Netflix movies ----
-        [netflix_movies, "title", [True], { "The": netflix_movies[:-1], "Edge": [netflix_movies[-1]] }],
+        [netflix_movies, "title", [True], true_grouped_netflix_movies],
         [netflix_movies, "title", [False], { "T": netflix_movies[:-1], "E": [netflix_movies[-1]] }],
-        [netflix_movies, "title", [True, True], { "Thelord": netflix_movies[:-1], "Edgeof": [netflix_movies[-1]] }],
-        [netflix_movies, "title", [True, False], { "Thel": netflix_movies[:-1], "Edgeo": [netflix_movies[-1]] }],
+        [netflix_movies, "title", [True, True], true_true_grouped_netflix_movies],
+        [netflix_movies, "title", [True, False], true_false_grouped_netflix_movies],
         [netflix_movies, "title", [False, True], { "The": netflix_movies[:-1], "Edge": [netflix_movies[-1]] }],
         [netflix_movies, "title", [False, False], { "Th": netflix_movies[:-1], "Ed": [netflix_movies[-1]] }],
 
         # Test feeble-minded arguments, which are still possible/valid
         [[], "title", [False, False], {}],
         [[], "original_title", [False, False], {}],
-        [[], "abc!#as98", [False, False, True, False, True], {}],
+        [[], "abc!#as98", [False, False, True, False, True], {}]
     ])
     def test_group_movies_by_attr_1(self, movies: List[Dict[str, Any]], attr: str, grouping_criteria: List[bool],
                                     expected_tokenization: Dict[str, List[Dict[str, Any]]]) -> None:
@@ -269,7 +294,7 @@ class TestInsertUserHistories(unittest.TestCase):
     @parameterized.expand([
         [movies_from_database, "title", []],
         [movies_from_database, "original_title", []],
-        [netflix_movies, "title", []],
+        [netflix_movies, "title", []]
     ])
     def test_group_movies_by_attr_2(self, movies: List[Dict[str, Any]], attr: str, grouping_criteria: List[bool]) -> None:
         """
@@ -291,3 +316,74 @@ class TestInsertUserHistories(unittest.TestCase):
 
         with self.assertRaises(AssertionError):
             group_movies_by_attr(movies=movies, attr=attr, group_n_critria=grouping_criteria)
+
+    @parameterized.expand([
+        ["Abcdef", "Abcdef", 0.85, (True, 1.0)],
+        ["Abcdef", "aBcdef", 0.85, (False, 0.667)],
+        ["Abcdef", "aBcdef", 0.65, (True, 0.667)],
+        ["The lord of the rings 1", "Lord of the rings 1", 0.85, (True, 0.857)],
+        ["The lord of the rings 1", "Lord of the rings I", 0.85, (False, 0.81)]
+    ])
+    # ------------ Test function "compare_strings" ------------
+    def test_compare_strings(self, s1: str, s2: str, min_ratio: float, expected_value) -> None:
+        """
+        Tests valid arguments/comparisons.
+        """
+
+        similiarity, ratio = compare_strings(s1=s1, s2=s2, min_ratio=min_ratio)
+        self.assertEqual(similiarity, expected_value[0])  # Check similarity
+        self.assertAlmostEqual(ratio, expected_value[1], delta=0.1)  # Check ratio
+
+    # ------------ Test function "find_netflix_movie_in_database" ------------
+    @parameterized.expand([
+        # ---- Test finding movies returns a movie ----
+        # Finds a movie regularly (minimal ratio is good + filter by ratio + filter by year difference)
+        [netflix_movies[0], true_grouped_movies_from_database["The"], True, 2, 0.9, True, 2, movies_from_database[0]],
+        [netflix_movies[1], true_grouped_movies_from_database["The"], True, 2, 0.9, True, 2, movies_from_database[1]],
+
+        # Test, if changing the year or removing "check-year-criterium" leads in passing last test case (but absurd results)
+        [netflix_movies[2], true_grouped_movies_from_database["The"], True, 100, 0.9, True, 2, movies_from_database[0]],
+        [netflix_movies[2], true_grouped_movies_from_database["The"], False, -1, 0.9, True, 2, movies_from_database[0]],
+
+        # Test, if deactivating the "max-ratio-filter" results in still finding a correct movie based on fulfilling
+        # the minmal ratio and using minimal year difference
+        [netflix_movies[0], true_grouped_movies_from_database["The"], True, 2, 0.9, False, 2, movies_from_database[0]],
+
+        # ---- Finds similiar movies with too different years returns original Netflix movie ----
+        # Test finding movies finds at least one movie with similiar name, but to different release year
+        [netflix_movies[2], true_grouped_movies_from_database["The"], True, 2, 0.9, True, 1, netflix_movies[2]],
+
+        # Test finding movies finds a movie based on very low ratio
+        [netflix_movies[3], true_grouped_movies_from_database["Forrest"], True, 2, 1e-10, True, 1, netflix_movies[3]],
+
+        # ---- Test finding movies finds no matching movie ----
+        # Ratio is too high
+        [netflix_movies[1], true_grouped_movies_from_database["The"], True, 2, 0.95, True, 0, netflix_movies[1]],
+        [netflix_movies[3], true_grouped_movies_from_database["The"], True, 2, 0.9, True, 0, netflix_movies[3]],
+        [netflix_movies[0], true_grouped_movies_from_database["Forrest"], True, 2, 0.9, True, 0, netflix_movies[0]],
+        [netflix_movies[1], true_grouped_movies_from_database["Forrest"], True, 2, 0.9, True, 0, netflix_movies[1]],
+        [netflix_movies[2], true_grouped_movies_from_database["Forrest"], True, 2, 0.9, True, 0, netflix_movies[2]],
+    ])
+    def test_find_netflix_movie_in_database(self, netflix_movie: Dict[str, Any],
+                                            movies_from_database: Dict[str, List[Dict[str, Any]]],
+                                            evaluate_year_diff: bool, max_year_diff: int,
+                                            min_ratio: int, use_max_ratio_filter: bool,
+                                            expected_status_code: int, expected_movie: Dict[str, Any]) -> None:
+        """
+        Tests finding a Netflix movie in database movies.
+        """
+
+        # Change keys of expected Netflix movie
+        if expected_status_code == 2:  # Found Netflix movie in database
+            # Add it to dict of expected movie
+            expected_movie["netflix_movie_id"] = netflix_movie["netflix_id"]
+            expected_movie["netflix_title"] = netflix_movie["title"]
+            expected_movie["netflix_year"] = netflix_movie["year"]
+            print(expected_movie)
+
+        # Execute function and test results
+        status_code, found_movie = find_netflix_movie_in_database(netflix_movie=netflix_movie, all_movies=movies_from_database,
+                                                evaluate_year_difference=evaluate_year_diff, max_year_difference=max_year_diff,
+                                                min_ratio=min_ratio, use_max_ratio_filter=use_max_ratio_filter)
+        self.assertEqual(status_code, expected_status_code)
+        self.assertEqual(found_movie, expected_movie)
