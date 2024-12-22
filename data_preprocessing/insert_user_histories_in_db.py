@@ -13,11 +13,12 @@ from typing import Any, Dict, List, Tuple
 project_dir = Path(__file__).parents[1]
 sys.path.append(str(project_dir))
 
+import helper.parallelizer as para
 import helper.variables as vars
 
 from collections import OrderedDict
+from database.model import DatabaseModel
 from database.movie import Movies
-from database.user import Users
 from helper.file_system_interaction import load_object_from_file, save_object_in_file
 
 
@@ -534,12 +535,12 @@ def optimize_matchings(database_movies: Dict[str, List[Dict[str, Any]]], netflix
 
 if __name__ == "__main__":
     # Define variables
-    all_movies, netflix_movies_and_series = {}, {}
     all_movies_grouped, netflix_movies_and_series_grouped = defaultdict(OrderedDict), defaultdict(OrderedDict)
     found_netflix_movies, netflix_series, missing_movies_in_db = [], [], []
 
-    # # Connect to database and read all movies
-    # all_movies_table = Movies()
+    # Connect to database and read all movies
+    all_movies_table = Movies()
+    # all_movies = all_movies_table.get_all()
     # all_movies_from_database = [
     #     {
     #         "id": movie_id,
@@ -547,7 +548,7 @@ if __name__ == "__main__":
     #         "title": movie["title"],
     #         "release_year": format_int(movie["release_date"].split("-")[0], -100)
     #     }
-    #     for movie_id, movie in list(all_movies_table.get_all().items())]
+    #     for movie_id, movie in list(all_movies.items())]
     # print(f"Found {len(all_movies)} movies in database")
 
     # # Read Netflix movies
@@ -599,19 +600,36 @@ if __name__ == "__main__":
     # save_object_in_file(vars.netflix_series_path, netflix_series)
 
 
-    found_netflix_movies = load_object_from_file(vars.map_for_netflix_movies_to_db_movies_path)
-    missing_movies_in_db = load_object_from_file(vars.missing_netflix_movies_in_database_path)
-    netflix_series = load_object_from_file(vars.netflix_series_path)
+    # found_netflix_movies = load_object_from_file(vars.map_for_netflix_movies_to_db_movies_path)
+    # missing_movies_in_db = load_object_from_file(vars.missing_netflix_movies_in_database_path)
+    # netflix_series = load_object_from_file(vars.netflix_series_path)
 
-    # Write movies into ".txt"-files for easier manual analyzing
-    with open(vars.map_for_netflix_movies_to_db_movies_path_txt, "w", encoding="utf-8") as file:
-        for movie in found_netflix_movies:
-            file.write(str(movie) + "\n")
+    # # Write movies into ".txt"-files for easier manual analyzing
+    # with open(vars.map_for_netflix_movies_to_db_movies_path_txt, "w", encoding="utf-8") as file:
+    #     for movie in found_netflix_movies:
+    #         file.write(str(movie) + "\n")
 
-    with open(vars.missing_netflix_movies_in_database_path_txt, "w", encoding="utf-8") as file:
-        for movie in missing_movies_in_db:
-            file.write(str(movie) + "\n")
+    # with open(vars.missing_netflix_movies_in_database_path_txt, "w", encoding="utf-8") as file:
+    #     for movie in missing_movies_in_db:
+    #         file.write(str(movie) + "\n")
 
-    with open(vars.netflix_series_path, "w", encoding="utf-8") as file:
-        for movie in netflix_series:
-            file.write(str(movie) + "\n")
+    # with open(vars.netflix_series_path, "w", encoding="utf-8") as file:
+    #     for movie in netflix_series:
+    #         file.write(str(movie) + "\n")
+
+    # # Update movies in database for key "netflix_id" parallelized
+    # def update_one_movie_by_netflix_move_id(table: "DatabaseModel", id: int, netflix_movie_id: int) -> None:
+    #     table.update_one_by_id(id, "netflix_movie_id", netflix_movie_id)
+
+    # print("\nWrite all updated actors into database")
+    # update_results = para.parallelize_task_with_return_values(
+    #     update_one_movie_by_netflix_move_id,
+    #     [(all_movies_table, movie["id"], movie["netflix_movie_id"]) for movie in found_netflix_movies],
+    #     16
+    # )
+
+    # print(f"Failed updating {len([res for res in update_results if res == None])} movies")
+
+
+    # Read user ratings from files (Netflix prize data)
+

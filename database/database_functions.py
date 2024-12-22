@@ -108,7 +108,7 @@ def get_one_by_id(table: Collection, id: int) -> Dict[str, Any]:
     returns found entity.
     """
 
-    return get_one_by_attr(table=table, attr="_id", attr_value=id)
+    return get_one_by_attr(table=table, attr="id", attr_value=id)
 
 
 # Update functions
@@ -141,7 +141,7 @@ def update_one_by_id(
 
     return update_one_by_attr(
         table=table,
-        attr="_id",
+        attr="id",
         attr_value=id,
         attr_to_update=attr_to_update,
         attr_to_update_value=attr_to_update_value,
@@ -166,4 +166,4 @@ def delete_one_by_id(table: Collection, id: int) -> Dict[str, Any]:
     the found entity and returns the modified entity.
     """
 
-    return delete_one_by_attr(table=table, attr="_id", attr_value=id)
+    return delete_one_by_attr(table=table, attr="id", attr_value=id)
