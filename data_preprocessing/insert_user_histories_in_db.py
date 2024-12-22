@@ -133,8 +133,8 @@ def compare_strings(s1: str, s2: str, min_ratio: float=0.8) -> Tuple[bool, float
     Returns
     -------
     Tuple[bool, float]
-        True, if both strings are similar with comparing them like Levenshtein distance, but here:
-        2 * <#matching chars> / ([len(s1) + len(s2)]^2)\n
+        Returns for first argument True, if both strings are similar with comparing them
+        like Levenshtein distance, but here: 2 * <#matching chars> / ([len(s1) + len(s2)]^2)\n
         Also returns the ratio, which was computed, so caller can use/proof it
     """
 

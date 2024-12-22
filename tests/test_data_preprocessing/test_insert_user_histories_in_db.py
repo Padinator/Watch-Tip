@@ -325,9 +325,22 @@ class TestInsertUserHistories(unittest.TestCase):
         ["The lord of the rings 1", "Lord of the rings I", 0.85, (False, 0.81)]
     ])
     # ------------ Test function "compare_strings" ------------
-    def test_compare_strings(self, s1: str, s2: str, min_ratio: float, expected_value) -> None:
+    def test_compare_strings(self, s1: str, s2: str, min_ratio: float, expected_value: Tuple[bool, float]) -> None:
         """
         Tests valid arguments/comparisons.
+
+        Parameters
+        ----------
+        s1 : str
+            First string to compare with second one
+        s2 : str
+            Second string to compare with first one
+        min_ratio : float
+            Minimal relationship between movies for declaring them as similiar
+        expected_value : Tuple[bool, float]
+            Returns for first argument True, if both strings are similar with comparing them
+            like Levenshtein distance, but here: 2 * <#matching chars> / ([len(s1) + len(s2)]^2)\n
+            Also returns the ratio, which was computed, so caller can use/proof it
         """
 
         similiarity, ratio = compare_strings(s1=s1, s2=s2, min_ratio=min_ratio)
@@ -365,12 +378,32 @@ class TestInsertUserHistories(unittest.TestCase):
         [netflix_movies[2], true_grouped_movies_from_database["Forrest"], True, 2, 0.9, True, 0, netflix_movies[2]],
     ])
     def test_find_netflix_movie_in_database(self, netflix_movie: Dict[str, Any],
-                                            movies_from_database: Dict[str, List[Dict[str, Any]]],
+                                            all_movies: Dict[str, List[Dict[str, Any]]],
                                             evaluate_year_diff: bool, max_year_diff: int,
                                             min_ratio: int, use_max_ratio_filter: bool,
                                             expected_status_code: int, expected_movie: Dict[str, Any]) -> None:
         """
         Tests finding a Netflix movie in database movies.
+
+        Parameters
+        ----------
+        netflix_movie : Dict[str, Any]
+            Netflix movie or series to find a correspsonding movie in database
+        all_movies : Dict[str, List[Dict[str, Any]]]
+            List of all movies in database
+        evaluate_year_diff: bool
+            If True evaluate maximal difference of movies in criterium year, else skip this filtering
+        max_year_diff : int
+            Maximal maximal temproal/year difference between a Netflix movie and a movie from database
+        min_ratio : int
+            Minimal ratio for declaring a Netflix movie and a movie from database as similiar
+        use_max_ratio_filter : bool
+            If True, find movie with highest ratio and filter all movies, which have a lower ratio
+        expected_status_code : int
+            Expected status code/frist parameter of returned tuple
+        expected_movie : Dict[str, Any]
+            Expected movie/second parameter of returned tuple = found movie or original Netflix
+            movie if no one was found
         """
 
         # Change keys of expected Netflix movie
@@ -382,7 +415,7 @@ class TestInsertUserHistories(unittest.TestCase):
             print(expected_movie)
 
         # Execute function and test results
-        status_code, found_movie = find_netflix_movie_in_database(netflix_movie=netflix_movie, all_movies=movies_from_database,
+        status_code, found_movie = find_netflix_movie_in_database(netflix_movie=netflix_movie, all_movies=all_movies,
                                                 evaluate_year_difference=evaluate_year_diff, max_year_difference=max_year_diff,
                                                 min_ratio=min_ratio, use_max_ratio_filter=use_max_ratio_filter)
         self.assertEqual(status_code, expected_status_code)
