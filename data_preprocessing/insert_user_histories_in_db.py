@@ -619,6 +619,19 @@ if __name__ == "__main__":
 
     # # Update movies in database for key "netflix_id" parallelized
     # def update_one_movie_by_netflix_move_id(table: "DatabaseModel", id: int, netflix_movie_id: int) -> None:
+    #     """
+    #     Update entry by attribute "netflix_movie_id".
+
+    #     Parameters
+    #     ----------
+    #     table : "DatabaseModel"
+    #         Is the table to access databsae and do some data operations (CRUD)
+    #     id : int
+    #         ID of object to update
+    #     netflix_movie_id : int
+    #         ID of netflix movie from list of Netflix movies and series.
+    #         It will be add to movie in database
+    #     """
     #     table.update_one_by_id(id, "netflix_movie_id", netflix_movie_id)
 
     # print("\nWrite all updated actors into database")
