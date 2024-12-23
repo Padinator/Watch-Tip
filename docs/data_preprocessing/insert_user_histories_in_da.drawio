@@ -43,7 +43,7 @@
         <mxCell id="PEofonqZDYsmdlYJIvpZ-16" value="Read form Netflix prize data all user ratings and extract from this, what user has watched. Create with this information user histories (watched movies of a user)" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="80" y="826" width="200" height="95" as="geometry" />
         </mxCell>
-        <mxCell id="PEofonqZDYsmdlYJIvpZ-18" value="Store user histories persistently in database" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+        <mxCell id="PEofonqZDYsmdlYJIvpZ-18" value="Store user histories persistently in a file" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="105" y="970" width="150" height="62.5" as="geometry" />
         </mxCell>
         <mxCell id="PEofonqZDYsmdlYJIvpZ-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="PEofonqZDYsmdlYJIvpZ-20" target="PEofonqZDYsmdlYJIvpZ-26" edge="1">

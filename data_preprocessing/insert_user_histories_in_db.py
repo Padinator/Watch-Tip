@@ -537,112 +537,153 @@ if __name__ == "__main__":
     # Define variables
     all_movies_grouped, netflix_movies_and_series_grouped = defaultdict(OrderedDict), defaultdict(OrderedDict)
     found_netflix_movies, netflix_series, missing_movies_in_db = [], [], []
+    all_movies_table = Movies()  # Connect to database
 
-    # Connect to database and read all movies
-    all_movies_table = Movies()
-    # all_movies = all_movies_table.get_all()
-    # all_movies_from_database = [
-    #     {
-    #         "id": movie_id,
-    #         "original_title": movie["original_title"],
-    #         "title": movie["title"],
-    #         "release_year": format_int(movie["release_date"].split("-")[0], -100)
-    #     }
-    #     for movie_id, movie in list(all_movies.items())]
-    # print(f"Found {len(all_movies)} movies in database")
+    # # Read all movies from database
+    all_movies = all_movies_table.get_all()
+    all_movies_from_database = [
+        {
+            "id": movie_id,
+            "original_title": movie["original_title"],
+            "title": movie["title"],
+            "release_year": format_int(movie["release_date"].split("-")[0], -100)
+        }
+        for movie_id, movie in list(all_movies.items())]
+    print(f"Found {len(all_movies)} movies in database")
 
-    # # Read Netflix movies
-    # with open(vars.local_netflix_movies_file_path, "r") as netflix_movies_file:
-    #     netflix_movies_and_series = [
-    #         {
-    #             "netflix_id": movie.split(",", 2)[0],
-    #             "title": movie.split(",", 2)[2].strip(),
-    #             "year": format_int(movie.split(",", 2)[1], -200)
-    #         }
-    #         for movie in netflix_movies_file.readlines()]
-    #     print(f"Found {len(netflix_movies_and_series)} Netflix movies")
+    # Read Netflix movies
+    with open(vars.local_netflix_movies_file_path, "r") as netflix_movies_file:
+        netflix_movies_and_series = [
+            {
+                "netflix_id": movie.split(",", 2)[0],
+                "title": movie.split(",", 2)[2].strip(),
+                "year": format_int(movie.split(",", 2)[1], -200)
+            }
+            for movie in netflix_movies_file.readlines()]
+        print(f"Found {len(netflix_movies_and_series)} Netflix movies")
 
-    # # Save prepared movies files in file
-    # save_object_in_file("updated_data/all_movies_db.pickle", all_movies_from_database)
-    # save_object_in_file("updated_data/all_netflix_movies_and_series_db.pickle", netflix_movies_and_series)
+    """
+    Find matching between missing in database Netlflix movies and movies from database
+    First group by first second words/numbers and the bey first word/number and second letter/number
+    """
+    print("Find matching between missing in database Netflix movies and remaining movies from database:")
+    ratio_max_year_combis = [(0.99, MAX_YEAR_DIFFERENCE), (0.9, 0), (0.99, 3), (0.8, 0), (0.9, MAX_YEAR_DIFFERENCE), (0.8, 3)]
+    group_criteria = [[True, True], [True, False]]
+    found_netflix_movies, netflix_series, missing_movies_in_db =\
+        optimize_matchings(all_movies_from_database, netflix_movies_and_series, ratio_max_year_combis, group_criteria)
 
+    # Output sample movies from each category
+    print("\nSample of found/matched Netlfix movies:")
+    for movie in found_netflix_movies[:10]:
+        print(movie)
 
-    # # Read all movies from file
-    # all_movies_from_database = load_object_from_file("updated_data/all_movies_db.pickle")
-    # netflix_movies_and_series = load_object_from_file("updated_data/all_netflix_movies_and_series_db.pickle")
+    print("\nSample of still in database missing Netlfix movies:")
+    for movie in missing_movies_in_db[:10]:
+        print(movie)
 
-    # """
-    # Find matching between missing in database Netlflix movies and movies from database
-    # First group by first second words/numbers and the bey first word/number and second letter/number
-    # """
-    # print("Find matching between missing in database Netflix movies and remaining movies from database:")
-    # ratio_max_year_combis = [(0.99, MAX_YEAR_DIFFERENCE), (0.9, 0), (0.99, 3), (0.8, 0), (0.9, MAX_YEAR_DIFFERENCE), (0.8, 3)]
-    # group_criteria = [[True, True], [True, False]]
-    # found_netflix_movies, netflix_series, missing_movies_in_db =\
-    #     optimize_matchings(all_movies_from_database, netflix_movies_and_series, ratio_max_year_combis, group_criteria)
+    print("\nSample of movies that are very likely series:")
+    for movie in netflix_series[:10]:
+        print(movie)
 
-    # # Output sample movies from each category
-    # print("\nSample of found/matched Netlfix movies:")
-    # for movie in found_netflix_movies[:10]:
-    #     print(movie)
+    # Save movies statistics (= found/not found movies)
+    save_object_in_file(vars.map_for_netflix_movies_to_db_movies_path, found_netflix_movies)
+    save_object_in_file(vars.missing_netflix_movies_in_database_path, missing_movies_in_db)
+    save_object_in_file(vars.netflix_series_path, netflix_series)
 
-    # print("\nSample of still in database missing Netlfix movies:")
-    # for movie in missing_movies_in_db[:10]:
-    #     print(movie)
+    # Load matching results from file
+    found_netflix_movies = load_object_from_file(vars.map_for_netflix_movies_to_db_movies_path)
+    missing_movies_in_db = load_object_from_file(vars.missing_netflix_movies_in_database_path)
+    netflix_series = load_object_from_file(vars.netflix_series_path)
 
-    # print("\nSample of movies that are very likely series:")
-    # for movie in netflix_series[:10]:
-    #     print(movie)
+    # Write movies into ".txt"-files for easier manual analyzing
+    with open(vars.map_for_netflix_movies_to_db_movies_path_txt, "w", encoding="utf-8") as file:
+        for movie in found_netflix_movies:
+            file.write(str(movie) + "\n")
 
-    # # Save movies statistics (= found/not found movies)
-    # save_object_in_file(vars.map_for_netflix_movies_to_db_movies_path, found_netflix_movies)
-    # save_object_in_file(vars.missing_netflix_movies_in_database_path, missing_movies_in_db)
-    # save_object_in_file(vars.netflix_series_path, netflix_series)
+    with open(vars.missing_netflix_movies_in_database_path_txt, "w", encoding="utf-8") as file:
+        for movie in missing_movies_in_db:
+            file.write(str(movie) + "\n")
 
+    with open(vars.netflix_series_path_txt, "w", encoding="utf-8") as file:
+        for movie in netflix_series:
+            file.write(str(movie) + "\n")
 
-    # found_netflix_movies = load_object_from_file(vars.map_for_netflix_movies_to_db_movies_path)
-    # missing_movies_in_db = load_object_from_file(vars.missing_netflix_movies_in_database_path)
-    # netflix_series = load_object_from_file(vars.netflix_series_path)
+    # Update movies in database for key "netflix_id" parallelized
+    def update_one_movie_by_netflix_move_id(table: "DatabaseModel", id: int, netflix_movie_id: int) -> None:
+        """
+        Update entry by attribute "netflix_movie_id".
 
-    # # Write movies into ".txt"-files for easier manual analyzing
-    # with open(vars.map_for_netflix_movies_to_db_movies_path_txt, "w", encoding="utf-8") as file:
-    #     for movie in found_netflix_movies:
-    #         file.write(str(movie) + "\n")
+        Parameters
+        ----------
+        table : "DatabaseModel"
+            Is the table to access databsae and do some data operations (CRUD)
+        id : int
+            ID of object to update
+        netflix_movie_id : int
+            ID of netflix movie from list of Netflix movies and series.
+            It will be add to movie in database
+        """
+        return table.update_one_by_id(id, "netflix_movie_id", netflix_movie_id)
 
-    # with open(vars.missing_netflix_movies_in_database_path_txt, "w", encoding="utf-8") as file:
-    #     for movie in missing_movies_in_db:
-    #         file.write(str(movie) + "\n")
+    print("\nReset value for \"netflix_movie_id\" for all movies from database")
+    update_results = para.parallelize_task_with_return_values(
+        update_one_movie_by_netflix_move_id,
+        [(all_movies_table, movie_id, -1) for movie_id in all_movies.keys()],
+        16,
+        1000
+    )
+    print(f"Failed resetting {len([res for res in update_results if res == None])} movies")
 
-    # with open(vars.netflix_series_path, "w", encoding="utf-8") as file:
-    #     for movie in netflix_series:
-    #         file.write(str(movie) + "\n")
+    print("\nWrite for all found matching Netflix movies into database (only key \"netflix_movie_id\")")
+    update_results = para.parallelize_task_with_return_values(
+        update_one_movie_by_netflix_move_id,
+        [(all_movies_table, movie["id"], int(movie["netflix_movie_id"])) for movie in found_netflix_movies],
+        16
+    )
 
-    # # Update movies in database for key "netflix_id" parallelized
-    # def update_one_movie_by_netflix_move_id(table: "DatabaseModel", id: int, netflix_movie_id: int) -> None:
-    #     """
-    #     Update entry by attribute "netflix_movie_id".
-
-    #     Parameters
-    #     ----------
-    #     table : "DatabaseModel"
-    #         Is the table to access databsae and do some data operations (CRUD)
-    #     id : int
-    #         ID of object to update
-    #     netflix_movie_id : int
-    #         ID of netflix movie from list of Netflix movies and series.
-    #         It will be add to movie in database
-    #     """
-    #     table.update_one_by_id(id, "netflix_movie_id", netflix_movie_id)
-
-    # print("\nWrite all updated actors into database")
-    # update_results = para.parallelize_task_with_return_values(
-    #     update_one_movie_by_netflix_move_id,
-    #     [(all_movies_table, movie["id"], movie["netflix_movie_id"]) for movie in found_netflix_movies],
-    #     16
-    # )
-
-    # print(f"Failed updating {len([res for res in update_results if res == None])} movies")
+    print(f"Failed updating {len([res for res in update_results if res == None])} movies")
+    print(f"Failed updating {len([res for res in update_results if res != None])} movies")
 
 
     # Read user ratings from files (Netflix prize data)
+    print("Read user ratings from files (Netflix prize data)")
+    user_watchings = defaultdict(list)
+    watched_netflix_movie_ratings = defaultdict(list)
+    relevant_movies_ids = [int(movie["netflix_movie_id"]) for movie in found_netflix_movies]
 
+    for netflix_movies_file_path in vars.local_netflix_movies_watched_file_paths:
+        i = 0
+
+        print(f"\nRead file {netflix_movies_file_path}:")
+
+        with open(netflix_movies_file_path, "r") as file:
+            lines = file.readlines()
+            current_movie_id = None
+            save_movies_ratings = False  # Store, if users, which have watched this movie, should be saved
+
+            for i, line in enumerate(lines):
+                if i % 1e6 == 0:
+                    print(f"Read already {round(i / len(lines) * 100, 3)} %")
+
+                if re.match("[0-9]+:\n$", line):  # Get ID of next movie and check, if it's a movie in database
+                    current_movie_id = int(line[:-2])  # Ignore ":" and "\n"
+                    save_movies_ratings = current_movie_id in relevant_movies_ids
+                elif save_movies_ratings:  # Save users to a movie, which have watched this movie
+                    user_id, rating, watching_date = line.strip().split(",")
+                    user_watchings[int(user_id)].append({"watched_movie": current_movie_id, "rating": rating, "watching_date": watching_date})
+                    
+    # Sort each user movies history by date
+    for user_id, watchings in user_watchings.items():
+        user_watchings[user_id] = sorted(watchings, key=lambda x: x["watching_date"])
+
+    # Output an example user movie history
+    print("Output an example user movie history:")
+    print(list(user_watchings.items())[0])
+
+    # Save dict in temporary file
+    save_object_in_file(vars.netflix_movies_watchings_path, user_watchings)
+
+    # Load Netflix movie watchings from temporary file
+    # user_watchings = load_object_from_file(vars.netflix_movies_watchings_path)
+    print(f"Read overall Netflix users: {len(user_watchings)}")
+    print(f"Read overall {sum([len(watchings) for watchings in user_watchings.values()])} user watchings/ratings")
