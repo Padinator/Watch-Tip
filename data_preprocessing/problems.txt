@@ -42,3 +42,5 @@
     => Quadratic effort
     - Find to each matched movies user ratings -> "get user movie history"
     - Save data in database persistently
+    -> Only in file, because 86 million data entries will take too long to store in database and it would take also to long for
+       requesting all this data
