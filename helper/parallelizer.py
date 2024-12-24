@@ -29,7 +29,8 @@ def parallelize_task_with_return_values(
 ) -> Dict[int, Any]:
     """
     Executes a passed function "task" with passed arguments "args"
-    and returns results of each thread as list.
+    and returns results of each thread as list in one sorted
+    (after thread creation) dictionary.\
     If no iteration print is desired, then set "print_iteration = 0" or
     "print_iteration = None".
     """
@@ -52,7 +53,7 @@ def parallelize_task_with_return_values(
     thread_sem = Semaphore(max_number_of_runnings_threads)
     result_storage_sem = Semaphore(1)
 
-    # Compute tasks parallilized
+    # Compute tasks parallelized
     for i, args_per_function_call in enumerate(args):
         if i % print_iteration == 0:
             print(f"Iteration {i}")
@@ -74,7 +75,7 @@ def parallelize_task_with_return_values(
     for thread in threads:
         thread.join()
 
-    return results
+    return dict(list(sorted(results.items())))  # Sort results
 
 
 def parallelize_task(
@@ -117,7 +118,7 @@ def parallelize_task_without_return_values(
     threads = []
     thread_sem = Semaphore(max_number_of_runnings_threads)
 
-    # Compute tasks parallilized
+    # Compute tasks parallelized
     for i, args_per_function_call in enumerate(args):
         if print_iteration and i % print_iteration == 0:
             print(f"Iteration {i}")

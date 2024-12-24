@@ -34,7 +34,7 @@ class DatabaseFunctions(unittest.TestCase):
 
         mock_table = MagicMock()
 
-        entity = {"_id": 1, "title": "Iron Man"}
+        entity = {"id": 1, "title": "Iron Man"}
 
         insert_one_element(mock_table, entity)
 
@@ -105,15 +105,15 @@ class DatabaseFunctions(unittest.TestCase):
         attr = "type"
         attr_value = "movie"
         mock_table.find.return_value = [
-            {"_id": 1, "type": "movie", "name": "Inception"},
-            {"_id": 2, "type": "movie", "name": "The Matrix"},
+            {"id": 1, "type": "movie", "name": "Inception"},
+            {"id": 2, "type": "movie", "name": "The Matrix"},
         ]
 
         result = get_entries_by_attr_from_database(mock_table, attr, attr_value)
 
         expected_result = [
-            {"_id": 1, "type": "movie", "name": "Inception"},
-            {"_id": 2, "type": "movie", "name": "The Matrix"},
+            {"id": 1, "type": "movie", "name": "Inception"},
+            {"id": 2, "type": "movie", "name": "The Matrix"},
         ]
 
         mock_table.find.assert_called_once_with({attr: attr_value})
@@ -146,7 +146,7 @@ class DatabaseFunctions(unittest.TestCase):
         mock_collection = MagicMock(spec=Collection)
 
         mock_collection.find_one.return_value = {
-            "_id": 1,
+            "id": 1,
             "type": "movie",
             "name": "Inception",
         }
@@ -154,7 +154,7 @@ class DatabaseFunctions(unittest.TestCase):
         result = get_one_by_id(mock_collection, 1)
 
         self.assertEqual(
-            result, {"_id": 1, "type": "movie", "name": "Inception"}
+            result, {"id": 1, "type": "movie", "name": "Inception"}
         )
 
     def test_update_one_by_attr(self) -> None:
@@ -166,7 +166,7 @@ class DatabaseFunctions(unittest.TestCase):
         mock_collection = MagicMock(spec=Collection)
 
         mock_collection.find_one_and_update.return_value = {
-            "_id": 1,
+            "id": 1,
             "type": "movie",
             "name": "Interstellar",
         }
@@ -180,7 +180,7 @@ class DatabaseFunctions(unittest.TestCase):
         )
 
         self.assertEqual(
-            result, {"_id": 1, "type": "movie", "name": "Interstellar"}
+            result, {"id": 1, "type": "movie", "name": "Interstellar"}
         )
 
     def test_update_one_by_id(self) -> None:
@@ -192,7 +192,7 @@ class DatabaseFunctions(unittest.TestCase):
         mock_collection = MagicMock(spec=Collection)
 
         mock_collection.find_one_and_update.return_value = {
-            "_id": 1,
+            "id": 1,
             "type": "movie",
             "name": "Interstellar",
         }
@@ -200,11 +200,11 @@ class DatabaseFunctions(unittest.TestCase):
         result = update_one_by_id(mock_collection, 1, "name", "Interstellar")
 
         mock_collection.find_one_and_update.assert_called_with(
-            {"_id": 1}, {"$set": {"name": "Interstellar"}}
+            {"id": 1}, {"$set": {"name": "Interstellar"}}
         )
 
         self.assertEqual(
-            result, {"_id": 1, "type": "movie", "name": "Interstellar"}
+            result, {"id": 1, "type": "movie", "name": "Interstellar"}
         )
 
     def test_delete_one_by_attr(self) -> None:
@@ -216,7 +216,7 @@ class DatabaseFunctions(unittest.TestCase):
         mock_collection = MagicMock(spec=Collection)
 
         mock_collection.find_one_and_delete.return_value = {
-            "_id": 1,
+            "id": 1,
             "type": "movie",
             "name": "Inception",
         }
@@ -226,7 +226,7 @@ class DatabaseFunctions(unittest.TestCase):
         mock_collection.find_one_and_delete.assert_called_with({"year": "2010"})
 
         self.assertEqual(
-            result, {"_id": 1, "type": "movie", "name": "Inception"}
+            result, {"id": 1, "type": "movie", "name": "Inception"}
         )
 
     def test_delete_one_by_id(self) -> None:
@@ -238,15 +238,15 @@ class DatabaseFunctions(unittest.TestCase):
         mock_collection = MagicMock(spec=Collection)
 
         mock_collection.find_one_and_delete.return_value = {
-            "_id": 1,
+            "id": 1,
             "type": "movie",
             "name": "Inception",
         }
 
         result = delete_one_by_id(mock_collection, 1)
 
-        mock_collection.find_one_and_delete.assert_called_with({"_id": 1})
+        mock_collection.find_one_and_delete.assert_called_with({"id": 1})
 
         self.assertEqual(
-            result, {"_id": 1, "type": "movie", "name": "Inception"}
+            result, {"id": 1, "type": "movie", "name": "Inception"}
         )
