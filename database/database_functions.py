@@ -1,6 +1,9 @@
 import copy as cp
 
-from pymongo import MongoClient
+from pymongo import (
+    MongoClient,
+    ReturnDocument
+)
 from pymongo.collection import Collection
 from typing import Any, Dict
 
@@ -126,7 +129,8 @@ def update_one_by_attr(
     """
 
     return table.find_one_and_update(
-        {attr: attr_value}, {"$set": {attr_to_update: attr_to_update_value}}
+        {attr: attr_value}, {"$set": {attr_to_update: attr_to_update_value}},
+        return_document=ReturnDocument.AFTER
     )
 
 
@@ -149,7 +153,6 @@ def update_one_by_id(
 
 
 # Delete functions
-# Update functions
 def delete_one_by_attr(table: Collection, attr: str, attr_value: Any) -> Dict[str, Any]:
     """
     Searches in database for a specific entity by the value 'attr_value'

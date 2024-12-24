@@ -34,6 +34,8 @@ def request_url(
                 break
             elif response.status_code == 429:  # Too many requests
                 raise Exception("Too many requests, try again")
+            else:  # Unknown return code
+                raise Exception(f"Unhandled/Unknown HTTP code: {response}")
         except (
             Exception
         ) as ex:  # Too many requests or connection ended by server without response
