@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Tuple
 project_dir = Path(__file__).parents[2]
 sys.path.append(str(project_dir))
 
-from data_preprocessing.insert_user_histories_in_db import (
+from data_preprocessing.match_netflix_prize_data_to_database import (
     format_int,
     build_grouping_expression,
     group_movies_by_attr,
@@ -83,7 +83,7 @@ true_false_grouped_movies_from_database_after_matching = {
 }
 
 
-class TestInsertUserHistories(unittest.TestCase):
+class TestMatchNetflixPrizeDataToDatabase(unittest.TestCase):
 
     # ------------ Test function "format_int" ------------
     @parameterized.expand(
