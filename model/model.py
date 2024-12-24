@@ -26,7 +26,7 @@ TRAIN_DATA_RELATIONSHIP = 0.85
 SEED = 1234
 
 # Constants for computing the difference between multiple values
-EPSILON = 100  # This mean thah prediction can lay one genre next to the correct one
+EPSILON = 1  # This mean thah prediction can lay one genre next to the correct one
 INDEPENDENT_MAX_DIFF_PER_GENRE = 5
 NUMBER_OF_INTERVALS = 5
 
@@ -407,7 +407,7 @@ if __name__ == "__main__":
     tf.random.set_seed(SEED)
 
     # Define variables
-    model_number = 0  # 0: Random Forest, 1: LSTM
+    model_number = 1  # 0: Random Forest, 1: LSTM
     normalize_fator = 100
     output_factor = 1
     predictions = []
@@ -417,7 +417,6 @@ if __name__ == "__main__":
     # TODO: Compare genres
     # TODO: Eigene Loss-Funktion definieren???
     # TODO: Daten genau anschauen und herausfinden bei welchen Inputs Modell versagt -> immer die selben oder andere??? (auch mit shuffle der Daten ausprobieren)
-    # TODO: Embedding für LSTM machen -> für Random Forest auch???
 
     # Compute based on this extracted features
     user_movie_histories = load_object_from_file(
@@ -494,7 +493,7 @@ if __name__ == "__main__":
 
     # Test model with own evaluation function
     evaluate_model(
-        y_test * output_factor, predictions * output_factor, epsilon=output_factor
+        y_test * output_factor, predictions * output_factor, epsilon=EPSILON * output_factor
     )
 
     # for i in range(len(y_test)):
