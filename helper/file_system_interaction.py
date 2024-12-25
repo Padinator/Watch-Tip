@@ -10,6 +10,13 @@ def save_object_in_file(path: Path, object_to_store: Any) -> None:
     Store passed object "object_to_store" in file laying at passed path
     "path". Use for storing python module "pickle" and write object in
     binary mode.
+
+    Parameters
+    ----------
+    path : Path
+        Path where passed object will be stored
+    object_to_store : Any
+        Object to store/save
     """
 
     with open(path, "wb") as file:
@@ -20,6 +27,16 @@ def load_object_from_file(path: Path) -> Any:
     """
     Loads object from file laying under path "path" and returns load
     object with the help of the python module "pickle".
+
+    Parameters
+    ----------
+    path : Path
+        Path from which an object will be loaded
+
+    Returns
+    -------
+    Any
+        Returns loaded object.
     """
 
     object_to_load = None
@@ -34,6 +51,13 @@ def save_json_objects_in_file(path: Path, json_objects: List[Any]) -> None:
     """
     Saves json objects in a file. Each line will contain one json object.
     This will be done by the predefined python module "json".
+
+    Parameter
+    ---------
+    path : Path
+        Path where passed JSON objects will be stored
+    json_objects : List[Any]
+        List of JSON objects to store/save under passed path
     """
 
     with open(path, "w", encoding="utf-8") as file:
@@ -48,6 +72,16 @@ def load_json_objects_from_file(path: Path, keys=None) -> List[Any]:
     json object. This will be done by the predefined python module "json".
     Read only necessary keys and create one dict, if no passed read all
     keys.
+
+    Parameters
+    ----------
+    path : Path
+        Path from which JSON object will be loaded
+
+    Returns
+    -------
+    List[Any]
+        Returns a list of loaded JSON formatted objects
     """
 
     all_objects = []
