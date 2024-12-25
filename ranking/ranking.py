@@ -16,6 +16,8 @@ sys.path.append(str(project_dir))
 from database.movie import Movies
 from database.user import Users
 from helper.file_system_interaction import save_object_in_file, load_object_from_file
+from helper.api_requester import request_url
+from helper import variables as vars
 
 all_users_table = Users()
 all_movies_table = Movies()
@@ -30,13 +32,13 @@ all_movies_table = Movies()
 # all_users = load_object_from_file(Path("ranking/data/all_users.json"))
 
 # This is a list of different movies, that matches the best on the user preferences
-# FIXME: Problem - Some movies in the all_users file has the same movie_id, see 138
 movies = {
-    1207898: "Forrest Gump",
-    1027073: "The Lord of the Rings: The Fellowship of the Ring",
-    50008: "The Lost World: Jurassic Park",
-    471506: "47 Meters Down: Uncaged",
-    138: "Apollo 13",
+    13: "Forrest Gump",
+    120: "The Lord of the Rings: The Fellowship of the Ring",
+    330: "The Lost World: Jurassic Park",
+    480105: "47 Meters Down: Uncaged",
+    568: "Apollo 13",
+    436270: "Black Adam",
 }
 
 
