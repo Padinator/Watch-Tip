@@ -131,6 +131,12 @@ user_history_file_path_with_real_genres_and_reduced_dimensions_visualization = (
     prepared_data_folder
     / "user_histories_with_real_genres_and_reduced_dimensions.dataframe"
 )
+user_watchings_file_path_with_real_genres = (
+    prepared_data_folder / "user_watchings_with_real_genres.pickle"
+)
+user_watchings_file_path_with_real_genres_visualization = (
+    prepared_data_folder / "user_watchings_with_real_genres.dataframe"
+)
 
 # Define some variables for feature extraction
 extracted_features_folder = model_path / "extracted_features"

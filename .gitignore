@@ -8,6 +8,6 @@
 # Ignore jupyter notebook files
 *ipynb_checkpoints
 
-# Ignore prootype data files
+# Ignore large data files
 data_preprocessing/data/*
 data_preprocessing/updated_data/*

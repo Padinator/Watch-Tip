@@ -1,0 +1,2 @@
+# Ignore large data files
+prepared_data/user_watchings*
