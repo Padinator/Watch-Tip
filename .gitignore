@@ -3,6 +3,7 @@
 
 # Ignore python files
 *__pycache__
+*pytest_cache
 *venv
 
 # Ignore jupyter notebook files
