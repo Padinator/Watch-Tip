@@ -177,6 +177,40 @@ def print_in_clean_format(movies_with_their_responses: Dict[str, Dict[str, Any]]
         print("-" * 100)
 
 
+def create_movie_ranking(movies_with_responses: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """
+    Create a ranking of movies based on their scores and number of highlights.
+
+    Parameters
+    ----------
+    movies_with_responses : dict
+        A dictionary where the keys are movie titles and the values are dictionaries containing
+        the movie's score and optionally a list of highlights.
+
+    Returns
+    -------
+    dict
+        A dictionary where the keys are movie titles and the values are dictionaries containing
+        the movie's rank, final score, original score, and number of highlights.
+    """
+    ranked_movies = []
+
+    for movie, response in movies_with_responses.items():
+        score = response["score"]
+        num_highlights = len(response.get("highlights", []))
+        final_score = score * 0.7 + num_highlights * 0.3
+        ranked_movies.append((movie, final_score, score, num_highlights))
+
+    ranked_movies.sort(key=lambda x: (-x[1], -x[2], -x[3]))
+
+    ranking = {}
+
+    for idx, (movie, final_score, score, num_highlights) in enumerate(ranked_movies, start=1):
+        ranking[movie] = {"rank": idx, "final_score": final_score, "score": score, "num_highlights": num_highlights}
+
+    return ranking
+
+
 if __name__ == "__main__":
 
     genai.configure(api_key=os.environ["genai"])
@@ -202,4 +236,10 @@ if __name__ == "__main__":
 
     movies_with_their_responses = generate_ai_response(filtered_reviews, llm)
 
-    print_in_clean_format(movies_with_their_responses)
+    # print_in_clean_format(movies_with_their_responses)
+
+    ranking = create_movie_ranking(movies_with_their_responses)
+    for movie, details in ranking.items():
+        print(
+            f"{details['rank']}: {movie} (Final Score: {details['final_score']}, Highlights: {details['num_highlights']})"
+        )
