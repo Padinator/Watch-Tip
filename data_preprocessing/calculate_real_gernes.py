@@ -42,9 +42,33 @@ def calculate_real_genres(
     all_genres: Dict[int, Dict[str, str]],
     all_producers: Dict[str, Dict[str, Any]],
     all_production_companies: Dict[str, Dict[str, str]],
-) -> float:
-    """Calculate real genres of a movie, based on the genres of its actors,
-    producers and production comanies."""
+) -> Dict[str, Any]:
+    """
+    Calculate real genres of a movie, based on the genres of its actors,
+    producers and production comanies.
+
+    Parameters
+    ----------
+    all_movies_table : "Movies"
+        Table object for accessing database and modifying data in database
+    movie_id : int
+        ID of the movie to which real genres will be calculated
+    movie : Dict[str, Any]
+        Movie to which real genres will be calculated
+    all_actors : Dict[str, Dict[str, Any]]
+        Dict with all actors from TMDB
+    all_genres : Dict[int, Dict[str, str]]
+        Dict with all genres listed in TMDB
+    all_producers : Dict[str, Dict[str, Any]]
+        Dict with all producers listed in TMDB
+    all_production_companies : Dict[str, Dict[str, str]]
+        Dict with all production companies listed in TMDB
+
+    Returns
+    -------
+    Dict[str, Any]
+        Returns updated movie object
+    """
 
     global error_file_actors, error_file_producers, error_file_production_companies, error_file_actors_sem, error_file_producers_sem, error_file_production_companies_sem, count_of_running_threads_sem
 
