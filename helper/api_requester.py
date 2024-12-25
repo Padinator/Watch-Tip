@@ -20,8 +20,24 @@ def request_url(
     connection_error_timeout: int = 10,
 ) -> Dict[Any, Any]:
     """
-    Requests the passed URL and returns the response as json = dict,
-    if the request was successsful, else return en empty dict '{}'
+    Requests the passed URL and returns the response as json = dict.
+
+    Parameters
+    ----------
+    url : str
+        URL to request
+    headers : Dict[str, str], default vars.headers,
+        Headers to use for request
+    max_retries : int, default 10
+        Max retries for retrying to request URL, if it fails
+    connection_error_timeout : int, default 10,
+        Timeout for waiting/sleeping, if a connection error occurs
+
+    Returns
+    -------
+    Dict[Any, Any]
+        Results of requests as dictionary. If the request was empty, return
+        an empty dict.
     """
 
     for i in range(max_retries):
@@ -48,9 +64,22 @@ def request_movie(
     url: str, movie_id: str, headers: Dict[str, str] = vars.headers
 ) -> Dict[str, Any]:
     """
-    Request API with passed URL "url" and passed ID "movie_id". Use for
-    this request the passed headers "headers". Return the resulting data
-    as dict.
+    Request API with passed URL "url" and passed ID "movie_id" for collecting
+    properties of a movie. Use for this request the passed headers "headers".
+
+    Parameters
+    ----------
+    url : str
+        URL to request
+    movie_id : str
+        ID of movie to request
+    headers : Dict[str, str], default vars.headers,
+        Headers to use for request
+
+    Returns
+    -------
+    Dict[str, Any]
+        Returns the requested a movie as dict.
     """
 
     # Request API
@@ -83,8 +112,22 @@ def request_movie(
 def request_movie_reviews(url: str, movie_id: int, page_number: int) -> Dict[str, Any]:
     """
     Requests the passed URL for movie reviews of a movie.
-    Save results in a dict, request other pages, if they exist,
-    else return a dictionary containg all reviews of a movie.
+    Save results in a dict, request other pages, if they exist (recursive
+    requesting until all reviews are colelcted/pages seen).
+
+    Parameters
+    ----------
+    url : str
+        URL to request movie reviews from
+    movie_id : int
+        ID of movie to request reviews from
+    page_number: int
+        Page number of request
+
+    Returns
+    -------
+    Dict[str, Any]
+        Returns the requested reviews of a movie as dict.
     """
 
     page_specific_url = re.sub("page_number", f"{page_number}", url)
