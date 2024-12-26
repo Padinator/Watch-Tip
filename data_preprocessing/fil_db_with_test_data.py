@@ -188,12 +188,12 @@ def find_all_necessary_entities(
         Returns all entities as dict with ID as first key from first source.
     """
 
-    all_entities_ids_already_in_first_src = set(all_entity_ids_from_first_src) & set(all_entity_ids_from_second_src)
-    missing_entity_ids_to_request = set(all_entity_ids_from_first_src) - all_entities_ids_already_in_first_src
+    all_entities_ids_in_both_srcs = set(all_entity_ids_from_first_src) & set(all_entity_ids_from_second_src)
+    missing_entity_ids_to_request = set(all_entity_ids_from_first_src) - all_entities_ids_in_both_srcs
     all_entities = {}
 
-    # Collect all entities, who are listed already in first source
-    for entity_id in missing_entity_ids_to_request:
+    # Collect all entities, who are listed in both sources
+    for entity_id in all_entities_ids_in_both_srcs:
         all_entities[entity_id] = all_entities_from_second_src[entity_id]
 
     # Request missing entities from API by their ID
