@@ -103,7 +103,7 @@ def request_movie_by_id(index: int, line: str) -> None:
         TMDB API
     """
 
-    global count_of_running_threads_sem, max_i, max_i_mutex, all_reviews, all_actors_ids, all_producers_ids, all_production_companies_ids
+    global count_of_running_threads_sem, max_i, max_i_mutex, all_reviews, all_actors_ids, all_producers_ids, all_production_companies_ids, all_genres_indices
 
     try:
         line = line.decode("utf-8")
@@ -205,132 +205,132 @@ def find_all_necessary_entities(
     return all_entities
 
 
-# Read file for index of next movie, if program was interrupted last time
-if os.path.exists(vars.index_of_next_movie_file):
-    with open(vars.index_of_next_movie_file, "r") as file:
-        index_of_first_movie = int(file.read())
-else:
-    index_of_first_movie = 0
+if __name__ == "__main__":
+    # Connect to database
+    all_movies_table = Movies()
+    all_genres_table = Genres()
+    all_users_table = Users()
 
-if os.path.exists(vars.all_reviews_tmp_data_file):
-    with open(vars.all_reviews_tmp_data_file, "rb") as file:
-        all_reviews = pickle.load(file)
-else:
-    all_reviews = {}
+    # Read file for index of next movie, if program was interrupted last time
+    if os.path.exists(vars.index_of_next_movie_file):
+        with open(vars.index_of_next_movie_file, "r") as file:
+            index_of_first_movie = int(file.read())
+    else:
+        index_of_first_movie = 0
 
-max_i = 0
+    if os.path.exists(vars.all_reviews_tmp_data_file):
+        with open(vars.all_reviews_tmp_data_file, "rb") as file:
+            all_reviews = pickle.load(file)
+    else:
+        all_reviews = {}
 
-# Connect to database
-all_movies_table = Movies()
-all_genres_table = Genres()
-all_users_table = Users()
+    max_i = 0
 
-# Start requesting API
-start_time = time.time()
+    # Start requesting API
+    start_time = time.time()
 
-with open(vars.local_movie_data_set_path, "rb") as file:
-    for i, line in enumerate(file.readlines()):
-        try:
-            # Skip already seen movies
-            if i < index_of_first_movie:
-                continue
-            elif i % 1000 == 0:
-                print(f"line {i}, {time.time() - start_time}")
-                start_time = time.time()
+    with open(vars.local_movie_data_set_path, "rb") as file:
+        for i, line in enumerate(file.readlines()):
+            try:
+                # Skip already seen movies
+                if i < index_of_first_movie:
+                    continue
+                elif i % 1000 == 0:
+                    print(f"line {i}, {time.time() - start_time}")
+                    start_time = time.time()
 
-            # Save each 5,000 iterations all user reviews into a file
-            if i % 5000 == 0:
-                all_reviews_sem.acquire()
-                with open(vars.all_reviews_tmp_data_file, "wb") as file:
+                # Save each 5,000 iterations all user reviews into a file
+                if i % 5000 == 0:
+                    all_reviews_sem.acquire()
+                    with open(vars.all_reviews_tmp_data_file, "wb") as file:
+                        pickle.dump(all_reviews, file)
+                    print(
+                        f"Iteration {i}:",
+                        sum([len(reviews) for reviews in all_reviews.values()]),
+                        sum([len(reviews) for reviews in all_reviews.values()]) / len(all_reviews),
+                        max([len(reviews) for reviews in all_reviews.values()]),
+                    )
+                    all_reviews_sem.release()
+
+                # Request database parallely
+                count_of_running_threads_sem.acquire()  # Acquire one thread for running
+                t = Thread(target=request_movie_by_id, args=[i, line])
+                threads.append(t)
+                t.start()
+            except KeyboardInterrupt:
+                # Wait for temrinating all threads
+                for t in threads[-NUMBER_OF_MAX_RUNNING_THREADS:]:
+                    t.join()
+
+                # Update next index
+                with open(vars.index_of_next_movie_file, "w") as file:
+                    file.write(str(max_i + 1))
+                # print("Next index", max_i + 1)
+
+                # Save all current reviews
+                with open(f"{vars.all_reviews_tmp_data_file}", "wb") as file:
                     pickle.dump(all_reviews, file)
-                print(
-                    f"Iteration {i}:",
-                    sum([len(reviews) for reviews in all_reviews.values()]),
-                    sum([len(reviews) for reviews in all_reviews.values()]) / len(all_reviews),
-                    max([len(reviews) for reviews in all_reviews.values()]),
-                )
-                all_reviews_sem.release()
 
-            # Request database parallely
-            count_of_running_threads_sem.acquire()  # Acquire one thread for running
-            t = Thread(target=request_movie_by_id, args=[i, line])
-            threads.append(t)
-            t.start()
-        except KeyboardInterrupt:
-            # Wait for temrinating all threads
-            for t in threads[-NUMBER_OF_MAX_RUNNING_THREADS:]:
-                t.join()
+                # End program
+                print("Terminate program with KeyboardInterrupt")
+                exit(0)
 
-            # Update next index
-            with open(vars.index_of_next_movie_file, "w") as file:
-                file.write(str(max_i + 1))
-            # print("Next index", max_i + 1)
+        # Save all collected reviews
+        with open(f"{vars.all_reviews_tmp_data_file}", "wb") as file:
+            pickle.dump(all_reviews, file)
 
-            # Save all current reviews
-            with open(f"{vars.all_reviews_tmp_data_file}", "wb") as file:
-                pickle.dump(all_reviews, file)
+    # Wait for last threads to end
+    for t in threads[-NUMBER_OF_MAX_RUNNING_THREADS:]:
+        t.join()
 
-            # End program
-            print("Terminate program with KeyboardInterrupt")
-            exit(0)
+    # Save all genres in database
+    for genre_id, genre in all_genres.items():
+        genre["id"] = genre_id
+        all_genres_table.insert_one(genre)
 
-    # Save all collected reviews
-    with open(f"{vars.all_reviews_tmp_data_file}", "wb") as file:
-        pickle.dump(all_reviews, file)
-
-# Wait for last threads to end
-for t in threads[-NUMBER_OF_MAX_RUNNING_THREADS:]:
-    t.join()
+    # Save all user reviews in database
+    for user, user_reviews in all_reviews.items():
+        user_reviews = dict(sorted(user_reviews.items()))
+        user_reviews["user"] = user
+        all_users_table.insert_one(user_reviews)
 
 
-# Save all genres in database
-for genre_id, genre in all_genres.items():
-    genre["id"] = genre_id
-    all_genres_table.insert_one(genre)
+    # Find all relevant actors and producers and save their data
+    important_person_keys = ["adult", "id", "name", "popularity"]
+    all_persons = load_json_objects_from_file(vars.local_producers_and_actors_data_set_path, important_person_keys)
+    all_persons_ids = list(all_persons.keys())
 
-# Save all user reviews in database
-for user, user_reviews in all_reviews.items():
-    user_reviews = dict(sorted(user_reviews.items()))
-    user_reviews["user"] = user
-    all_users_table.insert_one(user_reviews)
+    # Find all relevant actors and producers
+    all_actors = find_all_necessary_entities(
+        all_actors_ids,
+        all_persons_ids,
+        all_persons,
+        important_person_keys,
+        vars.abstract_person_url,
+    )
+    all_producers = find_all_necessary_entities(
+        all_producers_ids,
+        all_persons_ids,
+        all_persons,
+        important_person_keys,
+        vars.abstract_person_url,
+    )
 
+    # Find all relevant production companies and save their data
+    important_production_company_keys = ["id", "name"]
+    all_production_companies_from_file = load_json_objects_from_file(
+        vars.local_producer_company_data_set_path, important_production_company_keys
+    )
+    all_production_companies_ids_from_file = list(all_production_companies_from_file.keys())
+    all_production_companies = find_all_necessary_entities(
+        all_production_companies_ids,
+        all_production_companies_ids_from_file,
+        all_production_companies_from_file,
+        important_production_company_keys,
+        vars.abstract_production_company_url,
+    )
 
-# Find all relevant actors and producers and save their data
-important_person_keys = ["adult", "id", "name", "popularity"]
-all_persons = load_json_objects_from_file(vars.local_producers_and_actors_data_set_path, important_person_keys)
-all_persons_ids = list(all_persons.keys())
-
-# Find all relevant actors and producers
-all_actors = find_all_necessary_entities(
-    all_actors_ids,
-    all_persons_ids,
-    all_persons,
-    important_person_keys,
-    vars.abstract_person_url,
-)
-all_producers = find_all_necessary_entities(
-    all_producers_ids,
-    all_persons_ids,
-    all_persons,
-    important_person_keys,
-    vars.abstract_person_url,
-)
-
-# Find all relevant production companies and save their data
-important_production_company_keys = ["id", "name"]
-all_production_companies_from_file = load_json_objects_from_file(
-    vars.local_producer_company_data_set_path, important_production_company_keys
-)
-all_production_companies_ids_from_file = list(all_production_companies_from_file.keys())
-all_production_companies = find_all_necessary_entities(
-    all_production_companies_ids,
-    all_production_companies_ids_from_file,
-    all_production_companies_from_file,
-    important_production_company_keys,
-    vars.abstract_production_company_url,
-)
-
-# Save all actors, producers and production companies in a file
-save_json_objects_in_file(vars.local_actors_file_path, all_actors)
-save_json_objects_in_file(vars.local_producers_file_path, all_producers)
-save_json_objects_in_file(vars.local_production_companies_file_path, all_production_companies)
+    # Save all actors, producers and production companies in a file
+    save_json_objects_in_file(vars.local_actors_file_path, all_actors)
+    save_json_objects_in_file(vars.local_producers_file_path, all_producers)
+    save_json_objects_in_file(vars.local_production_companies_file_path, all_production_companies)
