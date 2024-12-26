@@ -26,9 +26,7 @@ from helper.file_system_interaction import (
 
 
 # Define constants
-NUMBER_OF_MAX_RUNNING_THREADS = (
-    16  # Windows: look up in task manager; Linux: look up with command "nproc" (output number of virtual CPUs)
-)
+NUMBER_OF_MAX_RUNNING_THREADS = 16
 
 # Define variables for parallel execution
 threads = []
