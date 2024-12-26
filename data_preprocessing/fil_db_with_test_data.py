@@ -292,7 +292,6 @@ if __name__ == "__main__":
         user_reviews["user"] = user
         all_users_table.insert_one(user_reviews)
 
-
     # Find all relevant actors and producers and save their data
     important_person_keys = ["adult", "id", "name", "popularity"]
     all_persons = load_json_objects_from_file(vars.local_producers_and_actors_data_set_path, important_person_keys)
