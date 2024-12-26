@@ -2,8 +2,7 @@ import copy as cp
 import sys
 
 from pathlib import Path
-# from typing import Any, Dict, override
-from typing import Any, Dict
+from typing import Any, Dict, override
 
 # ---------- Import own python modules ----------
 project_dir = Path(__file__).parents[1]
@@ -15,26 +14,35 @@ import database.database_functions as dbf
 
 class Users(m.DatabaseModel):
     """
-        Sub class of DatabaseModel for interacting with the table for all
-        users.
+    Subclass of DatabaseModel for interacting with the table for all
+    users.
     """
 
     def __init__(self):
-        """"Creates an user object for modifying users in database"""
+        """
+        Creates an user object for modifying users in database
+        """
+
         super().__init__(self._database_name, "all_users")
 
     # Read functions
-    # @override
-    def get_all(self) -> Dict[int, Dict[str, Any]]:
+    @override
+    def get_all(self) -> Dict[str, Dict[str, Any]]:
         """
-            Returns all existing entites. This method uses the method
-            "get_entries_by_attr_from_database", because the table user does
-            not have an attribute "id" per user, only a username under the key
-            "user".
+        Finds and returns all existing entites. This method uses the method
+        "get_entries_by_attr_from_database", because the table user does
+        not have an attribute "id" per user, only a username under the key
+        "user".
+
+        Returns
+        -------
+        Dict[str, Dict[str, Any]]
+            All existing user review entities with username as key of this
+            dict. The properties are listed in the corresponding inner dicts.
         """
 
         id_key = "user"
-        all_users = dbf.get_entries_by_attr_from_database(table=self._table, attr="", attr_value="")
+        all_users = dbf.get_entries_by_attr_from_database(db_table_modifier=self._db_table_modifier, attr="", attr_value="")
         all_users_formatted = {}
 
         # Format all users to not have the username as key -> it will be used as dict ID
