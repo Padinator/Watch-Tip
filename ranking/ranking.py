@@ -5,7 +5,10 @@ import os
 import sys
 
 import google.generativeai as genai
+import numpy as np
 
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.preprocessing import MinMaxScaler
 from pathlib import Path
 from typing import Any, Dict
 
@@ -198,17 +201,59 @@ def create_movie_ranking(movies_with_responses: Dict[str, Dict[str, Any]]) -> Di
     for movie, response in movies_with_responses.items():
         score = response["score"]
         num_highlights = len(response.get("highlights", []))
-        final_score = score * 0.7 + num_highlights * 0.3
-        ranked_movies.append((movie, final_score, score, num_highlights))
+        tfidf_score, hightlight_diversity = calculate_tfidf_and_diversity(response["highlights"])
+        final_score = score * 0.7
+        scores = np.array([response["score"], tfidf_score, hightlight_diversity])
+        ranked_movies.append((movie, final_score, score, num_highlights, tfidf_score, hightlight_diversity, scores))
 
-    ranked_movies.sort(key=lambda x: (-x[1], -x[2], -x[3]))
+    ranked_movies.sort(key=lambda x: -x[1])
 
     ranking = {}
 
-    for idx, (movie, final_score, score, num_highlights) in enumerate(ranked_movies, start=1):
-        ranking[movie] = {"rank": idx, "final_score": final_score, "score": score, "num_highlights": num_highlights}
+    for idx, (movie, final_score, score, num_highlights, tfidf_score, hightlight_diversity, scores) in enumerate(
+        ranked_movies, start=1
+    ):
+        ranking[movie] = {
+            "rank": idx,
+            "final_score": final_score,
+            "score": score,
+            "num_highlights": num_highlights,
+            "tfidf score": tfidf_score,
+            "highlight diversity": hightlight_diversity,
+            "scores": scores,
+        }
 
     return ranking
+
+
+def calculate_tfidf_and_diversity(highlights):
+    if not highlights:
+        return 0, 0
+
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(highlights)
+    tfidf_scores = np.sum(tfidf_matrix.toarray(), axis=1)
+    tfidf_score = np.mean(tfidf_scores)
+
+    unique_words = set()
+    for sentence in highlights:
+        unique_words.update(sentence.lower().split())
+    highlight_diversity = len(unique_words)
+
+    return tfidf_score, highlight_diversity
+
+
+def scale_scores(movies_with_their_responses):
+
+    weights = {"sentiment_score": 0.5, "tfidf_score": 0.3, "highlight_diversity": 0.2}
+    scaler = MinMaxScaler()
+
+    for _, response in movies_with_their_responses.items():
+        normalised_scores = scaler.fit_transform(response["scores"])
+        final_score = np.dot(
+            normalised_scores, np.array([weights["sentiment_score"], weights["tfidf_score"], weights["sity"]])
+        )
+        response["scores"] = final_score
 
 
 if __name__ == "__main__":
@@ -239,7 +284,10 @@ if __name__ == "__main__":
     # print_in_clean_format(movies_with_their_responses)
 
     ranking = create_movie_ranking(movies_with_their_responses)
+
+    scale_scores(ranking)
+
     for movie, details in ranking.items():
         print(
-            f"{details['rank']}: {movie} (Final Score: {details['final_score']}, Highlights: {details['num_highlights']})"
+            f"{details['rank']}: {movie} (Final Score: {details['final_score']}, Highlights: {details['num_highlights']}, TF-IDF Score: {details["tfidf score"]}, Highlight diversity: {details["highlight diversity"]}, Scores: {details["scores"]})"
         )
