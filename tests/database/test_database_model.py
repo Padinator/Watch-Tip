@@ -15,13 +15,40 @@ from database.model import DatabaseModel
 class TestDatabaseModel(unittest.TestCase):
 
     def setUp(self):
+        """
+        Set up the test environment for DatabaseModel tests.
+
+        This method is called before each test to create a mock DBModifier and
+        initialize a DatabaseModel instance with a test database and collection.
+        The mock DBModifier is assigned to the model's _db_table_modifier attribute
+        to simulate database operations.
+
+        Attributes
+        ----------
+        mock_db_modifier : unittest.mock.MagicMock
+            A mock object for simulating DBModifier behavior.
+        model : DatabaseModel
+            An instance of DatabaseModel initialized with test database and collection.
+        """
+
         self.mock_db_modifier = MagicMock(spec=DBModifier)
         self.model = DatabaseModel("test_db", "test_collection")
         self.model._db_table_modifier = self.mock_db_modifier
 
     @patch("database.database_functions.insert_one_element")
     def test_insert_one(self, insert_one_element) -> None:
-        """Test the method 'insert_one_element' in the file model.py"""
+        """
+        Test the insert_one method of the database model.
+
+        Parameters
+        ----------
+        insert_one_element : mock.Mock
+            Mock object for the 'insert_one' method.
+
+        Returns
+        -------
+        None
+        """
 
         insert_one_element.return_value = {
             "id": 1,
@@ -39,7 +66,18 @@ class TestDatabaseModel(unittest.TestCase):
 
     @patch("database.database_functions.get_all_entries_from_database")
     def test_get_all(self, get_all_entries_from_database) -> None:
-        """Test the method 'get_all' in the file model.py"""
+        """
+        Test the 'get_all' method in the model.py file.
+
+        Parameters
+        ----------
+        get_all_entries_from_database : mock.Mock
+            Mock object for the 'get_all' method.
+
+        Returns
+        -------
+        None
+        """
 
         get_all_entries_from_database.return_value = {
             1: {"name": "Actor 1", "age": 30},
@@ -57,7 +95,18 @@ class TestDatabaseModel(unittest.TestCase):
 
     @patch("database.database_functions.get_one_by_attr")
     def test_get_one_by_attr(self, get_one_by_attr) -> None:
-        """Test the method 'get_one_by_attr' in the file model.py"""
+        """
+        Test the method 'get_one_by_attr' in the file model.py.
+
+        Parameters
+        ----------
+        get_one_by_attr : mock.Mock
+            Mock object for the 'get_one_by_attr' method.
+
+        Returns
+        -------
+        None
+        """
 
         get_one_by_attr.return_value = {"name": "Actor 1", "age": 30}
 
@@ -72,7 +121,18 @@ class TestDatabaseModel(unittest.TestCase):
 
     @patch("database.database_functions.get_one_by_id")
     def test_get_one_by_id(self, get_one_by_id) -> None:
-        """Test the method 'get_one_by_id' in the file model.py"""
+        """
+        Test the 'get_one_by_id' method in the model.py file.
+
+        Parameters
+        ----------
+        get_one_by_id : mock.Mock
+            Mock object for the 'get_one_by_id' method.
+
+        Returns
+        -------
+        None
+        """
 
         get_one_by_id.return_value = {"_id": 1, "name": "Actor 1", "age": 30}
 
@@ -86,7 +146,18 @@ class TestDatabaseModel(unittest.TestCase):
 
     @patch("database.database_functions.update_one_by_attr")
     def test_update_one_by_attr(self, update_one_by_attr) -> None:
-        """Test the method 'update_one_by_attr' in the file model.py"""
+        """
+        Test the method 'update_one_by_attr' in the file model.py.
+
+        Parameters
+        ----------
+        update_one_by_attr : mock.Mock
+            Mock object for the 'update_one_by_attr' method.
+
+        Returns
+        -------
+        None
+        """
 
         update_one_by_attr.return_value = {
             "_id": 1,
@@ -113,7 +184,18 @@ class TestDatabaseModel(unittest.TestCase):
 
     @patch("database.database_functions.update_one_by_id")
     def test_update_one_by_id(self, update_one_by_id) -> None:
-        """Test the method 'update_one_by_id' in the file model.py"""
+        """
+        Test the method 'update_one_by_id' in the file model.py.
+
+        Parameters
+        ----------
+        update_one_by_id : mock.Mock
+            Mock object for the 'update_one_by_id' method.
+
+        Returns
+        -------
+        None
+        """
 
         update_one_by_id.return_value = {
             "_id": 1,
@@ -138,7 +220,18 @@ class TestDatabaseModel(unittest.TestCase):
 
     @patch("database.database_functions.delete_one_by_attr")
     def test_delete_one_by_attr(self, delete_one_by_attr) -> None:
-        """Test the method 'delete_one_by_attr' in the file model.py"""
+        """
+        Test the method 'delete_one_by_attr' in the file model.py.
+
+        Parameters
+        ----------
+        delete_one_by_attr : mock.Mock
+            Mock object for the 'delete_one_by_attr' method.
+
+        Returns
+        -------
+        None
+        """
 
         delete_one_by_attr.return_value = {"_id": 1, "name": "Actor 1", "age": 30}
 
@@ -155,7 +248,18 @@ class TestDatabaseModel(unittest.TestCase):
 
     @patch("database.database_functions.delete_one_by_id")
     def test_delete_one_by_id(self, delete_one_by_id) -> None:
-        """Test the method 'delete_one_by_id' in the file model.py"""
+        """
+        Test the method 'delete_one_by_id' in the file model.py.
+
+        Parameters
+        ----------
+        delete_one_by_id : mock.Mock
+            Mock object for the'delete_one_by_id' method.
+
+        Returns
+        -------
+        None
+        """
 
         delete_one_by_id.return_value = {"_id": 1, "name": "Actor 1", "age": 30}
 
