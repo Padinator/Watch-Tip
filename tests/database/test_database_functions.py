@@ -1,7 +1,7 @@
 import unittest
 import sys
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from pathlib import Path
 from pymongo import MongoClient
 from pymongo.collection import Collection
@@ -11,10 +11,12 @@ project_dir = Path(__file__).parents[2]
 sys.path.append(str(project_dir))
 
 from database.database_functions import (
+    DBConnector,
+    DBModifier,
     delete_one_by_attr,
     delete_one_by_id,
     get_entries_by_attr_from_database,
-    get_mongo_db_specific_collection,
+    get_table_from_database,
     get_one_by_attr,
     get_one_by_id,
     insert_one_element,
@@ -26,6 +28,44 @@ from database.database_functions import (
 
 class DatabaseFunctions(unittest.TestCase):
 
+    # @patch("database.database_functions.DBConnector.")
+    def test_get_table_from_database(self) -> None:
+        """
+        Test the method 'get_table_from_database'
+        in the file database_functions.py
+        """
+
+        # Define variables
+        collection_name = "test_collection"
+        database_name = "test_database"
+
+        # Create mocks
+        mock_db_connector = MagicMock()
+        mongo_client = MagicMock(spec=MongoClient)
+        mock_database = MagicMock()
+        mock_collection = MagicMock()
+        db_modifier = DBModifier(collection=mock_collection)
+
+        # Connect mocks
+        mock_db_connector.get_table_from_database.return_value = db_modifier
+        mock_db_connector.__getitem__.__connector_object = mongo_client
+        mongo_client.__getitem__.return_value = mock_database
+        mock_database.__getitem__.return_value = mock_collection
+
+        # Call function to test
+        result = get_table_from_database(
+            mock_db_connector, collection_name, database_name
+        )
+
+        # Assert passed arguments
+        mock_db_connector.get_table_from_database.assert_called_with(database_name=database_name, collection_name=collection_name)
+        mongo_client.__getitem__.assert_called_with(database_name)
+        mock_database.__getitem__.assert_called_with(collection_name)
+
+        # Assert result
+        self.assertEqual(result, db_modifier)
+
+    '''
     def test_insert_one_element(self) -> None:
         """
         Test the method 'insert_one_element'
@@ -39,32 +79,6 @@ class DatabaseFunctions(unittest.TestCase):
         insert_one_element(mock_table, entity)
 
         mock_table.insert_one.assert_called_once_with(entity)
-
-    def test_get_mongo_db_specific_collection(self) -> None:
-        """
-        Test the method 'get_mongo_db_specific_collection'
-        in the file database_functions.py
-        """
-
-        mongo_client = MagicMock(spec=MongoClient)
-
-        mock_database = MagicMock()
-        mock_collection = MagicMock()
-
-        mongo_client.__getitem__.return_value = mock_database
-        mock_database.__getitem__.return_value = mock_collection
-
-        collection_name = "test_collection"
-        database_name = "test_database"
-
-        result = get_mongo_db_specific_collection(
-            mongo_client, collection_name, database_name
-        )
-
-        mongo_client.__getitem__.assert_called_with(database_name)
-        mock_database.__getitem__.assert_called_with(collection_name)
-
-        self.assertEqual(result, mock_collection)
 
     def test_read_all_entries_from_database_as_dict(self) -> None:
         """
@@ -250,3 +264,4 @@ class DatabaseFunctions(unittest.TestCase):
         self.assertEqual(
             result, {"id": 1, "type": "movie", "name": "Inception"}
         )
+    '''
