@@ -15,12 +15,42 @@ from database.user import Users
 class TestUser(unittest.TestCase):
 
     def setUp(self):
+        """
+        Set up the test environment for each test.
+
+        This method is called before each test to set up any state that is shared
+        between tests. It creates a mock object for the DBModifier class and assigns
+        it to the _db_table_modifier attribute of the Users instance.
+
+        Attributes
+        ----------
+        mock_db_modifier : unittest.mock.MagicMock
+            A mock object for the DBModifier class.
+        user : Users
+            An instance of the Users class with the _db_table_modifier attribute
+            set to the mock_db_modifier.
+        """
         self.mock_db_modifier = MagicMock(spec=DBModifier)
         self.user = Users()
         self.user._db_table_modifier = self.mock_db_modifier
 
     @patch("database.database_functions.get_entries_by_attr_from_database")
     def test_get_all(self, get_entries_by_attr_from_database) -> None:
+        """
+        Test the method 'get_all' in the file user.py.
+
+        This test verifies that the 'get_all' method correctly retrieves all user entries
+        from the database and returns them in the expected format.
+
+        Parameters
+        ----------
+        get_entries_by_attr_from_database : MagicMock
+            A mock function that simulates retrieving entries from the database based on attributes.
+
+        Returns
+        -------
+        None
+        """
         """Test the method 'get_all' in the file user.py"""
 
         get_entries_by_attr_from_database.return_value = [
