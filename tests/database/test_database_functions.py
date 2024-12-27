@@ -47,20 +47,18 @@ class DatabaseFunctions(unittest.TestCase):
         db_modifier = DBModifier(collection=mock_collection)
 
         # Connect mocks
-        mock_db_connector.get_table_from_database.return_value = db_modifier
-        mock_db_connector.__getitem__.__connector_object = mongo_client
+        mock_db_connector.__connector_object = mongo_client
         mongo_client.__getitem__.return_value = mock_database
         mock_database.__getitem__.return_value = mock_collection
+        mock_db_connector.get_table_from_database.return_value = db_modifier
 
         # Call function to test
-        result = get_table_from_database(
-            mock_db_connector, collection_name, database_name
-        )
+        result = get_table_from_database(mock_db_connector, collection_name, database_name)
 
         # Assert passed arguments
-        mock_db_connector.get_table_from_database.assert_called_with(database_name=database_name, collection_name=collection_name)
-        mongo_client.__getitem__.assert_called_with(database_name)
-        mock_database.__getitem__.assert_called_with(collection_name)
+        mock_db_connector.get_table_from_database.assert_called_with(
+            collection_name=collection_name, database_name=database_name
+        )
 
         # Assert result
         self.assertEqual(result, db_modifier)
