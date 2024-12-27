@@ -207,7 +207,9 @@ def get_all_entries_from_database(db_table_modifier: "DBModifier") -> Dict[int, 
     return read_all_entries_from_database_as_dict(db_table_modifier=db_table_modifier)
 
 
-def get_entries_by_attr_from_database(db_table_modifier: "DBModifier", attr: str, attr_value: str) -> Dict[int, Dict[str, Any]]:
+def get_entries_by_attr_from_database(
+    db_table_modifier: "DBModifier", attr: str, attr_value: str
+) -> Dict[int, Dict[str, Any]]:
     """
     Reads all entries from passed collection from database matching the
     value "attr_value" of the attribute "attr" and returns user a deep
@@ -267,11 +269,7 @@ def get_one_by_id(db_table_modifier: "DBModifier", id: int) -> Dict[str, Any]:
 
 # Update functions
 def update_one_by_attr(
-    db_table_modifier: "DBModifier",
-    attr: str,
-    attr_value: Any,
-    attr_to_update: str,
-    attr_to_update_value: Any
+    db_table_modifier: "DBModifier", attr: str, attr_value: Any, attr_to_update: str, attr_to_update_value: Any
 ) -> Dict[str, Any]:
     """
     Searches in database for a specific entity (first one found) by the value
@@ -305,7 +303,9 @@ def update_one_by_attr(
     )
 
 
-def update_one_by_id(db_table_modifier: "DBModifier", id: int, attr_to_update: str, attr_to_update_value: Any) -> Dict[str, Any]:
+def update_one_by_id(
+    db_table_modifier: "DBModifier", id: int, attr_to_update: str, attr_to_update_value: Any
+) -> Dict[str, Any]:
     """
     Searches in database for a specific entity (first one found) by the passed
     ID, updates the attribute 'attr_to_update' with the value
