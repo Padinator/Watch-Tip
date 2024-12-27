@@ -28,6 +28,9 @@ from database.database_functions import (
 
 class DatabaseFunctions(unittest.TestCase):
 
+    def setUp(self):
+        self.mock_db_modifier = MagicMock(spec=DBModifier)
+
     # @patch("database.database_functions.DBConnector.")
     def test_get_table_from_database(self) -> None:
         """
@@ -44,13 +47,12 @@ class DatabaseFunctions(unittest.TestCase):
         mongo_client = MagicMock(spec=MongoClient)
         mock_database = MagicMock()
         mock_collection = MagicMock()
-        db_modifier = DBModifier(collection=mock_collection)
 
         # Connect mocks
         mock_db_connector.__connector_object = mongo_client
         mongo_client.__getitem__.return_value = mock_database
         mock_database.__getitem__.return_value = mock_collection
-        mock_db_connector.get_table_from_database.return_value = db_modifier
+        mock_db_connector.get_table_from_database.return_value = self.mock_db_modifier
 
         # Call function to test
         result = get_table_from_database(mock_db_connector, collection_name, database_name)
@@ -61,7 +63,7 @@ class DatabaseFunctions(unittest.TestCase):
         )
 
         # Assert result
-        self.assertEqual(result, db_modifier)
+        self.assertEqual(result, self.mock_db_modifier)
 
     def test_insert_one_element(self) -> None:
         """
@@ -69,13 +71,11 @@ class DatabaseFunctions(unittest.TestCase):
         in the file database_functions.py
         """
 
-        mock_db_modifier = MagicMock(spec=DBModifier)
-
         entity = {"id": 1, "title": "Iron Man"}
 
-        insert_one_element(mock_db_modifier, entity)
+        insert_one_element(self.mock_db_modifier, entity)
 
-        mock_db_modifier.return_value.insert_one.assert_called_once_with(entity)
+        self.mock_db_modifier.return_value.insert_one.assert_called_once_with(entity)
 
     def test_read_all_entries_from_database_as_dict(self) -> None:
         """
@@ -83,14 +83,12 @@ class DatabaseFunctions(unittest.TestCase):
         in the file database_functions.py
         """
 
-        mock_db_modifier = MagicMock(spec=DBModifier)
-
-        mock_db_modifier.return_value.find.return_value = [
+        self.mock_db_modifier.return_value.find.return_value = [
             {"id": 1, "title": "Iron Man", "_id": "mock_id1"},
             {"id": 2, "title": "The Lord of the Rings: The Two Towers", "_id": "mock_id2"},
         ]
 
-        result = read_all_entries_from_database_as_dict(mock_db_modifier)
+        result = read_all_entries_from_database_as_dict(self.mock_db_modifier)
 
         expected_result = {
             1: {"title": "Iron Man"},
@@ -99,7 +97,7 @@ class DatabaseFunctions(unittest.TestCase):
 
         self.assertEqual(result, expected_result)
 
-        mock_db_modifier.return_value.find.assert_called_once()
+        self.mock_db_modifier.return_value.find.assert_called_once()
 
     def test_get_entries_by_attr_from_database(self) -> None:
         """
@@ -107,23 +105,21 @@ class DatabaseFunctions(unittest.TestCase):
         in the file database_functions.py
         """
 
-        mock_db_modifier = MagicMock(spec=DBModifier)
-
         attr = "type"
         attr_value = "movie"
-        mock_db_modifier.return_value.find.return_value = [
+        self.mock_db_modifier.return_value.find.return_value = [
             {"id": 1, "type": "movie", "name": "Inception"},
             {"id": 2, "type": "movie", "name": "The Matrix"},
         ]
 
-        result = get_entries_by_attr_from_database(mock_db_modifier, attr, attr_value)
+        result = get_entries_by_attr_from_database(self.mock_db_modifier, attr, attr_value)
 
         expected_result = [
             {"id": 1, "type": "movie", "name": "Inception"},
             {"id": 2, "type": "movie", "name": "The Matrix"},
         ]
 
-        mock_db_modifier.return_value.find.assert_called_once_with({attr: attr_value})
+        self.mock_db_modifier.return_value.find.assert_called_once_with({attr: attr_value})
 
         self.assertEqual(result, expected_result)
 
@@ -133,14 +129,12 @@ class DatabaseFunctions(unittest.TestCase):
         in the file database_functions.py
         """
 
-        mock_db_modifier = MagicMock(spec=DBModifier)
-
-        mock_db_modifier.return_value.find_one.return_value = {
+        self.mock_db_modifier.return_value.find_one.return_value = {
             "movie": "Iron Man",
             "genre": "Sci-Fi",
         }
 
-        result = get_one_by_attr(mock_db_modifier, "movie", "Iron Man")
+        result = get_one_by_attr(self.mock_db_modifier, "movie", "Iron Man")
 
         self.assertEqual(result, {"movie": "Iron Man", "genre": "Sci-Fi"})
 
@@ -150,15 +144,13 @@ class DatabaseFunctions(unittest.TestCase):
         in the file database_functions.py
         """
 
-        mock_db_modifier = MagicMock(spec=DBModifier)
-
-        mock_db_modifier.return_value.find_one.return_value = {
+        self.mock_db_modifier.return_value.find_one.return_value = {
             "id": 1,
             "type": "movie",
             "name": "Inception",
         }
 
-        result = get_one_by_id(mock_db_modifier, 1)
+        result = get_one_by_id(self.mock_db_modifier, 1)
 
         self.assertEqual(result, {"id": 1, "type": "movie", "name": "Inception"})
 
@@ -168,17 +160,15 @@ class DatabaseFunctions(unittest.TestCase):
         in the file database_functions.py
         """
 
-        mock_db_modifier = MagicMock(spec=DBModifier)
-
-        mock_db_modifier.return_value.find_one_and_update.return_value = {
+        self.mock_db_modifier.return_value.find_one_and_update.return_value = {
             "id": 1,
             "type": "movie",
             "name": "Interstellar",
         }
 
-        result = update_one_by_attr(mock_db_modifier, "type", "movie", "name", "Interstellar")
+        result = update_one_by_attr(self.mock_db_modifier, "type", "movie", "name", "Interstellar")
 
-        mock_db_modifier.return_value.find_one_and_update.assert_called_with(
+        self.mock_db_modifier.return_value.find_one_and_update.assert_called_with(
             {"type": "movie"}, {"$set": {"name": "Interstellar"}}, return_document=True
         )
 
@@ -190,17 +180,15 @@ class DatabaseFunctions(unittest.TestCase):
         in the file database_functions.py
         """
 
-        mock_db_modifier = MagicMock(spec=DBModifier)
-
-        mock_db_modifier.return_value.find_one_and_update.return_value = {
+        self.mock_db_modifier.return_value.find_one_and_update.return_value = {
             "id": 1,
             "type": "movie",
             "name": "Interstellar",
         }
 
-        result = update_one_by_id(mock_db_modifier, 1, "name", "Interstellar")
+        result = update_one_by_id(self.mock_db_modifier, 1, "name", "Interstellar")
 
-        mock_db_modifier.return_value.find_one_and_update.assert_called_with(
+        self.mock_db_modifier.return_value.find_one_and_update.assert_called_with(
             {"id": 1}, {"$set": {"name": "Interstellar"}}, return_document=True
         )
 
@@ -212,17 +200,15 @@ class DatabaseFunctions(unittest.TestCase):
         in the file database_functions.py
         """
 
-        mock_db_modifier = MagicMock(spec=DBModifier)
-
-        mock_db_modifier.return_value.find_one_and_delete.return_value = {
+        self.mock_db_modifier.return_value.find_one_and_delete.return_value = {
             "id": 1,
             "type": "movie",
             "name": "Inception",
         }
 
-        result = delete_one_by_attr(mock_db_modifier, "year", "2010")
+        result = delete_one_by_attr(self.mock_db_modifier, "year", "2010")
 
-        mock_db_modifier.return_value.find_one_and_delete.assert_called_with({"year": "2010"})
+        self.mock_db_modifier.return_value.find_one_and_delete.assert_called_with({"year": "2010"})
 
         self.assertEqual(result, {"id": 1, "type": "movie", "name": "Inception"})
 
@@ -232,16 +218,14 @@ class DatabaseFunctions(unittest.TestCase):
         in the file database_functions.py
         """
 
-        mock_db_modifier = MagicMock(spec=DBModifier)
-
-        mock_db_modifier.return_value.find_one_and_delete.return_value = {
+        self.mock_db_modifier.return_value.find_one_and_delete.return_value = {
             "id": 1,
             "type": "movie",
             "name": "Inception",
         }
 
-        result = delete_one_by_id(mock_db_modifier, 1)
+        result = delete_one_by_id(self.mock_db_modifier, 1)
 
-        mock_db_modifier.return_value.find_one_and_delete.assert_called_with({"id": 1})
+        self.mock_db_modifier.return_value.find_one_and_delete.assert_called_with({"id": 1})
 
         self.assertEqual(result, {"id": 1, "type": "movie", "name": "Inception"})
