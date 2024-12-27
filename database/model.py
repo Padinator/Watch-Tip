@@ -68,7 +68,7 @@ class DatabaseModel(ABC):
     def get_all(self) -> Dict[int, Dict[str, Any]]:
         """
         Returns all existing entites.
-    
+
         Returns
         -------
         Dict[int, Dict[str, Any]]
