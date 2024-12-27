@@ -42,7 +42,7 @@ class TestDatabaseModel(unittest.TestCase):
 
         Parameters
         ----------
-        insert_one_element : mock.Mock
+        insert_one_element : unittest.mock.MagicMock
             Mock object for the 'insert_one' method.
 
         Returns
@@ -71,7 +71,7 @@ class TestDatabaseModel(unittest.TestCase):
 
         Parameters
         ----------
-        get_all_entries_from_database : mock.Mock
+        get_all_entries_from_database : unittest.mock.MagicMock
             Mock object for the 'get_all' method.
 
         Returns
@@ -100,7 +100,7 @@ class TestDatabaseModel(unittest.TestCase):
 
         Parameters
         ----------
-        get_one_by_attr : mock.Mock
+        get_one_by_attr : unittest.mock.MagicMock
             Mock object for the 'get_one_by_attr' method.
 
         Returns
@@ -126,7 +126,7 @@ class TestDatabaseModel(unittest.TestCase):
 
         Parameters
         ----------
-        get_one_by_id : mock.Mock
+        get_one_by_id : unittest.mock.MagicMock
             Mock object for the 'get_one_by_id' method.
 
         Returns
@@ -151,7 +151,7 @@ class TestDatabaseModel(unittest.TestCase):
 
         Parameters
         ----------
-        update_one_by_attr : mock.Mock
+        update_one_by_attr : unittest.mock.MagicMock
             Mock object for the 'update_one_by_attr' method.
 
         Returns
@@ -189,7 +189,7 @@ class TestDatabaseModel(unittest.TestCase):
 
         Parameters
         ----------
-        update_one_by_id : mock.Mock
+        update_one_by_id : unittest.mock.MagicMock
             Mock object for the 'update_one_by_id' method.
 
         Returns
@@ -225,7 +225,7 @@ class TestDatabaseModel(unittest.TestCase):
 
         Parameters
         ----------
-        delete_one_by_attr : mock.Mock
+        delete_one_by_attr : unittest.mock.MagicMock
             Mock object for the 'delete_one_by_attr' method.
 
         Returns
@@ -253,7 +253,7 @@ class TestDatabaseModel(unittest.TestCase):
 
         Parameters
         ----------
-        delete_one_by_id : mock.Mock
+        delete_one_by_id : unittest.mock.MagicMock
             Mock object for the'delete_one_by_id' method.
 
         Returns

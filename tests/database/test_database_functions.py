@@ -29,6 +29,16 @@ from database.database_functions import (
 class DatabaseFunctions(unittest.TestCase):
 
     def setUp(self):
+        """
+        Set up the test environment for database function tests.
+
+        This method is called before each test to create a mock instance of the DBModifier class.
+
+        Attributes
+        ----------
+        mock_db_modifier : unittest.mock.MagicMock
+            A mock object that simulates the behavior of the DBModifier class.
+        """
         self.mock_db_modifier = MagicMock(spec=DBModifier)
 
     # @patch("database.database_functions.DBConnector.")
