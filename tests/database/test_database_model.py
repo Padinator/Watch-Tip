@@ -2,19 +2,22 @@ import unittest
 import sys
 
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 # ---------- Import own python modules ----------
 project_dir = Path(__file__).parents[2]
 sys.path.append(str(project_dir))
 
+from database.database_functions import DBModifier
 from database.model import DatabaseModel
-
-model = DatabaseModel("test_db", "test_collection")
-model._table = "mock_table"
 
 
 class TestDatabaseModel(unittest.TestCase):
+
+    def setUp(self):
+        self.mock_db_modifier = MagicMock(spec=DBModifier)
+        self.model = DatabaseModel("test_db", "test_collection")
+        self.model._db_table_modifier = self.mock_db_modifier
 
     @patch("database.database_functions.insert_one_element")
     def test_insert_one(self, insert_one_element) -> None:
@@ -28,9 +31,9 @@ class TestDatabaseModel(unittest.TestCase):
 
         entity = ({"id": 1, "title": "Iron Man", "_id": "mock_id1"},)
 
-        result = model.insert_one(entity)
+        result = self.model.insert_one(entity)
 
-        insert_one_element.assert_called_once_with(table="mock_table", enitity=entity)
+        insert_one_element.assert_called_once_with(db_table_modifier=self.mock_db_modifier, enitity=entity)
 
         self.assertEqual(result, {"id": 1, "title": "Iron Man", "_id": "mock_id1"})
 
@@ -43,9 +46,9 @@ class TestDatabaseModel(unittest.TestCase):
             2: {"name": "Actor 2", "age": 40},
         }
 
-        result = model.get_all()
+        result = self.model.get_all()
 
-        get_all_entries_from_database.assert_called_once_with(table="mock_table")
+        get_all_entries_from_database.assert_called_once_with(db_table_modifier=self.mock_db_modifier)
 
         self.assertEqual(
             result,
@@ -61,11 +64,9 @@ class TestDatabaseModel(unittest.TestCase):
         attr = "name"
         attr_value = "Actor 1"
 
-        result = model.get_one_by_attr(attr, attr_value)
+        result = self.model.get_one_by_attr(attr, attr_value)
 
-        get_one_by_attr.assert_called_once_with(
-            table="mock_table", attr=attr, attr_value=attr_value
-        )
+        get_one_by_attr.assert_called_once_with(db_table_modifier=self.mock_db_modifier, attr=attr, attr_value=attr_value)
 
         self.assertEqual(result, {"name": "Actor 1", "age": 30})
 
@@ -77,9 +78,9 @@ class TestDatabaseModel(unittest.TestCase):
 
         entity_id = 1
 
-        result = model.get_one_by_id(entity_id)
+        result = self.model.get_one_by_id(entity_id)
 
-        get_one_by_id.assert_called_once_with(table="mock_table", id=entity_id)
+        get_one_by_id.assert_called_once_with(db_table_modifier=self.mock_db_modifier, id=entity_id)
 
         self.assertEqual(result, {"_id": 1, "name": "Actor 1", "age": 30})
 
@@ -98,12 +99,10 @@ class TestDatabaseModel(unittest.TestCase):
         attr_to_update = "age"
         attr_to_update_value = 35
 
-        result = model.update_one_by_attr(
-            attr, attr_value, attr_to_update, attr_to_update_value
-        )
+        result = self.model.update_one_by_attr(attr, attr_value, attr_to_update, attr_to_update_value)
 
         update_one_by_attr.assert_called_once_with(
-            table="mock_table",
+            db_table_modifier=self.mock_db_modifier,
             attr=attr,
             attr_value=attr_value,
             attr_to_update=attr_to_update,
@@ -126,10 +125,10 @@ class TestDatabaseModel(unittest.TestCase):
         attr_to_update = "age"
         attr_to_update_value = 35
 
-        result = model.update_one_by_id(entity_id, attr_to_update, attr_to_update_value)
+        result = self.model.update_one_by_id(entity_id, attr_to_update, attr_to_update_value)
 
         update_one_by_id.assert_called_once_with(
-            table="mock_table",
+            db_table_modifier=self.mock_db_modifier,
             id=entity_id,
             attr_to_update=attr_to_update,
             attr_to_update_value=attr_to_update_value,
@@ -146,10 +145,10 @@ class TestDatabaseModel(unittest.TestCase):
         attr = "name"
         attr_value = "Actor 1"
 
-        result = model.delete_one_by_attr(attr, attr_value)
+        result = self.model.delete_one_by_attr(attr, attr_value)
 
         delete_one_by_attr.assert_called_once_with(
-            table="mock_table", attr=attr, attr_value=attr_value
+            db_table_modifier=self.mock_db_modifier, attr=attr, attr_value=attr_value
         )
 
         self.assertEqual(result, {"_id": 1, "name": "Actor 1", "age": 30})
@@ -162,8 +161,8 @@ class TestDatabaseModel(unittest.TestCase):
 
         entity_id = 1
 
-        result = model.delete_one_by_id(entity_id)
+        result = self.model.delete_one_by_id(entity_id)
 
-        delete_one_by_id.assert_called_once_with(table="mock_table", id=entity_id)
+        delete_one_by_id.assert_called_once_with(db_table_modifier=self.mock_db_modifier, id=entity_id)
 
         self.assertEqual(result, {"_id": 1, "name": "Actor 1", "age": 30})
