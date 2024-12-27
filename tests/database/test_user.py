@@ -51,7 +51,6 @@ class TestUser(unittest.TestCase):
         -------
         None
         """
-        """Test the method 'get_all' in the file user.py"""
 
         get_entries_by_attr_from_database.return_value = [
             {"_id": 1, "user": "user1", "name": "First User", "age": 22},
