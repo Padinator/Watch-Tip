@@ -2,16 +2,22 @@ import sys
 import unittest
 
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 # ---------- Import own python modules ----------
 project_dir = Path(__file__).parents[2]
 sys.path.append(str(project_dir))
 
+from database.database_functions import DBModifier
 from database.user import Users
 
 
 class TestUser(unittest.TestCase):
+
+    def setUp(self):
+        self.mock_db_modifier = MagicMock(spec=DBModifier)
+        self.user = Users()
+        self.user._db_table_modifier = self.mock_db_modifier
 
     @patch("database.database_functions.get_entries_by_attr_from_database")
     def test_get_all(self, get_entries_by_attr_from_database) -> None:
@@ -27,13 +33,10 @@ class TestUser(unittest.TestCase):
             "user2": {"name": "Second User", "age": 24},
         }
 
-        user = Users()
-        user._table = "mock_table"
-
-        result = user.get_all()
+        result = self.user.get_all()
 
         get_entries_by_attr_from_database.assert_called_once_with(
-            table="mock_table", attr="", attr_value=""
+            db_table_modifier=self.mock_db_modifier, attr="", attr_value=""
         )
 
         self.assertEqual(result, expected_result)
