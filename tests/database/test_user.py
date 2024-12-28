@@ -30,6 +30,7 @@ class TestUser(unittest.TestCase):
             An instance of the Users class with the _db_table_modifier attribute
             set to the mock_db_modifier.
         """
+
         self.mock_db_modifier = MagicMock(spec=DBModifier)
         self.user = Users()
         self.user._db_table_modifier = self.mock_db_modifier
@@ -44,7 +45,7 @@ class TestUser(unittest.TestCase):
 
         Parameters
         ----------
-        get_entries_by_attr_from_database : MagicMock
+        get_entries_by_attr_from_database : unittest.mock.MagicMock
             A mock function that simulates retrieving entries from the database based on attributes.
 
         Returns
