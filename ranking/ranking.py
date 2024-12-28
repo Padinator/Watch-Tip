@@ -10,7 +10,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MinMaxScaler
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 # ---------- Import own python modules ----------
 project_dir = Path(__file__).parents[1]
@@ -34,6 +34,7 @@ all_movies_table = Movies()
 # all_movies = load_object_from_file(Path("ranking/data/all_movies.json"))
 # all_users = load_object_from_file(Path("ranking/data/all_users.json"))
 
+# The following code is not a official part of the ranking system!
 # This is a list of different movies, that matches the best on the user preferences
 movies = {
     13: "Forrest Gump",
@@ -70,8 +71,6 @@ filtered_reviews = get_reviews_by_movie_ids(all_users, movies)
 
 
 def set_up_llm(model_name: str, system_instruction: str) -> genai.GenerativeModel:
-    # TODO: Currently only working with the google 'gemini' model
-    # Setup and test this also with the openai 'gpt' model
     """
     Set up a generative large language model with the specified model name and system instruction.
 
@@ -87,6 +86,7 @@ def set_up_llm(model_name: str, system_instruction: str) -> genai.GenerativeMode
     genai.GenerativeModel
         An instance of the generative model configured with the specified parameters.
     """
+
     return genai.GenerativeModel(
         model_name=model_name,
         system_instruction=system_instruction,
@@ -101,6 +101,8 @@ def generate_ai_response(filtered_reviews: Dict[str, str], model: genai.Generati
     ----------
     filtered_reviews : dict of str
         A dictionary where the keys are movie titles and the values are their corresponding reviews.
+    model: genai.GenerativeModel
+        An instance of the generative model used to generate responses.
 
     Returns
     -------
@@ -114,6 +116,7 @@ def generate_ai_response(filtered_reviews: Dict[str, str], model: genai.Generati
     a JSON object. If the JSON object cannot be parsed, an error message will be printed and the corresponding movie's value
     in the returned dictionary will be None.
     """
+
     movies_with_their_responses = {}
     for movie, review in filtered_reviews.items():
         response = model.generate_content(f"Analyze the following review: {review}")
@@ -145,6 +148,7 @@ def print_in_clean_format(movies_with_their_responses: Dict[str, Dict[str, Any]]
     -------
     None
     """
+
     for movie, response in movies_with_their_responses.items():
         print(f"Movie: {movie}\nResponse: {response}")
         print("-" * 100)
@@ -171,10 +175,7 @@ def create_movie_ranking(movies_with_responses: Dict[str, Dict[str, Any]]) -> Di
 
     for movie, response in movies_with_responses.items():
         tfidf_score = calculate_tfidf(response["highlights"])
-        movies_with_their_values[movie] = {
-            "sentiment_score": response["sentiment_score"],
-            "tfidf_score": tfidf_score
-        }
+        movies_with_their_values[movie] = {"sentiment_score": response["sentiment_score"], "tfidf_score": tfidf_score}
 
     print(movies_with_their_values)
 
@@ -183,9 +184,28 @@ def create_movie_ranking(movies_with_responses: Dict[str, Dict[str, Any]]) -> Di
     return sorted_ranked_movies
 
 
-def calculate_tfidf(highlights):
+def calculate_tfidf(highlights: List[str]) -> float:
+    """
+    Calculate the weighted TF-IDF score for a list of text highlights.
+
+    This function computes the TF-IDF scores for the given highlights and
+    weights them by their sentiment scores. The final score is the mean of
+    these weighted TF-IDF scores.
+
+    Parameters
+    ----------
+    highlights : list of str
+        A list of text highlights to be analyzed.
+
+    Returns
+    -------
+    float
+        The mean of the weighted TF-IDF scores. If the input list is empty,
+        returns 0
+    """
+
     if not highlights:
-        return 0, 0
+        return 0
 
     vectorizer = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform(highlights)
@@ -201,7 +221,28 @@ def calculate_tfidf(highlights):
     return np.mean(weighted_tfidf_scores)
 
 
-def calculate_and_normalise_final_score(movies_with_their_values):
+def calculate_and_normalise_final_score(movies_with_their_values: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """
+    Calculate and normalize the final score for a list of movies based on their sentiment and tfidf scores.
+
+    Parameters
+    ----------
+    movies_with_their_values : dict
+        A dictionary where the keys are movie identifiers and the values are dictionaries containing
+        'sentiment_score' and 'tfidf_score' for each movie.
+
+    Returns
+    -------
+    dict
+        A dictionary of movies sorted by their final normalized score in descending order. Each movie's
+        dictionary will include an additional key 'final_score' representing the calculated final score.
+
+    Notes
+    -----
+    The final score is calculated as a weighted sum of the sentiment score and tfidf score, with weights
+    of 0.7 and 0.3 respectively. The scores are normalized using MinMaxScaler before calculating the final score.
+    """
+
     weights = {"sentiment_score": 0.7, "tfidf_score": 0.3}
 
     scores_matrix = []
