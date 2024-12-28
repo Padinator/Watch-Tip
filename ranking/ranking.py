@@ -1,6 +1,5 @@
 import json
 import re
-import openai
 import os
 import sys
 
@@ -9,6 +8,7 @@ import numpy as np
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MinMaxScaler
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from pathlib import Path
 from typing import Any, Dict
 
@@ -66,37 +66,7 @@ def get_reviews_by_movie_ids(reviews, movie_ids):
 movie_ids = list(movies.keys())
 
 filtered_reviews = get_reviews_by_movie_ids(all_users, movies)
-
-# for movie, review in filtered_reviews.items():
-#     print(f"Movie: {movie}")
-#     print(f"Review: {review['content']}")
-#     print("-" * 100)
-
-# Until here the code above is only a workaround.
-# Normally you would get instantly all 10 best matching movies, with all information,
-# including the user reviews
-
-# OpenAI variant
-# openai.api_key = os.environ["openai"]
-
-
-# def analyze_user_review(review):
-#     response = openai.ChatCompletion.create(
-#         model="gpt-3.5-turbo",
-#         messages=[
-#             {
-#                 "role": "system",
-#                 "content": "You are a Film Critic Analyst, specializing in the evaluation of films based on user feedback. You analyze texts to evaluate the film objectively by identifying positive and negative aspects and comparing their frequency. Your goal is to create a single overall rating and indicate the ratio of positive to negative points.",
-#             },
-#             {"role": "user", "content": "Analyze the following review {review}"},
-#         ],
-#     )
-#     return response["choices"][0]["message"]["content"]
-
-
-# for movie, review in filtered_reviews.items():
-#     print(f"Rezension: {review}")
-#     print(f"Analyse: {analyze_user_review(review)}")
+# print(filtered_reviews)
 
 
 def set_up_llm(model_name: str, system_instruction: str) -> genai.GenerativeModel:
@@ -196,64 +166,62 @@ def create_movie_ranking(movies_with_responses: Dict[str, Dict[str, Any]]) -> Di
         A dictionary where the keys are movie titles and the values are dictionaries containing
         the movie's rank, final score, original score, and number of highlights.
     """
-    ranked_movies = []
+
+    movies_with_their_values = {}
 
     for movie, response in movies_with_responses.items():
-        score = response["score"]
-        num_highlights = len(response.get("highlights", []))
-        tfidf_score, hightlight_diversity = calculate_tfidf_and_diversity(response["highlights"])
-        final_score = score * 0.7
-        scores = np.array([response["score"], tfidf_score, hightlight_diversity])
-        ranked_movies.append((movie, final_score, score, num_highlights, tfidf_score, hightlight_diversity, scores))
-
-    ranked_movies.sort(key=lambda x: -x[1])
-
-    ranking = {}
-
-    for idx, (movie, final_score, score, num_highlights, tfidf_score, hightlight_diversity, scores) in enumerate(
-        ranked_movies, start=1
-    ):
-        ranking[movie] = {
-            "rank": idx,
-            "final_score": final_score,
-            "score": score,
-            "num_highlights": num_highlights,
-            "tfidf score": tfidf_score,
-            "highlight diversity": hightlight_diversity,
-            "scores": scores,
+        tfidf_score = calculate_tfidf(response["highlights"])
+        movies_with_their_values[movie] = {
+            "sentiment_score": response["sentiment_score"],
+            "tfidf_score": tfidf_score
         }
 
-    return ranking
+    print(movies_with_their_values)
+
+    sorted_ranked_movies = calculate_and_normalise_final_score(movies_with_their_values)
+
+    return sorted_ranked_movies
 
 
-def calculate_tfidf_and_diversity(highlights):
+def calculate_tfidf(highlights):
     if not highlights:
         return 0, 0
 
     vectorizer = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform(highlights)
     tfidf_scores = np.sum(tfidf_matrix.toarray(), axis=1)
-    tfidf_score = np.mean(tfidf_scores)
 
-    unique_words = set()
-    for sentence in highlights:
-        unique_words.update(sentence.lower().split())
-    highlight_diversity = len(unique_words)
+    sentiment_analyzer = SentimentIntensityAnalyzer()
+    sentiment_scores = [sentiment_analyzer.polarity_scores(h)["compound"] for h in highlights]
 
-    return tfidf_score, highlight_diversity
+    weighted_tfidf_scores = [
+        tfidf_score * sentiment_score for tfidf_score, sentiment_score in zip(tfidf_scores, sentiment_scores)
+    ]
+
+    return np.mean(weighted_tfidf_scores)
 
 
-def scale_scores(movies_with_their_responses):
+def calculate_and_normalise_final_score(movies_with_their_values):
+    weights = {"sentiment_score": 0.7, "tfidf_score": 0.3}
 
-    weights = {"sentiment_score": 0.5, "tfidf_score": 0.3, "highlight_diversity": 0.2}
+    scores_matrix = []
+    for response in movies_with_their_values.values():
+        scores_matrix.append([response["sentiment_score"], response["tfidf_score"]])
+
     scaler = MinMaxScaler()
+    scaled_scores = scaler.fit_transform(scores_matrix)
 
-    for _, response in movies_with_their_responses.items():
-        normalised_scores = scaler.fit_transform(response["scores"])
-        final_score = np.dot(
-            normalised_scores, np.array([weights["sentiment_score"], weights["tfidf_score"], weights["sity"]])
+    for idx, (_, response) in enumerate(movies_with_their_values.items()):
+        final_score = np.dot(scaled_scores[idx], [weights["sentiment_score"], weights["tfidf_score"]])
+        response["final_score"] = final_score
+
+    return dict(
+        sorted(
+            movies_with_their_values.items(),
+            key=lambda item: item[1]["final_score"],
+            reverse=True,
         )
-        response["scores"] = final_score
+    )
 
 
 if __name__ == "__main__":
@@ -272,7 +240,7 @@ if __name__ == "__main__":
         Always return your response in the following JSON format:
         {
         "sentiment": "positive/neutral/negative",
-        "score": float (between -1 and 1),
+        "sentiment_score": float (between -1 and 1),
         "highlights": ["key phrase 1", "key phrase 2", ...]
         }
     """
@@ -283,11 +251,7 @@ if __name__ == "__main__":
 
     # print_in_clean_format(movies_with_their_responses)
 
-    ranking = create_movie_ranking(movies_with_their_responses)
+    sorted_ranking_movies = create_movie_ranking(movies_with_their_responses)
 
-    scale_scores(ranking)
-
-    for movie, details in ranking.items():
-        print(
-            f"{details['rank']}: {movie} (Final Score: {details['final_score']}, Highlights: {details['num_highlights']}, TF-IDF Score: {details["tfidf score"]}, Highlight diversity: {details["highlight diversity"]}, Scores: {details["scores"]})"
-        )
+    for index, key in enumerate(sorted_ranking_movies, start=1):
+        print(f"Rank: {index}, Key: {key}, Final score: {sorted_ranking_movies[key]["final_score"]:.2f}")
