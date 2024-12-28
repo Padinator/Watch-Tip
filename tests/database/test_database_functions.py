@@ -39,13 +39,21 @@ class DatabaseFunctions(unittest.TestCase):
         mock_db_modifier : unittest.mock.MagicMock
             A mock object that simulates the behavior of the DBModifier class.
         """
+
         self.mock_db_modifier = MagicMock(spec=DBModifier)
 
     # @patch("database.database_functions.DBConnector.")
     def test_get_table_from_database(self) -> None:
         """
-        Test the method 'get_table_from_database'
-        in the file database_functions.py
+        Test the `get_table_from_database` function.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -----
+        None
         """
 
         # Define variables
@@ -77,8 +85,15 @@ class DatabaseFunctions(unittest.TestCase):
 
     def test_insert_one_element(self) -> None:
         """
-        Test the method 'insert_one_element'
-        in the file database_functions.py
+        Test the `insert_one_element` function.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -----
+        None
         """
 
         entity = {"id": 1, "title": "Iron Man"}
@@ -89,8 +104,15 @@ class DatabaseFunctions(unittest.TestCase):
 
     def test_read_all_entries_from_database_as_dict(self) -> None:
         """
-        Test the method 'read_all_entries_from_database_as_dict'
-        in the file database_functions.py
+        Test the `read_all_entries_from_database_as_dict` function.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -----
+        None
         """
 
         self.mock_db_modifier.return_value.find.return_value = [
@@ -111,8 +133,15 @@ class DatabaseFunctions(unittest.TestCase):
 
     def test_get_entries_by_attr_from_database(self) -> None:
         """
-        Test the method 'get_entries_by_attr_from_database'
-        in the file database_functions.py
+        Test the `get_entries_by_attr_from_database` function.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -----
+        None
         """
 
         attr = "type"
@@ -135,8 +164,15 @@ class DatabaseFunctions(unittest.TestCase):
 
     def test_get_one_by_attr(self) -> None:
         """
-        Test the method 'get_one_by_attr'
-        in the file database_functions.py
+        Test the `get_one_by_attr` function.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -----
+        None
         """
 
         self.mock_db_modifier.return_value.find_one.return_value = {
@@ -150,8 +186,15 @@ class DatabaseFunctions(unittest.TestCase):
 
     def test_get_one_by_id(self) -> None:
         """
-        Test the method 'get_one_by_id'
-        in the file database_functions.py
+        Test the `get_one_by_id` function.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -----
+        None
         """
 
         self.mock_db_modifier.return_value.find_one.return_value = {
@@ -166,8 +209,15 @@ class DatabaseFunctions(unittest.TestCase):
 
     def test_update_one_by_attr(self) -> None:
         """
-        Test the method 'update_one_by_attr'
-        in the file database_functions.py
+        Test the `update_one_by_attr` function.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -----
+        None
         """
 
         self.mock_db_modifier.return_value.find_one_and_update.return_value = {
@@ -186,8 +236,15 @@ class DatabaseFunctions(unittest.TestCase):
 
     def test_update_one_by_id(self) -> None:
         """
-        Test the method 'update_one_by_id'
-        in the file database_functions.py
+        Test the `update_one_by_id` function.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -----
+        None
         """
 
         self.mock_db_modifier.return_value.find_one_and_update.return_value = {
@@ -206,8 +263,15 @@ class DatabaseFunctions(unittest.TestCase):
 
     def test_delete_one_by_attr(self) -> None:
         """
-        Test the method 'delete_one_by_attr'
-        in the file database_functions.py
+        Test the `delete_one_by_attr` function.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -----
+        None
         """
 
         self.mock_db_modifier.return_value.find_one_and_delete.return_value = {
@@ -224,8 +288,15 @@ class DatabaseFunctions(unittest.TestCase):
 
     def test_delete_one_by_id(self) -> None:
         """
-        Test the method 'delete_one_by_id'
-        in the file database_functions.py
+        Test the `delete_one_by_id` function.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -----
+        None
         """
 
         self.mock_db_modifier.return_value.find_one_and_delete.return_value = {
