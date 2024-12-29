@@ -32,3 +32,7 @@
     -> Finding similiar names parallelized (16 threads) takes probably 30 hours and then it's not clear, if the names are really correctly matched
     --> Use for this e.g. Levenshtein distance
     => Hardware for doing this is missing!!! => cannot be used, request reviews from TMDB and later form IMDB (many more reviews than TMDB)
+
+5. Ranking: ("ranking.py")
+    - With large and more than one user feedback, it can become problematic because the token limit is reached after a certain number and then the LLM no longer “works” properly
+    - 
