@@ -1,16 +1,15 @@
 import json
-import re
 import os
+import re
 import sys
+from pathlib import Path
+from typing import Any, Dict, List
 
 import google.generativeai as genai
 import numpy as np
-
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MinMaxScaler
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-from pathlib import Path
-from typing import Any, Dict, List
 
 # ---------- Import own python modules ----------
 project_dir = Path(__file__).parents[1]
@@ -18,9 +17,9 @@ sys.path.append(str(project_dir))
 
 from database.movie import Movies
 from database.user import Users
-from helper.file_system_interaction import save_object_in_file, load_object_from_file
-from helper.api_requester import request_url
 from helper import variables as vars
+from helper.api_requester import request_url
+from helper.file_system_interaction import load_object_from_file, save_object_in_file
 
 all_users_table = Users()
 all_movies_table = Movies()
@@ -51,15 +50,33 @@ with open("test.json", "r") as file:
     all_users = json.load(file)
 
 
+# def get_reviews_by_movie_ids(reviews, movie_ids):
+#     results = {}
+
+#     for _, user_reviews in reviews.items():
+#         for review_data in user_reviews.values():
+#             movie_id = review_data["movie_id"]
+#             if movie_id in movie_ids:
+#                 movie_name = movie_ids[movie_id]
+#                 results[movie_name] = review_data
+
+#     return results
+
+
 def get_reviews_by_movie_ids(reviews, movie_ids):
     results = {}
 
     for _, user_reviews in reviews.items():
         for review_data in user_reviews.values():
             movie_id = review_data["movie_id"]
+
             if movie_id in movie_ids:
                 movie_name = movie_ids[movie_id]
-                results[movie_name] = review_data
+
+                if movie_name not in results:
+                    results[movie_name] = []
+
+                results[movie_name].append(review_data)
 
     return results
 
@@ -243,7 +260,7 @@ def calculate_and_normalise_final_score(movies_with_their_values: Dict[str, Dict
     of 0.7 and 0.3 respectively. The scores are normalized using MinMaxScaler before calculating the final score.
     """
 
-    weights = {"sentiment_score": 0.7, "tfidf_score": 0.3}
+    weights = {"sentiment_score": 0.6, "tfidf_score": 0.4}
 
     scores_matrix = []
     for response in movies_with_their_values.values():
@@ -259,10 +276,103 @@ def calculate_and_normalise_final_score(movies_with_their_values: Dict[str, Dict
     return dict(
         sorted(
             movies_with_their_values.items(),
-            key=lambda item: item[1]["final_score"],
+            key=lambda item: (item[1]["final_score"]),
             reverse=True,
         )
     )
+
+
+def rank_movies(movies_with_their_reviews: Dict[str, List[Dict[str, Any]]], max_length: int) -> Dict[str, float]:
+    """
+    Ranks movies based on their reviews using sentiment analysis and other factors.
+
+    Parameters
+    ----------
+    movies_with_their_reviews : Dict[str, List[Dict[str, Any]]]
+        A dictionary where the keys are movie titles and the values are lists of dictionaries,
+        each containing review data with keys "content" (the review text) and "rating" (the review rating).
+    max_length : int
+        The maximum length of a review to normalize the word count.
+
+    Returns
+    -------
+    Dict[str, float]
+        A dictionary where the keys are movie titles and the values are the calculated scores,
+        sorted in descending order of scores.
+    """
+
+    scaler = MinMaxScaler()
+    analyzer = SentimentIntensityAnalyzer()
+    scores = {}
+
+    for movie, reviews in movies_with_their_reviews.items():
+        total_sentiment_score = 0
+        total_sentiment_neg = 0
+        total_rating = 0
+        total_word_count = 0
+        review_count = len(reviews)
+        # print(f"Movie: {movie}, review count: {review_count}")
+
+        reviews_texts = [review_data["content"] for review_data in reviews]
+
+        vectorizer = TfidfVectorizer()
+        tfidf_matrix = vectorizer.fit_transform(reviews_texts)
+        tfidf_score = np.mean(tfidf_matrix.sum(axis=1))
+
+        for review_data in reviews:
+            review = review_data.get("content", "")
+            rating = review_data.get("rating", None)
+
+            if rating is None:
+                rating = 2.0
+
+            sentiment_scores = analyzer.polarity_scores(review)
+            sentiment_score = sentiment_scores["compound"]
+            sentiment_neg = sentiment_scores["neg"]
+
+            # Adjustment of sentiment if sentiment_neg is too high
+            if sentiment_neg > 0.5:
+                sentiment_score -= sentiment_neg
+
+            word_count = len(review.split())
+            total_word_count += word_count
+
+            total_sentiment_score += sentiment_score
+            total_sentiment_neg += sentiment_neg
+            total_rating += rating
+
+        average_sentiment_score = total_sentiment_score / review_count
+        # average_sentiment_neg = total_sentiment_neg / review_count
+        average_rating = total_rating / review_count
+        average_word_count = total_word_count / review_count
+        normalized_length = min(1, average_word_count / max_length)
+
+        normalized_tfidf_score = tfidf_score / len(reviews)
+        score = (
+            (0.6 * average_sentiment_score)
+            + (0.1 * normalized_length)
+            + (0.2 * (average_rating / 10))
+            + (0.1 * normalized_tfidf_score)
+        )
+
+        scores[movie] = score
+        # print(
+        #     f"Movie: {movie}, average_sentiment_neg: {average_sentiment_neg}, average_sentiment_score: {average_sentiment_score}, tfidf_score: {normalized_tfidf_score}, score: {score}"
+        # )
+
+        scores_array = np.array(list(scores.values())).reshape(-1, 1)
+        normalized_scores_array = scaler.fit_transform(scores_array)
+        normalized_scores = {movie: normalized_scores_array[i][0] for i, movie in enumerate(scores)}
+
+    ranked_movies = dict(sorted(normalized_scores.items(), key=lambda x: x[1], reverse=True))
+    # ranked_movies = dict(sorted(scores.items(), key=lambda x: x[1], reverse=True))
+
+    for index, (movie, score) in enumerate(ranked_movies.items(), start=1):
+        print(f"Rank {index}: {movie}, score: {score:.2f}")
+
+    # print(ranked_movies)
+
+    return ranked_movies
 
 
 if __name__ == "__main__":
@@ -286,13 +396,18 @@ if __name__ == "__main__":
         }
     """
 
-    llm = set_up_llm("gemini-1.5-flash", system_instruction)
+    ranked_movies = rank_movies(filtered_reviews, 200)
 
-    movies_with_their_responses = generate_ai_response(filtered_reviews, llm)
+    # llm = set_up_llm("gemini-1.5-flash", system_instruction)
+
+    # movies_with_their_responses = generate_ai_response(filtered_reviews, llm)
 
     # print_in_clean_format(movies_with_their_responses)
 
-    sorted_ranking_movies = create_movie_ranking(movies_with_their_responses)
+    # sorted_ranking_movies = create_movie_ranking(movies_with_their_responses)
 
-    for index, key in enumerate(sorted_ranking_movies, start=1):
-        print(f"Rank: {index}, Key: {key}, Final score: {sorted_ranking_movies[key]["final_score"]:.2f}")
+    # for index, key in enumerate(sorted_ranking_movies, start=1):
+    #     print(f"Rank: {index}, Key: {key}, Final score: {sorted_ranking_movies[key]["final_score"]:.2f}")
+
+    # print("-" * 40)
+    # print(sorted_ranking_movies)
