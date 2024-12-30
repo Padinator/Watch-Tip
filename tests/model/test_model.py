@@ -4,7 +4,8 @@ import unittest
 
 from pathlib import Path
 from parameterized import parameterized
-from typing import Dict, List, Tuple
+from scipy.spatial.distance import cdist
+from typing import Any, Dict, List, Tuple
 
 # ---------- Import own python modules ----------
 project_dir = Path(__file__).parents[2]
@@ -12,7 +13,7 @@ sys.path.append(str(project_dir))
 
 import tests.variables as tvars
 
-from model.model import extract_features
+from model.model import extract_features, Model
 
 
 # Define constants
@@ -51,7 +52,7 @@ def generate_full_movies_histories(
     """
 
     return [
-        (users_movie_history[i:i + history_len], users_movie_history[i + history_len])
+        (users_movie_history[i : i + history_len], users_movie_history[i + history_len])
         for users_movie_history in all_movies_real_genres.values()
         for i in range(len(users_movie_history) - history_len)
         if 0 < (len(users_movie_history) - history_len)
@@ -61,7 +62,7 @@ def generate_full_movies_histories(
 class TestModel(unittest.TestCase):
 
     def setUp(self):
-        pass
+        self._empty_model = Model(model_type="irrelevant")
 
     # ------------ Test function "extract_features" ------------
     @parameterized.expand(
@@ -225,3 +226,253 @@ class TestModel(unittest.TestCase):
             # Compare movie histories
             for real_genres, expected_real_genres in zip(extracted_feature, expected_extracted_feature):
                 np.testing.assert_array_almost_equal(real_genres, expected_real_genres)
+
+    # ============ Test class "Model" ============
+    # ------------ Test function "find_similiar_movies" ------------
+    @parameterized.expand(
+        [
+            # -------- Test different predicted movies --------
+            # Test finding similiar movies to movie with ID 0
+            [
+                np.array(
+                    [
+                        3.15307,
+                        3.12244,
+                        2.12305,
+                        100.0,
+                        2.22589,
+                        28.2450,
+                        16.3944,
+                        0.57719,
+                        3.62614,
+                        0.37073,
+                        6.36691,
+                        0.42141,
+                        0.36398,
+                        6.68275,
+                        0.61952,
+                        1.38278,
+                        4.41536,
+                        0.06076,
+                        0.20814,
+                    ]
+                ),
+                10,
+                [tvars.all_movies[movie_id] for movie_id in [0, 19, 55, 85, 61, 18, 81, 27, 51, 89]],
+            ],
+            # Test finding similiar movies to movie with ID 1
+            [
+                np.array(
+                    [
+                        48.65079,
+                        15.10109,
+                        4.053494,
+                        35.17728,
+                        38.68488,
+                        9.347943,
+                        50.0,
+                        10.18703,
+                        8.651456,
+                        5.846035,
+                        82.18206,
+                        5.742184,
+                        58.94421,
+                        14.72906,
+                        66.01008,
+                        7.479443,
+                        55.46665,
+                        3.487499,
+                        12.37565,
+                    ]
+                ),
+                10,
+                [tvars.all_movies[movie_id] for movie_id in [1, 82, 52, 72, 77, 79, 29, 11, 87, 22]],
+            ],
+            # -------- Test different number of movies to find --------
+            # Test finding similiar movies to movie with ID 52
+            [
+                np.array(
+                    [
+                        20.75587,
+                        14.37482,
+                        4.423595,
+                        45.05075,
+                        18.39251,
+                        4.425194,
+                        94.37119,
+                        7.562655,
+                        6.429391,
+                        3.524115,
+                        60.54957,
+                        9.240582,
+                        11.02726,
+                        20.77452,
+                        9.728983,
+                        10.01448,
+                        67.69694,
+                        3.959412,
+                        10.07303,
+                    ]
+                ),
+                3,
+                [tvars.all_movies[movie_id] for movie_id in [52, 17, 72]],
+            ],
+            # Test finding all/more than all movies sorted be similarity to movie with ID 37
+            [
+                np.array(
+                    [
+                        21.12028,
+                        12.06672,
+                        2.266014,
+                        29.19642,
+                        61.33062,
+                        4.953306,
+                        100.0,
+                        7.167231,
+                        46.92727,
+                        3.300391,
+                        11.69650,
+                        1.947734,
+                        13.61716,
+                        19.13575,
+                        14.73161,
+                        7.789469,
+                        33.95396,
+                        1.933296,
+                        2.769582,
+                    ]
+                ),
+                len(tvars.all_movies) + 1000,
+                [
+                    tvars.all_movies[movie_id]
+                    for movie_id in [
+                        37,
+                        3,
+                        74,
+                        7,
+                        60,
+                        38,
+                        32,
+                        12,
+                        9,
+                        28,
+                        80,
+                        79,
+                        34,
+                        31,
+                        66,
+                        42,
+                        47,
+                        43,
+                        17,
+                        93,
+                        62,
+                        64,
+                        92,
+                        48,
+                        73,
+                        6,
+                        57,
+                        78,
+                        51,
+                        2,
+                        33,
+                        23,
+                        45,
+                        41,
+                        25,
+                        46,
+                        71,
+                        18,
+                        52,
+                        86,
+                        91,
+                        4,
+                        14,
+                        15,
+                        44,
+                        53,
+                        69,
+                        81,
+                        72,
+                        40,
+                        90,
+                        16,
+                        20,
+                        13,
+                        84,
+                        50,
+                        11,
+                        75,
+                        5,
+                        82,
+                        88,
+                        58,
+                        89,
+                        87,
+                        49,
+                        77,
+                        94,
+                        10,
+                        35,
+                        61,
+                        39,
+                        24,
+                        8,
+                        27,
+                        76,
+                        56,
+                        1,
+                        85,
+                        29,
+                        36,
+                        59,
+                        21,
+                        30,
+                        83,
+                        68,
+                        19,
+                        0,
+                        67,
+                        26,
+                        63,
+                        65,
+                        22,
+                        70,
+                        55,
+                        54,
+                    ]
+                ],
+            ],
+        ]
+    )
+    def test_find_similiar_movies(
+        self, predicted_movie: np.ndarray, n_closest_movies: int, expected_similiar_movies: List[Dict[str, Any]]
+    ) -> None:
+        """
+        Tests correct cases.
+
+        Parameters
+        ----------
+        predicted_movie : np.ndarray
+            The predicted movie to search for similiar movies
+        n_closest_movies : int, default 10
+            Number of movies which, will be returned.
+        expected_similiar_movies : List[Dict[str, Any]]
+            The "n_closest_movies" movies, if
+            len(all_movies) < n_closest_movies, then all movies will be
+            expected, but not more.
+        """
+
+        # Execute function to assert/test
+        similiar_movies = self._empty_model.find_similiar_movies(
+            predicted_movie=predicted_movie, all_movies=tvars.all_movies, n_closest_movies=n_closest_movies
+        )
+
+        # Check results
+        self.assertEqual(len(similiar_movies), len(expected_similiar_movies))
+
+        for (dist, movie), expected_movie in zip(similiar_movies, expected_similiar_movies):
+            expected_dist = cdist([predicted_movie], [expected_movie["real_genres"]], "sqeuclidean")[0][0]
+            self.assertAlmostEqual(dist, expected_dist, places=3)  # Check distances between movies
+            self.assertEqual(movie["movie_id"], expected_movie["movie_id"])  # Check movie IDs

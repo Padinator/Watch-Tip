@@ -6,6 +6,7 @@ import sys
 import tensorflow as tf
 
 from pathlib import Path
+from scipy.spatial.distance import cdist
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
@@ -504,7 +505,7 @@ class Model:
         Model which will be loaded and used for predicting
     """
 
-    def __init__(self, model_type: str, path_to_model: Path, model_args: Dict[str, Any] = {}):
+    def __init__(self, model_type: str, path_to_model: Path = None, model_args: Dict[str, Any] = {}):
         """
         Creates a model object be loading a model from passed path.
 
@@ -640,6 +641,41 @@ class Model:
         self._path_to_model = save_dir  # Store path to model
 
         return predictions, save_dir
+
+    def find_similiar_movies(self, predicted_movie: np.ndarray, all_movies: Dict[int, Dict[str, Any]], n_closest_movies: int = 10) -> List[Dict[str, Any]]:
+        """
+        Searches in data of all movies for the n closest/most similar movies.
+        The movies are sorted ascending, so closest/most similar movie comes
+        first.\n
+        Compute distance between real genres of movies with the squared
+        euclidean distance (faster than the normal euclidean distance).\n
+        Searches for real genres in "all_movies" by key "real_genres". This
+        key must exist!
+
+        Parameters
+        ----------
+        predicted_movie : np.ndarray
+            The predicted movie to search for similiar movies
+        all_movies : Dict[int, Dict[str, Any]]
+            Dict of all movies containing similiar movies
+        n_closest_movies : int, default 10
+            Number of movies which, will be returned.
+
+        Returns
+        -------
+        List[Dict[str, Any]]
+            Returns the "n_closest_movies" movies. If
+            len(all_movies) < n_closest_movies, then all movies will be
+            returned, but not more.
+        """
+
+        sorted_movies = []
+
+        for movie in all_movies.values():
+            dist = cdist([predicted_movie], [movie["real_genres"]], "sqeuclidean")[0][0]  # Calc squared euclidean distance
+            sorted_movies.append((dist, movie))
+
+        return sorted(sorted_movies, key=lambda x: x[0])[:n_closest_movies]
 
 
 if __name__ == "__main__":
