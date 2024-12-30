@@ -50,11 +50,11 @@ save_dir = Path(f"results/{MAX_DATA}_{TRAIN_DATA_RELATIONSHIP}_{HISTORY_LEN}_{MI
 
 class MinPooling2D(MaxPool1D):
 
-    def __init__(self, pool_size, strides=None, padding='valid', data_format=None, **kwargs):
+    def __init__(self, pool_size, strides=None, padding="valid", data_format=None, **kwargs):
         super(MaxPool1D, self).__init__(pool_size, strides, padding, data_format, **kwargs)
 
     def pooling_function(inputs, pool_size, strides, padding, data_format):
-        return -backend.pool1d(-inputs, pool_size, strides, padding, data_format, pool_mode='max')
+        return -backend.pool1d(-inputs, pool_size, strides, padding, data_format, pool_mode="max")
 
 
 def one_hot_encoding_1d_arr(arr: np.array, factor: int = 50) -> np.array:
@@ -154,7 +154,7 @@ def extract_features(
             all_extracted_features.extend(
                 [
                     (
-                        np.copy(users_movie_history[i:i + movie_history_len]),
+                        np.copy(users_movie_history[i : i + movie_history_len]),
                         users_movie_history[i + movie_history_len],
                     )
                     for i in range(0, len(users_movie_history) - movie_history_len, steps_size)
@@ -351,7 +351,6 @@ def build_LSTM() -> LSTM:
             # LSTM(128 * 2, return_sequences=True, kernel_initializer="HeUniform"),
             # Dropout(0.3, seed=SEED),  # No dropout, else time relevant data/context can be lost
             # LSTM(64 * 2, return_sequences=False, kernel_initializer="GlorotUniform"),
-
             # # Decision layers at the end, using processed data from LSTM
             # Dense(64 * 4, activation="relu"),
             # # Dropout(0.4, seed=SEED),  # Dropout for don't learning by heart
@@ -359,29 +358,22 @@ def build_LSTM() -> LSTM:
             # # Dropout(0.4, seed=SEED),  # Dropout for don't learning by heart
             # Dense(19, activation="sigmoid"),
 
-
             # Convolutional modell
             # Conv1D(128, 2, activation="relu", padding="same"),
             # MaxPool1D(2, padding="same", strides=1),
-
             # Conv1D(128, 2, activation="relu", padding="same"),
             # MaxPool1D(2, padding="same", strides=1),
-
             # Conv1D(64, 2, activation="relu", padding="same"),
             # MaxPool1D(2, padding="same", strides=1),
-
             # Conv1D(64, 2, activation="relu", padding="same"),
             # MaxPool1D(2, padding="same", strides=1),
-
             # Conv1D(32, 2, activation="relu", padding="same"),
             # MaxPool1D(2, padding="same", strides=1),
-
             # Flatten(),
             # Dense(64, activation="relu"),
             # LSTM(8, kernel_initializer="HeUniform"),
             # Dense(19, activation="sigmoid"),
             # Dense(19, activation="sigmoid"),
-
 
             # LSTM
             Conv1D(32, 2, padding="same"),
@@ -389,13 +381,11 @@ def build_LSTM() -> LSTM:
             # GRU(64, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
             LSTM(64, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
             # LSTM(256, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
-
             # Dense(64 * 4, activation="relu"),
             # Dropout(0.4, seed=SEED),  # Dropout for don't learning by heart
             # Dense(64, activation="relu"),
             # Dropout(0.5, seed=SEED),  # Dropout for don't learning by heart
             Dense(19, activation="sigmoid"),
-
 
             # RNN
             # SimpleRNN(128, activation="tanh", input_shape=(HISTORY_LEN, 19), return_sequences=True),
@@ -420,7 +410,6 @@ def build_LSTM() -> LSTM:
             # Dense(32, activation="softmax"),
             # Dropout(0.2),  # Avoid learning data by heart
             # Dense(3, activation="linear"),
-
             # SimpleRNN < (little bit) LSTM
         ]
     )
@@ -591,6 +580,16 @@ class Model:
 
         Parameters
         ----------
+        X_train : np.array
+            x values of train data
+        X_test : np.array
+            x values of test data
+        y_train : np.array
+            y values of train data
+        y_test : np.array
+            y values of test data
+        save_dir : Path
+            Directory to store/save model into
 
         Returns
         -------
@@ -601,14 +600,13 @@ class Model:
 
         # Define variables
         predictions = []
-        save_dir = Path("")
 
         # Output shapes of train and test data
         print(f"Train shapes: X: {X_train.shape}, y: {y_train.shape}")
         print(f"Test shapes: X: {X_test.shape}, y: {y_test.shape}\n")
 
         # Build, train and eventually test model
-        if self._model_type == "LSTM":
+        if self._model_type == "RandomForestRegressor":
             # Unravel data = reduce dimension to 2 dimensions
             X_train = np.array([np.array(x).ravel() for x in X_train], dtype=np.float64)
             X_test = np.array([np.array(x).ravel() for x in X_test], dtype=np.float64)
@@ -617,7 +615,7 @@ class Model:
             rf = build_random_forest()
             predictions = train_random_forest_and_predict(rf, X_train, X_test, y_train, save_dir)
             self._model = rf  # Save trained model
-        elif self._model_type == "RandomForestRegressor":
+        elif self._model_type == "LSTM":
             # Define variables
             epochs = 50
             steps_per_epoch = X_train.shape[0]  # Currently irrelevant
@@ -638,11 +636,13 @@ class Model:
         else:
             print("No model chosen: Do nothing!")
 
-        self._path_to_model = save_dir  # Store path to model
+        self._path_to_model = save_dir  # Store path to mdoel
 
-        return predictions, save_dir
+        return predictions, self._path_to_model
 
-    def find_similiar_movies(self, predicted_movie: np.ndarray, all_movies: Dict[int, Dict[str, Any]], n_closest_movies: int = 10) -> List[Dict[str, Any]]:
+    def find_similiar_movies(
+        self, predicted_movie: np.ndarray, all_movies: Dict[int, Dict[str, Any]], n_closest_movies: int = 10
+    ) -> List[Dict[str, Any]]:
         """
         Searches in data of all movies for the n closest/most similar movies.
         The movies are sorted ascending, so closest/most similar movie comes
@@ -684,7 +684,7 @@ if __name__ == "__main__":
     tf.random.set_seed(SEED)
 
     # Define variables
-    model_number = 1  # 0: Random Forest, 1: LSTM
+    model_type = "LSTM"  # "RandomForestRegressor", "LSTM"
     normalize_fator = 100
     output_factor = 1
     predictions = []
@@ -756,7 +756,10 @@ if __name__ == "__main__":
     )
 
     # Define hyper parameters of the LSTM
-    predictions, real_save_dir = build_train_and_test_model(model_number, X_train, X_test, y_train, y_test, save_dir)
+    model = Model(model_type=model_type)
+    predictions, real_save_dir = model.build_train_and_test_model(
+        X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test, save_dir=save_dir
+    )
 
     # Find zero predictions = model predicting only null vectors, because it fits the most
     binary_predictions = [one_hot_encoding_1d_arr(prediction, factor=0.5 * output_factor) for prediction in predictions]
