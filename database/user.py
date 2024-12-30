@@ -2,7 +2,8 @@ import copy as cp
 import sys
 
 from pathlib import Path
-from typing import Any, Dict, override
+from typing import Any, Dict
+# from typing import Any, Dict, override
 
 # ---------- Import own python modules ----------
 project_dir = Path(__file__).parents[1]
@@ -26,7 +27,7 @@ class Users(m.DatabaseModel):
         super().__init__(self._database_name, "all_users")
 
     # Read functions
-    @override
+    # @override
     def get_all(self) -> Dict[str, Dict[str, Any]]:
         """
         Finds and returns all existing entites. This method uses the method

@@ -9,6 +9,8 @@ from unittest.mock import patch, MagicMock
 project_dir = Path(__file__).parents[2]
 sys.path.append(str(project_dir))
 
+import tests.variables as tvars
+
 from helper.api_requester import (
     request_url,
     request_movie,
@@ -16,31 +18,38 @@ from helper.api_requester import (
 )
 
 
-# Define constants
-BASIC_PATH = project_dir / "tests/jsons_files/test_api_requester_jsons"
-
-
 class TestApiRequester(unittest.TestCase):
+    """
+    Test file api_requester.py.
+
+        Attributes
+    ----------
+    __requested_url_with_status_200_path : Path
+        Path to the JSON file containing the test data for a URL request with a status code of 200.
+    __successful_requested_movie_path : Path
+        Path to the JSON file containing the test data for a successfully requested movie.
+    __requested_movie_from_single_page : Path
+        Path to the JSON file containing the test data for a movie requested from a single page.
+    __requested_movie_from_multiple_pages : Path
+        Path to the JSON file containing the test data for a movie requested from multiple pages.
+    """
 
     def setUp(self):
         """
         Set up the test environment by initializing file paths for various test cases.
-
-        Attributes
-        ----------
-        __requested_url_with_status_200_path : Path
-            Path to the JSON file containing the test data for a URL request with a status code of 200.
-        __successful_requested_movie_path : Path
-            Path to the JSON file containing the test data for a successfully requested movie.
-        __requested_movie_from_single_page : Path
-            Path to the JSON file containing the test data for a movie requested from a single page.
-        __requested_movie_from_multiple_pages : Path
-            Path to the JSON file containing the test data for a movie requested from multiple pages.
         """
-        self.__requested_url_with_status_200_path = BASIC_PATH / "test_request_url_status_200.json"
-        self.__successful_requested_movie_path = BASIC_PATH / "test_request_movie_successfully.json"
-        self.__requested_movie_from_single_page = BASIC_PATH / "test_request_movie_single_page.json"
-        self.__requested_movie_from_multiple_pages = BASIC_PATH / "test_request_movie_multiple_page.json"
+        self.__requested_url_with_status_200_path = (
+            tvars.api_requester_json_basic_file_path / "test_request_url_status_200.json"
+        )
+        self.__successful_requested_movie_path = (
+            tvars.api_requester_json_basic_file_path / "test_request_movie_successfully.json"
+        )
+        self.__requested_movie_from_single_page = (
+            tvars.api_requester_json_basic_file_path / "test_request_movie_single_page.json"
+        )
+        self.__requested_movie_from_multiple_pages = (
+            tvars.api_requester_json_basic_file_path / "test_request_movie_multiple_page.json"
+        )
 
     @patch("helper.api_requester.requests.get")
     def test_request_url_status_200(self, request) -> None:

@@ -136,8 +136,9 @@ class ThreadPool:
         args_for_all_threads = [args[i:i + n_args_per_thread] for i in range(0, len(args), n_args_per_thread)]
 
         # Define, when a thread should print it's iteration
-        if no_print:
+        if no_print or not print_iteration:
             prints_per_threads = len(args) + 1  # Set first print higher than amount of all arguments
+            current_iteration["output_after_n_iterations"] = prints_per_threads
         else:
             prints_per_threads = int(print_iteration / self.__max_number_of_runnings_threads)
             prints_per_threads = 1 if prints_per_threads == 0 else prints_per_threads  # Print at least after one iteration

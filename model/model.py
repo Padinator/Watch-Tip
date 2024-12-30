@@ -1,16 +1,19 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import sys
 import tensorflow as tf
 
 from pathlib import Path
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.keras.layers import Dense, Dropout, LSTM
-from typing import Dict, List, Tuple
+from tensorflow.keras import Sequential
+from typing import Any, Dict, List, Tuple
 
 # ---------- Import own python modules ----------
-project_dir = Path(__file__).parents[1]
+project_dir = Path(os.path.abspath(__file__)).parents[1]
 sys.path.append(str(project_dir))
 
 import helper.variables as vars
@@ -19,10 +22,11 @@ from helper.file_system_interaction import load_object_from_file, save_object_in
 
 
 # Define constants
+MAX_DATA = 30000
 HISTORY_LEN = 10
 MIN_MOVIE_HISTORY_LEN = 5
 DISTANCE_TO_OTHER_MOVIES = 0.1
-TRAIN_DATA_RELATIONSHIP = 0.85
+TRAIN_DATA_RELATIONSHIP = 0.9
 SEED = 1234
 
 # Constants for computing the difference between multiple values
@@ -32,6 +36,13 @@ NUMBER_OF_INTERVALS = 5
 
 # Set print options for numpy
 np.set_printoptions(formatter={"all": lambda x: "{0:0.3f}".format(x)})
+
+# Set seeds
+np.random.seed(seed=SEED)
+tf.random.set_seed(seed=SEED)
+
+# Define variables
+save_dir = Path(f"results/{MAX_DATA}_{TRAIN_DATA_RELATIONSHIP}_{HISTORY_LEN}_{MIN_MOVIE_HISTORY_LEN}")
 
 
 def one_hot_encoding_1d_arr(arr: np.array, factor: int = 50) -> np.array:
@@ -57,30 +68,63 @@ def extract_features(
     user_movie_histories: Dict[int, List[np.array]],
     movie_history_len: int,
     min_movie_history_len: int = MIN_MOVIE_HISTORY_LEN,
-    fill_history_len_with_zero_movies=True,
+    fill_history_len_with_zero_movies: bool = True,
+    fine_grained_extracting: bool = False,
 ) -> List[Tuple[np.array, np.array]]:
     """
     Extract features: partionate user histories into parts with length
-    "min_movie_history_len" so that next movie is the predicted target.
-    Returns tuples consisting of the last seen movies and the next one
-    to predict (= target, label) out ot the previous ones.
+    "movie_history_len" so that next movie is the predicted target.\n
+    Returns tuples consisting of the last seen movies (= input) and the next
+    one to predict (= target, label) out ot the previous ones.
+
+    Parameters
+    ----------
+    user_movie_histories : Dict[int, List[np.array]]
+        Grouped/Unraveled movies histories per user, e.g.:
+        {
+            1038924: [
+                [10.2, 39.3, 59.5, 56.4, 12.8, 0.76, 96.4, 21.3, 69.0, 98.5,
+                28.2, 49.1, 19.01, 39.4, 18.9, 38.2, 98.5, 25.6, 9.3],  # Real genres of first movie of user 1038924\n
+                ...
+            ]
+        }
+    movie_history_len : int
+        Resulting length of each movie history, which represents an input
+        feature for an AI model.
+    min_movie_history_len : int, default MIN_MOVIE_HISTORY_LEN
+        Minimal history length of a movie history. Smaller history lengths
+        will be ignored.
+    fill_history_len_with_zero_movies : bool, default True
+        If fill_history_len_with_zero_movies is True and if
+        min_movie_history_len < movie_history_len, then missing movies will be
+        added with zero movies (zero vectors). These zero movies will be added
+        as the first elements of a movie history (so the ones, which are nearer
+        to the past).
+    fine_grained : bool, default False
+        If False, then all movies will be split into packets of
+        "movie_history_len", else it will happen like the following example:\n
+        movies: [a, b, c, d]; movie_history_len = 3\n
+        packates: [a, b, c], [b, c, d]
+
+    Returns
+    -------
+    List[Tuple[np.array, np.array]]
+        Returns tuples consisting of the last seen movies (= input) and the
+        next one to predict (= target, label) out ot the previous ones.
     """
 
     all_extracted_features = []
     skipped_histories, used_histories = 0, 0
+    steps_size = 1 if fine_grained_extracting else movie_history_len
 
-    for (
-        users_movie_history
-    ) in user_movie_histories.values():  # Iterate over all users' histories
+    for users_movie_history in user_movie_histories.values():  # Iterate over all users' histories
         if len(users_movie_history) < min_movie_history_len or (
-            (not fill_history_len_with_zero_movies)
-            and len(users_movie_history) <= movie_history_len
+            (not fill_history_len_with_zero_movies) and len(users_movie_history) <= movie_history_len
         ):  # User has not enough movies watched
             skipped_histories += 1
             continue
         elif (
-            fill_history_len_with_zero_movies
-            and len(users_movie_history) <= movie_history_len
+            fill_history_len_with_zero_movies and len(users_movie_history) <= movie_history_len
         ):  # Use has watched enoguh movies, but not many
             # Find movies and target/label
             movies = users_movie_history[:-1]
@@ -88,9 +132,7 @@ def extract_features(
 
             # Fill missing movies with zeros
             number_of_missing_movies = movie_history_len - len(movies)
-            zero_movie = np.zeros(
-                target_label.shape[0]
-            )  # Create movie containing only 0 for all real genres
+            zero_movie = np.zeros(target_label.shape[0])  # Create movie containing only 0 for all real genres
             zero_movies = list(np.tile(zero_movie, (number_of_missing_movies, 1)))
 
             # Create one list with zero movies and watched movies of a user
@@ -100,14 +142,10 @@ def extract_features(
             all_extracted_features.extend(
                 [
                     (
-                        np.copy(users_movie_history[i: i + movie_history_len]),
+                        np.copy(users_movie_history[i:i + movie_history_len]),
                         users_movie_history[i + movie_history_len],
                     )
-                    for i in range(
-                        0,
-                        len(users_movie_history) - movie_history_len - 1,
-                        movie_history_len,
-                    )
+                    for i in range(0, len(users_movie_history) - movie_history_len, steps_size)
                 ]
             )
 
@@ -171,6 +209,7 @@ def calc_distance_euclidean(ys_true: np.float64, ys_pred: np.float64) -> np.floa
 def evaluate_model(
     y_test: np.array,
     predictions: np.array,
+    save_dir: Path,
     distance_method="euclidean",
     epsilon: float = EPSILON,
 ) -> float:
@@ -202,31 +241,29 @@ def evaluate_model(
     false_classifications_distances = [dist for dist in distances if epsilon < dist]
 
     if correct_classifications_distances != []:
-        mean_deviation_from_correct_classifications = sum(
+        mean_deviation_from_correct_classifications = sum(correct_classifications_distances) / len(
             correct_classifications_distances
-        ) / len(correct_classifications_distances)
+        )
     else:
         mean_deviation_from_correct_classifications = -1
 
     if false_classifications_distances != []:
-        mean_deviation_from_false_classifications = sum(
+        mean_deviation_from_false_classifications = sum(false_classifications_distances) / len(
             false_classifications_distances
-        ) / len(false_classifications_distances)
+        )
     else:
         mean_deviation_from_false_classifications = -1
 
-    print(
-        f"\nCorrect classifications: {len(correct_classifications_distances)},"
-        + f"false classifications: {len(false_classifications_distances)}, "
-        + f"accuracy: {len(correct_classifications_distances) / len(distances)}"
-    )
-    print(
-        f"Correct classifications deviations: {mean_deviation_from_correct_classifications}"
-    )
-    print(
-        f"False classifications deviations: {mean_deviation_from_false_classifications}"
-    )
-    print(f"Overall mean deviation: {overall_mean_deviation}")
+    with open(save_dir / "own_evaluation.txt", "w") as file:
+        print(
+            f"\nCorrect classifications: {len(correct_classifications_distances)},"
+            + f"false classifications: {len(false_classifications_distances)}, "
+            + f"accuracy: {len(correct_classifications_distances) / len(distances)}",
+            file=file,
+        )
+        print(f"Correct classifications deviations: {mean_deviation_from_correct_classifications}", file=file)
+        print(f"False classifications deviations: {mean_deviation_from_false_classifications}", file=file)
+        print(f"Overall mean deviation: {overall_mean_deviation}", file=file)
 
     return len(correct_classifications_distances) / len(distances)
 
@@ -250,7 +287,7 @@ def build_random_forest() -> RandomForestRegressor:
 
 
 def train_random_forest_and_predict(
-    rf: RandomForestRegressor, X_train: np.array, X_test: np.array, y_train: np.array
+    rf: RandomForestRegressor, X_train: np.array, X_test: np.array, y_train: np.array, save_dir: Path
 ) -> np.ndarray:
     """
     Trains a random forest and returns the predictions for the test data.
@@ -261,6 +298,11 @@ def train_random_forest_and_predict(
     # Train random forest
     rf.fit(X_train, y_train)
 
+    # Save random forest to file
+    if not os.path.exists(save_dir):  # Create save dir, if it doesn't exist
+        os.makedirs(save_dir)
+    save_object_in_file(save_dir / "random_forest.pickle", rf)
+
     # Summarize random forest
     print(
         "Depths of decision trees in forest:",
@@ -268,9 +310,7 @@ def train_random_forest_and_predict(
     )
     print(rf.estimators_)  # Trees in the forest
     print(rf.n_features_in_)  # dimension of input features x = 190
-    print(
-        rf.feature_importances_
-    )  # Contribution value of each value in features (dimension 190)
+    print(rf.feature_importances_)  # Contribution value of each value in features (dimension 190)
     print(rf.n_outputs_)  # dimension of outputs y = 19
     print(rf.oob_score)
     print(rf.get_params())
@@ -284,30 +324,65 @@ def build_LSTM() -> LSTM:
     Builds and returns LSTM.
     """
 
-    lstm = tf.keras.models.Sequential(
+    lstm = Sequential(
         [
-            # Embedding
-            # Embedding(input_dim=100, output_dim=19, input_length=10),
-            # Dense(8, activation="relu", input_shape=(10, 19)),
             # LSTM
             # LSTM(128, return_sequences=True, input_shape=(HISTORY_LEN, 19), stateful=True),
-            LSTM(128, return_sequences=True, input_shape=(HISTORY_LEN, 19)),
-            Dropout(0.2),  # Avoid learning data by heart
-            LSTM(64),
-            Dropout(0.2),  # Avoid learning data by heart
+            LSTM(
+                256 * 2,
+                return_sequences=True,
+                input_shape=(HISTORY_LEN, 19),
+                kernel_initializer="HeUniform",
+                kernel_regularizer="l1_l2",
+                dropout=0.1,
+                recurrent_dropout=0.1,
+            ),  # GlorotUniform()
+            Dropout(0.3, seed=SEED),
+            LSTM(128 * 2, return_sequences=True, kernel_initializer="HeUniform", dropout=0.1, recurrent_dropout=0.1),
+            Dropout(0.3, seed=SEED),  # No dropout, else time relevant data/context can be lost
+            LSTM(64 * 2, return_sequences=False, kernel_initializer="GlorotUniform", dropout=0.1, recurrent_dropout=0.1),
+            Dropout(0.2, seed=SEED),
+            # LSTM(32, return_sequences=False),
+            # Dropout(0.2, seed=SEED),  # Avoid learning data by heart
             # Decision layers at the end, using processed data from LSTM
-            Dense(32, activation="softmax"),
+            Dense(64 * 4, activation="relu"),
+            Dropout(0.4, seed=SEED),  # Dropout for don't learning by heart
+            Dense(64, activation="relu"),
+            Dropout(0.4, seed=SEED),  # Dropout for don't learning by heart
             Dense(19, activation="sigmoid"),
+            # RNN
+            # SimpleRNN(128, activation="tanh", input_shape=(HISTORY_LEN, 19), return_sequences=True),
+            # Dropout(0.2),  # Avoid learning data by heart
+            # SimpleRNN(64, activation="tanh", input_shape=(HISTORY_LEN, 19), return_sequences=True),
+            # Dropout(0.2),  # Avoid learning data by heart
+            # SimpleRNN(32, activation="tanh", input_shape=(HISTORY_LEN, 19)),
+            # Dense(64, activation="softmax"),
+            # Dropout(0.2),  # Avoid learning data by heart
+            # Dense(32, activation="softmax"),
+            # Dropout(0.2),  # Avoid learning data by heart
+            # Dense(19, activation="sigmoid"),
+            # # RNN (dimension reduced data)
+            # SimpleRNN(128, activation="tanh", input_shape=(HISTORY_LEN, 3), return_sequences=True),
+            # Dropout(0.2),  # Avoid learning data by heart
+            # SimpleRNN(64, activation="tanh", input_shape=(HISTORY_LEN, 3), return_sequences=True),
+            # Dropout(0.2),  # Avoid learning data by heart
+            # SimpleRNN(32, activation="tanh", input_shape=(HISTORY_LEN, 3)),
+            # Dense(64, activation="softmax"),
+            # Dropout(0.2),  # Avoid learning data by heart
+            # Dense(32, activation="softmax"),
+            # Dropout(0.2),  # Avoid learning data by heart
+            # Dense(3, activation="linear"),
         ]
     )
 
     # Compile/Set solver, loss and metrics
     lstm.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
         # optimizer='rmsprop',
-        loss=tf.keras.losses.BinaryCrossentropy(),
+        # loss=tf.keras.losses.BinaryCrossentropy(),
         # loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True, label_smoothing=0.2),
         # loss=tf.keras.losses.CosineSimilarity(),
+        loss="huber",  # mse (more sensible to outliers and changes) is better than mae (less sensible to outliers -> less different values) and it has less loss => "get both worlds": huber loss
         metrics=[
             "acc"
             # tf.keras.metrics.FalseNegatives(),
@@ -326,6 +401,8 @@ def train_and_test_LSTM(
     epochs: int,
     steps_per_epoch: int,
     batch_size: int,
+    callbacks: List[Any],
+    save_dir: Path,
 ) -> np.ndarray:
     """
     Trains and test a LSTM and returns the predictions for the test data.
@@ -335,21 +412,29 @@ def train_and_test_LSTM(
     history = lstm.fit(
         X_train,
         y_train,
-        validation_split=0.05,
+        validation_split=0.1,
         epochs=epochs,
-        steps_per_epoch=steps_per_epoch,
+        # steps_per_epoch=steps_per_epoch,  # Automatically calculated with: len(training_data) // batch_size
         batch_size=batch_size,
+        callbacks=callbacks,
     )
     lstm.evaluate(X_test, y_test, batch_size=batch_size)
 
-    # Plot accuracy
+    # Save results in files
+    if not os.path.exists(save_dir):  # Create save dir, if it doesn't exist
+        os.makedirs(save_dir)
+    lstm.save(save_dir / "lstm.keras")  # Save model
+
+    # Plot accuracy and save it to file
     plt.plot(history.history["acc"], label="accuracy")
     plt.legend()
+    plt.savefig(save_dir / "accuracy.png", bbox_inches="tight")
     plt.show()
 
-    # Plot loss
+    # Plot loss and save it to file
     plt.plot(history.history["loss"], label="loss")
     plt.legend()
+    plt.savefig(save_dir / "loss.png", bbox_inches="tight")
     plt.show()
 
     # Return predictions of LSTM
@@ -362,10 +447,13 @@ def build_train_and_test_model(
     X_test: np.array,
     y_train: np.array,
     y_test: np.array,
-) -> np.ndarray:
+    save_dir: Path,
+) -> Tuple[np.ndarray, Path]:
     """
-    Builds, trains, eventually tests model and returns
-    predictions for passed test data.
+    Builds, trains, eventually tests model and returns predictions for passed
+    test data.\n
+    Returns save_dir, because some models will change the directory for saving
+    files, because they input more details in the path to save.
     """
 
     # Define variables
@@ -383,22 +471,27 @@ def build_train_and_test_model(
 
         # Build and train model
         rf = build_random_forest()
-        predictions = train_random_forest_and_predict(rf, X_train, X_test, y_train)
+        predictions = train_random_forest_and_predict(rf, X_train, X_test, y_train, save_dir)
     elif model_variant == 1:
         # Define variables
-        epochs = 40
-        steps_per_epoch = 40
-        batch_size = 1
+        epochs = 50
+        steps_per_epoch = X_train.shape[0]  # Currently irrelevant
+        batch_size = 55
+        callbacks = [
+            EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True),
+            ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=10, min_lr=1e-6),
+        ]
+        save_dir = Path(f"{save_dir}_{epochs}_{steps_per_epoch}_{batch_size}")
 
         # Build LSTM
         lstm = build_LSTM()
         predictions = train_and_test_LSTM(
-            lstm, X_train, X_test, y_train, y_test, epochs, steps_per_epoch, batch_size
+            lstm, X_train, X_test, y_train, y_test, epochs, steps_per_epoch, batch_size, callbacks, save_dir
         )
     else:
         print("No model chosen: Do nothing!")
 
-    return predictions
+    return predictions, save_dir
 
 
 if __name__ == "__main__":
@@ -418,19 +511,21 @@ if __name__ == "__main__":
     # TODO: Eigene Loss-Funktion definieren???
     # TODO: Daten genau anschauen und herausfinden bei welchen Inputs Modell versagt -> immer die selben oder andere??? (auch mit shuffle der Daten ausprobieren)
 
-    # Compute based on this extracted features
-    user_movie_histories = load_object_from_file(
-        vars.user_history_file_path_with_real_genres
-    )
-    used_histories, extracted_features = extract_features(
-        user_movie_histories,
-        HISTORY_LEN,
-        MIN_MOVIE_HISTORY_LEN,
-        fill_history_len_with_zero_movies=False,
-    )
-    save_object_in_file(
-        vars.extracted_features_file_path, (used_histories, extracted_features)
-    )
+    # # Compute extracted features
+    # user_movie_histories = load_object_from_file(
+    #     # vars.user_history_file_path_with_real_genres  # TMDB data
+    #     vars.user_watchings_file_path_with_real_genres  # Netflix prize data
+    #     # vars.user_history_file_path_with_real_genres_and_reduced_dimensions  # Netflix prize data (small part)
+    # )
+    # used_histories, extracted_features = extract_features(
+    #     user_movie_histories,
+    #     HISTORY_LEN,
+    #     MIN_MOVIE_HISTORY_LEN,
+    #     fill_history_len_with_zero_movies=False,
+    # )
+    # save_object_in_file(
+    #     vars.extracted_features_file_path, (used_histories, extracted_features)
+    # )
 
     """
     # df_user_movie_histories_reduced_dim = load_object_from_file(vars.user_history_file_path_with_real_genres_and_reduced_dimensions_visualization)
@@ -454,65 +549,60 @@ if __name__ == "__main__":
     """
 
     # Read extracted features
-    used_histories, extracted_features = load_object_from_file(
-        vars.extracted_features_file_path
-    )
-    shapes = set([len(f) for f, l in extracted_features])
+    used_histories, extracted_features = load_object_from_file(vars.extracted_features_file_path)
+    max_histories_to_use = min(MAX_DATA, len(extracted_features))  # Use MAX_DATA, if MAX_DATA is available
+    history_step_size = len(extracted_features) // max_histories_to_use
+    extracted_features = extracted_features[::history_step_size]  # Choose as much as possible different histories
+    shapes = set([len(feature) for feature, label in extracted_features])
     print(used_histories, shapes)
 
+    # Adjust variables because of new training data
+    save_dir = Path(f"results/{max_histories_to_use}_{TRAIN_DATA_RELATIONSHIP}_{HISTORY_LEN}_{MIN_MOVIE_HISTORY_LEN}")
+
     # Split data into train and test data
-    X, y = np.array(
-        [np.array(x) for x, _ in extracted_features], dtype=np.float64
-    ), np.array(
+    X, y = np.array([np.array(x) for x, _ in extracted_features], dtype=np.float64), np.array(
         [np.array(y, dtype=np.float64) for _, y in extracted_features], dtype=np.float64
     )  # LSTM
     # X, y = np.array([one_hot_encoding_2d_arr(x) for x, _ in extracted_features], dtype=np.float64), np.array([one_hot_encoding_1d_arr(y) for _, y in extracted_features], dtype=np.float64)  # LSTM
     X, y = X / normalize_fator, y / normalize_fator  # Normize data
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, train_size=TRAIN_DATA_RELATIONSHIP, random_state=SEED, shuffle=False
+        X, y, train_size=TRAIN_DATA_RELATIONSHIP, random_state=SEED, shuffle=True
     )
 
     # Define hyper parameters of the LSTM
-    predictions = build_train_and_test_model(
-        model_number, X_train, X_test, y_train, y_test
-    )
+    predictions, real_save_dir = build_train_and_test_model(model_number, X_train, X_test, y_train, y_test, save_dir)
 
     # Find zero predictions = model predicting only null vectors, because it fits the most
-    binary_predictions = [
-        one_hot_encoding_1d_arr(prediction) for prediction in predictions
-    ]
-    zero_predictions = [
-        True
-        for prediction in binary_predictions
-        if all(-1e-3 < pred_x < 1e-3 for pred_x in prediction)
-    ]
+    binary_predictions = [one_hot_encoding_1d_arr(prediction, factor=0.5 * output_factor) for prediction in predictions]
+    zero_predictions = [True for prediction in binary_predictions if all(-1e-3 < pred_x < 1e-3 for pred_x in prediction)]
 
     # Output some predictions and true values/target labels
-    print("\nOutput some example predictions and true values:")
-    print(f"{len(zero_predictions)} are zero predictions")
+    with open(real_save_dir / "sample_prediction_outputs.txt", "w") as file:
+        print("\nOutput some example predictions and true values:", file=file)
+        print(f"{len(zero_predictions)} are zero predictions\n", file=file)
 
     # Test model with own evaluation function
-    evaluate_model(
-        y_test * output_factor, predictions * output_factor, epsilon=EPSILON * output_factor
-    )
+    evaluate_model(y_test * output_factor, predictions * output_factor, real_save_dir, epsilon=EPSILON * output_factor)
 
     # for i in range(len(y_test)):
-    for i in range(3):
-        distance = calc_distance_euclidean(
-            y_test[i] * output_factor, predictions[i] * output_factor
-        )
+    with open(real_save_dir / "sample_prediction_outputs.txt", "a") as file:
+        for i in range(3):
+            distance = calc_distance_euclidean(y_test[i] * output_factor, predictions[i] * output_factor)
 
-        if distance <= output_factor:
-            print("Correct:")
-        else:
-            print("False:")
+            if distance <= output_factor:
+                print("Correct predicted:", file=file)
+            else:
+                print("False predicted:", file=file)
 
-        print(X_test[i] * output_factor)
-        print(y_test[i] * output_factor)
-        print(predictions[i] * output_factor)
-        print(
-            one_hot_encoding_1d_arr(predictions[i], factor=0.5 * output_factor)
-            * output_factor
-        )
-        print(f"Distance: {distance}")
-        print()
+            print(X_test[i] * output_factor, file=file)
+            print(y_test[i] * output_factor, file=file)
+            print(predictions[i] * output_factor, file=file)
+            print(
+                one_hot_encoding_1d_arr(predictions[i] * output_factor, factor=0.5 * output_factor) * output_factor,
+                file=file,
+            )
+            print(f"Distance: {distance}\n", file=file)
+
+    print(len([1 for pred in zip(predictions) if np.allclose(predictions[0], pred, atol=0.1)]), len(predictions))
+    print(len([1 for pred in zip(predictions) if np.allclose(predictions[0], pred, atol=0.2)]), len(predictions))
+    print(len([1 for pred in zip(predictions) if np.allclose(predictions[0], pred, atol=0.3)]), len(predictions))
