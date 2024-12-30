@@ -23,7 +23,7 @@ from helper.file_system_interaction import load_object_from_file, save_object_in
 
 
 # Define constants
-MAX_DATA = 1000000
+MAX_DATA = 50000
 HISTORY_LEN = 30
 MIN_MOVIE_HISTORY_LEN = 10
 DISTANCE_TO_OTHER_MOVIES = 0.1
