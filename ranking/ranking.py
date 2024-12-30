@@ -2,11 +2,14 @@ import json
 import os
 import re
 import sys
+import time
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List
 
 import google.generativeai as genai
 import numpy as np
+from keybert import KeyBERT
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import MinMaxScaler
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
@@ -33,6 +36,8 @@ all_movies_table = Movies()
 # all_movies = load_object_from_file(Path("ranking/data/all_movies.json"))
 # all_users = load_object_from_file(Path("ranking/data/all_users.json"))
 
+keybert = KeyBERT()
+
 # The following code is not a official part of the ranking system!
 # This is a list of different movies, that matches the best on the user preferences
 movies = {
@@ -48,19 +53,6 @@ movies = {
 all_users = None
 with open("test.json", "r") as file:
     all_users = json.load(file)
-
-
-# def get_reviews_by_movie_ids(reviews, movie_ids):
-#     results = {}
-
-#     for _, user_reviews in reviews.items():
-#         for review_data in user_reviews.values():
-#             movie_id = review_data["movie_id"]
-#             if movie_id in movie_ids:
-#                 movie_name = movie_ids[movie_id]
-#                 results[movie_name] = review_data
-
-#     return results
 
 
 def get_reviews_by_movie_ids(reviews, movie_ids):
@@ -84,7 +76,6 @@ def get_reviews_by_movie_ids(reviews, movie_ids):
 movie_ids = list(movies.keys())
 
 filtered_reviews = get_reviews_by_movie_ids(all_users, movies)
-# print(filtered_reviews)
 
 
 def set_up_llm(model_name: str, system_instruction: str) -> genai.GenerativeModel:
@@ -110,7 +101,9 @@ def set_up_llm(model_name: str, system_instruction: str) -> genai.GenerativeMode
     )
 
 
-def generate_ai_response(filtered_reviews: Dict[str, str], model: genai.GenerativeModel) -> Dict[str, Dict[str, Any]]:
+def generate_ai_response(
+    filtered_reviews: Dict[str, str], model: genai.GenerativeModel, delay: int
+) -> Dict[str, Dict[str, Any]]:
     """
     Generate AI responses for a set of best matching movies on the user preferences
 
@@ -135,19 +128,41 @@ def generate_ai_response(filtered_reviews: Dict[str, str], model: genai.Generati
     """
 
     movies_with_their_responses = {}
-    for movie, review in filtered_reviews.items():
-        response = model.generate_content(f"Analyze the following review: {review}")
 
-        cleaned_response = re.search(r"\{.*?\}", response.text, re.DOTALL)
-        if cleaned_response:
+    for movie, reviews in filtered_reviews.items():
+        responses = []
+
+        print(f"Processing movie: {movie} with {len(reviews)} reviews")
+        for index, review_data in enumerate(reviews, start=1):
+            review = review_data.get("content", "")
+            if not review:
+                print(f"Skipping empty review for movie: {movie}, Review nr.{index}")
+                continue
+
             try:
-                response_data = json.loads(cleaned_response.group())
-                movies_with_their_responses[movie] = response_data
-            except json.JSONDecodeError as e:
-                print(f"Error parsing cleaned JSON for {movie}: {e}")
-        else:
-            print(f"No valid JSON found in response for {movie}")
-            movies_with_their_responses[movie] = None
+                print(f"Analyzing review nr.{index} for '{movie}'")
+                response = model.generate_content(f"Analyze the following review: {review}")
+
+                cleaned_response = re.search(r"\{.*?\}", response.text, re.DOTALL)
+                if cleaned_response:
+                    try:
+                        response_data = json.loads(cleaned_response.group())
+                        responses.append(response_data)
+                    except json.JSONDecodeError as e:
+                        print(f"Error parsing cleaned JSON for {movie}, Review  nr.{index}: {e}")
+                        responses.append(None)
+                else:
+                    print(f"No valid JSON found in response for {movie}, Review nr.{index}")
+                    responses.append(None)
+
+            except Exception as e:
+                print(f"Error processing review nr.{index} for '{movie}': {e}")
+                responses.append(None)
+
+            print(f"Waiting for {delay} seconds before the next request")
+            time.sleep(delay)
+
+        movies_with_their_responses[movie] = responses
 
     return movies_with_their_responses
 
@@ -282,95 +297,137 @@ def calculate_and_normalise_final_score(movies_with_their_values: Dict[str, Dict
     )
 
 
-def rank_movies(movies_with_their_reviews: Dict[str, List[Dict[str, Any]]], max_length: int) -> Dict[str, float]:
+def analyze_aspects_with_tfidf(review, top_n=5):
+
+    vectorizer = TfidfVectorizer(stop_words="english")
+    X = vectorizer.fit_transform([review])
+    tfidf_scores = dict(zip(vectorizer.get_feature_names_out(), X.sum(axis=0).A1))
+    # print(f"\nReview: {review}\n\nTF-IDF Score: {tfidf_scores}")
+
+    sorted_keywords = sorted(tfidf_scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
+    # print(f"\nSorted_keywords: {sorted_keywords}")
+
+    return [keyword for keyword, score in sorted_keywords]
+
+
+def analyze_aspects_with_bert(review: str, top_n: int) -> List[str]:
     """
-    Ranks movies based on their reviews using sentiment analysis and other factors.
+    Analyze aspects of a review using BERT model to extract keywords.
 
     Parameters
     ----------
+    review : str
+        The text of the review to analyze.
+    top_n : int
+        The number of top keywords to extract.
+
+    Returns
+    -------
+    list of str
+        A list of extracted keywords.
+    """
+    keywords = keybert.extract_keywords(review, keyphrase_ngram_range=(1, 2), top_n=top_n, stop_words="english")
+    return [keyword[0] for keyword in keywords]
+
+
+def analyze_sentiment_for_keywords(review: str, top_n: int) -> Dict[str, int]:
+    """
+    Analyze the sentiment for the top N keywords in a review.
+
+    This function extracts the top N keywords from a review using a BERT-based
+    aspect analysis method and then analyzes the sentiment of each keyword using
+    the VADER sentiment analysis tool.
+
+    Parameters
+    ----------
+    review : str
+        The text of the review to analyze.
+    top_n : int
+        The number of top keywords to extract and analyze.
+
+    Returns
+    -------
+    Dict[str, int]
+        A dictionary where the keys are the extracted keywords and the values
+        are the compound sentiment scores for each keyword.
+    """
+    # keywords = analyze_aspects_with_tfidf(review, top_n)
+    keywords = analyze_aspects_with_bert(review, top_n)
+    # print(f"Review: {review},\nkeywords: {keywords}")
+    # print(f"\nKeywords: {keywords}")
+
+    analyzer = SentimentIntensityAnalyzer()
+    keyword_sentiment = {}
+
+    for keyword in keywords:
+        sentiment = analyzer.polarity_scores(keyword)
+        # print(f"\nKeyword: {keyword}: sentiment: {sentiment}")
+        keyword_sentiment[keyword] = sentiment["compound"]
+
+    # print(f"\nKeyword_sentiment: {keyword_sentiment}")
+    return keyword_sentiment
+
+
+def rank_movies(movies_with_their_reviews: Dict[str, List[Dict[str, Any]]]) -> Dict[str, float]:
+    """
+    Ranks movies based on their reviews using sentiment analysis and ratings.
+    Parameters
+
+    ----------
     movies_with_their_reviews : Dict[str, List[Dict[str, Any]]]
-        A dictionary where the keys are movie titles and the values are lists of dictionaries,
-        each containing review data with keys "content" (the review text) and "rating" (the review rating).
-    max_length : int
-        The maximum length of a review to normalize the word count.
+        A dictionary where the keys are movie titles and the values are lists of dictionaries containing review data.
+        Each review dictionary should have a "content" key with the review text and optionally a "rating" key with the review rating.
 
     Returns
     -------
     Dict[str, float]
-        A dictionary where the keys are movie titles and the values are the calculated scores,
-        sorted in descending order of scores.
+        A dictionary where the keys are movie titles and the values are the calculated scores, sorted in descending order.
     """
 
-    scaler = MinMaxScaler()
     analyzer = SentimentIntensityAnalyzer()
     scores = {}
 
     for movie, reviews in movies_with_their_reviews.items():
         total_sentiment_score = 0
-        total_sentiment_neg = 0
+        total_keywords_sentiment = 0
         total_rating = 0
-        total_word_count = 0
-        review_count = len(reviews)
-        # print(f"Movie: {movie}, review count: {review_count}")
-
-        reviews_texts = [review_data["content"] for review_data in reviews]
-
-        vectorizer = TfidfVectorizer()
-        tfidf_matrix = vectorizer.fit_transform(reviews_texts)
-        tfidf_score = np.mean(tfidf_matrix.sum(axis=1))
 
         for review_data in reviews:
-            review = review_data.get("content", "")
             rating = review_data.get("rating", None)
 
             if rating is None:
                 rating = 2.0
 
-            sentiment_scores = analyzer.polarity_scores(review)
+            sentiment_scores = analyzer.polarity_scores(review_data["content"])
             sentiment_score = sentiment_scores["compound"]
-            sentiment_neg = sentiment_scores["neg"]
 
-            # Adjustment of sentiment if sentiment_neg is too high
-            if sentiment_neg > 0.5:
-                sentiment_score -= sentiment_neg
+            # keyword_sentiment = analyze_sentiment_for_keywords(review, top_n=5)
+            sentiment = analyze_sentiment_for_keywords(review_data["content"], top_n=5)
+            print(f"Movie: {movie}, sentiment_keywords: {sentiment}")
+            # print(sentiment)
 
-            word_count = len(review.split())
-            total_word_count += word_count
+            keyword_sentiment = sum(sentiment.values())
+            total_keywords_sentiment += keyword_sentiment
 
             total_sentiment_score += sentiment_score
-            total_sentiment_neg += sentiment_neg
             total_rating += rating
 
-        average_sentiment_score = total_sentiment_score / review_count
-        # average_sentiment_neg = total_sentiment_neg / review_count
-        average_rating = total_rating / review_count
-        average_word_count = total_word_count / review_count
-        normalized_length = min(1, average_word_count / max_length)
+        avg_sentiment = total_sentiment_score / len(reviews)
+        avg_rating = total_rating / len(reviews)
+        avg_keywords_sentiment = total_keywords_sentiment / len(reviews)
 
-        normalized_tfidf_score = tfidf_score / len(reviews)
-        score = (
-            (0.6 * average_sentiment_score)
-            + (0.1 * normalized_length)
-            + (0.2 * (average_rating / 10))
-            + (0.1 * normalized_tfidf_score)
-        )
+        score = (0.5 * avg_sentiment) + (0.3 * avg_rating) + (0.2 * avg_keywords_sentiment)
 
         scores[movie] = score
-        # print(
-        #     f"Movie: {movie}, average_sentiment_neg: {average_sentiment_neg}, average_sentiment_score: {average_sentiment_score}, tfidf_score: {normalized_tfidf_score}, score: {score}"
-        # )
+        print(
+            f"Movie: {movie}, score: {score:.2f}, avg_sentiment: {avg_sentiment}, avg_rating: {avg_rating}, avg_keywords_sentiment: {avg_keywords_sentiment}"
+        )
 
-        scores_array = np.array(list(scores.values())).reshape(-1, 1)
-        normalized_scores_array = scaler.fit_transform(scores_array)
-        normalized_scores = {movie: normalized_scores_array[i][0] for i, movie in enumerate(scores)}
-
-    ranked_movies = dict(sorted(normalized_scores.items(), key=lambda x: x[1], reverse=True))
-    # ranked_movies = dict(sorted(scores.items(), key=lambda x: x[1], reverse=True))
-
-    for index, (movie, score) in enumerate(ranked_movies.items(), start=1):
-        print(f"Rank {index}: {movie}, score: {score:.2f}")
-
+    ranked_movies = dict(sorted(scores.items(), key=lambda x: x[1], reverse=True))
     # print(ranked_movies)
+
+    for rank, (movie, score) in enumerate(ranked_movies.items(), start=1):
+        print(f"Rank: {rank}, movie: {movie}, score: {score:.2f}")
 
     return ranked_movies
 
@@ -396,11 +453,13 @@ if __name__ == "__main__":
         }
     """
 
-    ranked_movies = rank_movies(filtered_reviews, 200)
+    ranked_movies = rank_movies(filtered_reviews)
 
     # llm = set_up_llm("gemini-1.5-flash", system_instruction)
 
-    # movies_with_their_responses = generate_ai_response(filtered_reviews, llm)
+    # movies_with_their_responses = generate_ai_response(filtered_reviews, llm, delay=1)
+
+    # print(movies_with_their_responses)
 
     # print_in_clean_format(movies_with_their_responses)
 
