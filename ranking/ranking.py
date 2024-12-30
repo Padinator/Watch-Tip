@@ -310,22 +310,23 @@ def analyze_aspects_with_tfidf(review, top_n=5):
     return [keyword for keyword, score in sorted_keywords]
 
 
-def analyze_aspects_with_bert(review: str, top_n: int) -> List[str]:
+def extract_keywords_of_a_reviews(review: str, top_n: int) -> List[str]:
     """
-    Analyze aspects of a review using BERT model to extract keywords.
+    Extract the top N keywords from a given review.
 
     Parameters
     ----------
     review : str
-        The text of the review to analyze.
+        The text of the review from which to extract keywords.
     top_n : int
         The number of top keywords to extract.
 
     Returns
     -------
-    list of str
-        A list of extracted keywords.
+    List[str]
+        A list of the top N keywords extracted from the review.
     """
+
     keywords = keybert.extract_keywords(review, keyphrase_ngram_range=(1, 2), top_n=top_n, stop_words="english")
     return [keyword[0] for keyword in keywords]
 
@@ -352,7 +353,7 @@ def analyze_sentiment_for_keywords(review: str, top_n: int) -> Dict[str, int]:
         are the compound sentiment scores for each keyword.
     """
     # keywords = analyze_aspects_with_tfidf(review, top_n)
-    keywords = analyze_aspects_with_bert(review, top_n)
+    keywords = extract_keywords_of_a_reviews(review, top_n)
     # print(f"Review: {review},\nkeywords: {keywords}")
     # print(f"\nKeywords: {keywords}")
 
