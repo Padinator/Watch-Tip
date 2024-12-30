@@ -490,57 +490,156 @@ def train_and_test_LSTM(
     return lstm.predict(X_test, batch_size=batch_size)
 
 
-def build_train_and_test_model(
-    model_variant,
-    X_train: np.array,
-    X_test: np.array,
-    y_train: np.array,
-    y_test: np.array,
-    save_dir: Path,
-) -> Tuple[np.ndarray, Path]:
+class Model:
     """
-    Builds, trains, eventually tests model and returns predictions for passed
-    test data.\n
-    Returns save_dir, because some models will change the directory for saving
-    files, because they input more details in the path to save.
+    Wrapper class for loading and predicting different models
+
+    Attributes
+    ----------
+    _model_type : str
+        Type of model, e.g. "LSTM" or "RandomForestRegressor"
+    _model_args : Dict[str, Any]
+        Extra arguments for predicting with a specific model
+    _model : Any
+        Model which will be loaded and used for predicting
     """
 
-    # Define variables
-    predictions = []
+    def __init__(self, model_type: str, path_to_model: Path, model_args: Dict[str, Any] = {}):
+        """
+        Creates a model object be loading a model from passed path.
 
-    # Output shapes of train and test data
-    print(f"Train shapes: X: {X_train.shape}, y: {y_train.shape}")
-    print(f"Test shapes: X: {X_test.shape}, y: {y_test.shape}\n")
+        Parameters
+        ----------
+        model_type : str
+            Type of model, necessary because different models will be
+            loaded/called differently
+        path_to_model : Path
+            Load model from this path
+        """
 
-    # Build, train and eventually test model
-    if model_variant == 0:
-        # Unravel data = reduce dimension to 2 dimensions
-        X_train = np.array([np.array(x).ravel() for x in X_train], dtype=np.float64)
-        X_test = np.array([np.array(x).ravel() for x in X_test], dtype=np.float64)
+        self._model_type = model_type
+        self._path_to_model = path_to_model
+        self._model_args = model_args
 
-        # Build and train model
-        rf = build_random_forest()
-        predictions = train_random_forest_and_predict(rf, X_train, X_test, y_train, save_dir)
-    elif model_variant == 1:
+        if path_to_model:
+            print("Try to load model from file ...")
+
+            if model_type == "LSTM":
+                self._model = tf.keras.models.load_model(path_to_model)
+            elif model_type == "RandomForestRegressor":
+                self._model = load_object_from_file(path_to_model)
+            else:
+                raise ValueError("Unknown model name passed, cannot load any model!")
+
+            print(f"Loaded successfully: {self._model_type}")
+
+    def predict_one(self, x: Any) -> Any:
+        """
+        Pass an x value and get the prediction of the model for this.
+
+        Parameters
+        ----------
+        x : Any
+            x value for predicting a y value, which can be from any type
+
+        Returns
+        -------
+        Any
+            Returns the result, which can be of any type, depending on the model.
+        """
+
+        return self.predict_many(X=np.array([x]))
+
+    def predict_many(self, X: np.ndarray) -> np.ndarray:
+        """
+        Pass x values and get the predictions of the model for these.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            x values for predicting y values, which can be from any type
+
+        Returns
+        -------
+        np.ndarray
+            Returns the results as numpy array, which can be of any type, depending on the model.
+        """
+
+        predictions = np.empty()
+
+        if self._model_type == "LSTM":
+            predictions = self._model.predict(x=X, batch_size=self._model_args["batch_size"])
+        elif self._model_type == "RandomForestRegressor":
+            predictions = self._model.predict(X=X)
+
+        return np.array(predictions)
+
+    def build_train_and_test_model(
+        self,
+        X_train: np.array,
+        X_test: np.array,
+        y_train: np.array,
+        y_test: np.array,
+        save_dir: Path,
+    ) -> Tuple[np.ndarray, Path]:
+        """
+        Builds, trains, eventually tests model and returns predictions for passed
+        test data.\n
+        Returns save_dir, because some models will change the directory for saving
+        files, because they input more details in the path to save.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        Tuple[np.ndarray, Path]
+            Returns the predictions as first entry of the tuple and the path
+            where the model is stored in the second entry.
+        """
+
         # Define variables
-        epochs = 50
-        steps_per_epoch = X_train.shape[0]  # Currently irrelevant
-        batch_size = 32
-        callbacks = [
-            EarlyStopping(monitor="val_loss", patience=10, min_delta=0.0005, restore_best_weights=True),
-            ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=8, min_lr=1e-6),
-        ]
-        save_dir = Path(f"{save_dir}_{epochs}_{steps_per_epoch}_{batch_size}")
+        predictions = []
+        save_dir = Path("")
 
-        # Build LSTM
-        lstm = build_LSTM()
-        predictions = train_and_test_LSTM(
-            lstm, X_train, X_test, y_train, y_test, epochs, steps_per_epoch, batch_size, callbacks, save_dir
-        )
-    else:
-        print("No model chosen: Do nothing!")
+        # Output shapes of train and test data
+        print(f"Train shapes: X: {X_train.shape}, y: {y_train.shape}")
+        print(f"Test shapes: X: {X_test.shape}, y: {y_test.shape}\n")
 
-    return predictions, save_dir
+        # Build, train and eventually test model
+        if self._model_type == "LSTM":
+            # Unravel data = reduce dimension to 2 dimensions
+            X_train = np.array([np.array(x).ravel() for x in X_train], dtype=np.float64)
+            X_test = np.array([np.array(x).ravel() for x in X_test], dtype=np.float64)
+
+            # Build and train model
+            rf = build_random_forest()
+            predictions = train_random_forest_and_predict(rf, X_train, X_test, y_train, save_dir)
+            self._model = rf  # Save trained model
+        elif self._model_type == "RandomForestRegressor":
+            # Define variables
+            epochs = 50
+            steps_per_epoch = X_train.shape[0]  # Currently irrelevant
+            batch_size = 32
+            self._model_args["batch_size"] = batch_size  # Save bacth size for predicting values
+            callbacks = [
+                EarlyStopping(monitor="val_loss", patience=10, min_delta=0.0005, restore_best_weights=True),
+                ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=8, min_lr=1e-6),
+            ]
+            save_dir = Path(f"{save_dir}_{epochs}_{steps_per_epoch}_{batch_size}")
+
+            # Build LSTM
+            lstm = build_LSTM()
+            predictions = train_and_test_LSTM(
+                lstm, X_train, X_test, y_train, y_test, epochs, steps_per_epoch, batch_size, callbacks, save_dir
+            )
+            self._model = lstm  # Save trained model
+        else:
+            print("No model chosen: Do nothing!")
+
+        self._path_to_model = save_dir  # Store path to model
+
+        return predictions, save_dir
 
 
 if __name__ == "__main__":
