@@ -52,7 +52,7 @@ def generate_full_movies_histories(
     """
 
     return [
-        (users_movie_history[i : i + history_len], users_movie_history[i + history_len])
+        (users_movie_history[i:i + history_len], users_movie_history[i + history_len])
         for users_movie_history in all_movies_real_genres.values()
         for i in range(len(users_movie_history) - history_len)
         if 0 < (len(users_movie_history) - history_len)
