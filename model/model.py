@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import random
 import sys
 import tensorflow as tf
 
@@ -8,8 +9,8 @@ from pathlib import Path
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from tensorflow.keras.layers import Dense, Dropout, LSTM
-from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Dense, Dropout, LSTM, GRU, Conv1D, SimpleRNN, AveragePooling1D, MaxPool1D, Flatten
+from tensorflow.keras import Sequential, backend
 from typing import Any, Dict, List, Tuple
 
 # ---------- Import own python modules ----------
@@ -22,9 +23,9 @@ from helper.file_system_interaction import load_object_from_file, save_object_in
 
 
 # Define constants
-MAX_DATA = 30000
-HISTORY_LEN = 10
-MIN_MOVIE_HISTORY_LEN = 5
+MAX_DATA = 1000000
+HISTORY_LEN = 30
+MIN_MOVIE_HISTORY_LEN = 10
 DISTANCE_TO_OTHER_MOVIES = 0.1
 TRAIN_DATA_RELATIONSHIP = 0.9
 SEED = 1234
@@ -39,10 +40,20 @@ np.set_printoptions(formatter={"all": lambda x: "{0:0.3f}".format(x)})
 
 # Set seeds
 np.random.seed(seed=SEED)
+random.seed(SEED)
 tf.random.set_seed(seed=SEED)
 
 # Define variables
 save_dir = Path(f"results/{MAX_DATA}_{TRAIN_DATA_RELATIONSHIP}_{HISTORY_LEN}_{MIN_MOVIE_HISTORY_LEN}")
+
+
+class MinPooling2D(MaxPool1D):
+
+    def __init__(self, pool_size, strides=None, padding='valid', data_format=None, **kwargs):
+        super(MaxPool1D, self).__init__(pool_size, strides, padding, data_format, **kwargs)
+
+    def pooling_function(inputs, pool_size, strides, padding, data_format):
+        return -backend.pool1d(-inputs, pool_size, strides, padding, data_format, pool_mode='max')
 
 
 def one_hot_encoding_1d_arr(arr: np.array, factor: int = 50) -> np.array:
@@ -132,7 +143,7 @@ def extract_features(
 
             # Fill missing movies with zeros
             number_of_missing_movies = movie_history_len - len(movies)
-            zero_movie = np.zeros(target_label.shape[0])  # Create movie containing only 0 for all real genres
+            zero_movie = np.zeros(len(target_label))  # Create movie containing only 0 for all real genres
             zero_movies = list(np.tile(zero_movie, (number_of_missing_movies, 1)))
 
             # Create one list with zero movies and watched movies of a user
@@ -328,28 +339,63 @@ def build_LSTM() -> LSTM:
         [
             # LSTM
             # LSTM(128, return_sequences=True, input_shape=(HISTORY_LEN, 19), stateful=True),
-            LSTM(
-                256 * 2,
-                return_sequences=True,
-                input_shape=(HISTORY_LEN, 19),
-                kernel_initializer="HeUniform",
-                kernel_regularizer="l1_l2",
-                dropout=0.1,
-                recurrent_dropout=0.1,
-            ),  # GlorotUniform()
-            Dropout(0.3, seed=SEED),
-            LSTM(128 * 2, return_sequences=True, kernel_initializer="HeUniform", dropout=0.1, recurrent_dropout=0.1),
-            Dropout(0.3, seed=SEED),  # No dropout, else time relevant data/context can be lost
-            LSTM(64 * 2, return_sequences=False, kernel_initializer="GlorotUniform", dropout=0.1, recurrent_dropout=0.1),
-            Dropout(0.2, seed=SEED),
-            # LSTM(32, return_sequences=False),
-            # Dropout(0.2, seed=SEED),  # Avoid learning data by heart
-            # Decision layers at the end, using processed data from LSTM
-            Dense(64 * 4, activation="relu"),
-            Dropout(0.4, seed=SEED),  # Dropout for don't learning by heart
-            Dense(64, activation="relu"),
-            Dropout(0.4, seed=SEED),  # Dropout for don't learning by heart
+            # LSTM(
+            #     256 * 2,
+            #     return_sequences=True,
+            #     input_shape=(HISTORY_LEN, 19),
+            #     kernel_initializer="HeUniform",
+            #     kernel_regularizer="l1_l2"
+            # ),
+            # Dropout(0.3, seed=SEED),
+            # LSTM(128 * 2, return_sequences=True, kernel_initializer="HeUniform"),
+            # Dropout(0.3, seed=SEED),  # No dropout, else time relevant data/context can be lost
+            # LSTM(64 * 2, return_sequences=False, kernel_initializer="GlorotUniform"),
+
+            # # Decision layers at the end, using processed data from LSTM
+            # Dense(64 * 4, activation="relu"),
+            # # Dropout(0.4, seed=SEED),  # Dropout for don't learning by heart
+            # Dense(64, activation="relu"),
+            # # Dropout(0.4, seed=SEED),  # Dropout for don't learning by heart
+            # Dense(19, activation="sigmoid"),
+
+
+            # Convolutional modell
+            # Conv1D(128, 2, activation="relu", padding="same"),
+            # MaxPool1D(2, padding="same", strides=1),
+
+            # Conv1D(128, 2, activation="relu", padding="same"),
+            # MaxPool1D(2, padding="same", strides=1),
+
+            # Conv1D(64, 2, activation="relu", padding="same"),
+            # MaxPool1D(2, padding="same", strides=1),
+
+            # Conv1D(64, 2, activation="relu", padding="same"),
+            # MaxPool1D(2, padding="same", strides=1),
+
+            # Conv1D(32, 2, activation="relu", padding="same"),
+            # MaxPool1D(2, padding="same", strides=1),
+
+            # Flatten(),
+            # Dense(64, activation="relu"),
+            # LSTM(8, kernel_initializer="HeUniform"),
+            # Dense(19, activation="sigmoid"),
+            # Dense(19, activation="sigmoid"),
+
+
+            # LSTM
+            Conv1D(32, 2, padding="same"),
+            # SimpleRNN(64, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
+            # GRU(64, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
+            LSTM(64, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
+            # LSTM(256, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
+
+            # Dense(64 * 4, activation="relu"),
+            # Dropout(0.4, seed=SEED),  # Dropout for don't learning by heart
+            # Dense(64, activation="relu"),
+            # Dropout(0.5, seed=SEED),  # Dropout for don't learning by heart
             Dense(19, activation="sigmoid"),
+
+
             # RNN
             # SimpleRNN(128, activation="tanh", input_shape=(HISTORY_LEN, 19), return_sequences=True),
             # Dropout(0.2),  # Avoid learning data by heart
@@ -361,6 +407,7 @@ def build_LSTM() -> LSTM:
             # Dense(32, activation="softmax"),
             # Dropout(0.2),  # Avoid learning data by heart
             # Dense(19, activation="sigmoid"),
+
             # # RNN (dimension reduced data)
             # SimpleRNN(128, activation="tanh", input_shape=(HISTORY_LEN, 3), return_sequences=True),
             # Dropout(0.2),  # Avoid learning data by heart
@@ -372,6 +419,8 @@ def build_LSTM() -> LSTM:
             # Dense(32, activation="softmax"),
             # Dropout(0.2),  # Avoid learning data by heart
             # Dense(3, activation="linear"),
+
+            # SimpleRNN < (little bit) LSTM
         ]
     )
 
@@ -476,10 +525,10 @@ def build_train_and_test_model(
         # Define variables
         epochs = 50
         steps_per_epoch = X_train.shape[0]  # Currently irrelevant
-        batch_size = 55
+        batch_size = 32
         callbacks = [
-            EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True),
-            ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=10, min_lr=1e-6),
+            EarlyStopping(monitor="val_loss", patience=10, min_delta=0.0005, restore_best_weights=True),
+            ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=8, min_lr=1e-6),
         ]
         save_dir = Path(f"{save_dir}_{epochs}_{steps_per_epoch}_{batch_size}")
 
@@ -508,20 +557,20 @@ if __name__ == "__main__":
     # Visualize data
     # TODO: Look for mean genres
     # TODO: Compare genres
-    # TODO: Eigene Loss-Funktion definieren???
-    # TODO: Daten genau anschauen und herausfinden bei welchen Inputs Modell versagt -> immer die selben oder andere??? (auch mit shuffle der Daten ausprobieren)
+    # TODO: Which inputs will be used? -> use a movie not too often as target/label (else biased)
 
     # # Compute extracted features
     # user_movie_histories = load_object_from_file(
     #     # vars.user_history_file_path_with_real_genres  # TMDB data
-    #     vars.user_watchings_file_path_with_real_genres  # Netflix prize data
-    #     # vars.user_history_file_path_with_real_genres_and_reduced_dimensions  # Netflix prize data (small part)
+    #     # vars.user_watchings_file_path_with_real_genres  # Netflix prize data
+    #     vars.user_history_file_path_with_real_genres_and_reduced_dimensions  # Netflix prize data (small part)
     # )
     # used_histories, extracted_features = extract_features(
     #     user_movie_histories,
     #     HISTORY_LEN,
     #     MIN_MOVIE_HISTORY_LEN,
     #     fill_history_len_with_zero_movies=False,
+    #     fine_grained_extracting=False,
     # )
     # save_object_in_file(
     #     vars.extracted_features_file_path, (used_histories, extracted_features)
@@ -550,7 +599,9 @@ if __name__ == "__main__":
 
     # Read extracted features
     used_histories, extracted_features = load_object_from_file(vars.extracted_features_file_path)
+    random.shuffle(extracted_features)  # Shuffle data
     max_histories_to_use = min(MAX_DATA, len(extracted_features))  # Use MAX_DATA, if MAX_DATA is available
+    print(f"Max amount of available data: {len(extracted_features)}, take only: {max_histories_to_use}")
     history_step_size = len(extracted_features) // max_histories_to_use
     extracted_features = extracted_features[::history_step_size]  # Choose as much as possible different histories
     shapes = set([len(feature) for feature, label in extracted_features])
