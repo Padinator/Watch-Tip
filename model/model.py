@@ -154,7 +154,7 @@ def extract_features(
             all_extracted_features.extend(
                 [
                     (
-                        np.copy(users_movie_history[i : i + movie_history_len]),
+                        np.copy(users_movie_history[i:i + movie_history_len]),
                         users_movie_history[i + movie_history_len],
                     )
                     for i in range(0, len(users_movie_history) - movie_history_len, steps_size)
