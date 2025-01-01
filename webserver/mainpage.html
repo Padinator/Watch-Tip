@@ -14,6 +14,9 @@
         integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
         crossorigin="anonymous"></script>
 
+	<!-- Chart JS -->
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 	<!-- DOM elements -->
 	<script type="text/javascript" src="mainpage.js" defer></script>
 
@@ -35,12 +38,15 @@
 		<!-- Choose genres of a movie the user likes -->
 		 <div id="liked_genres" class="container">
 			<p class="text-center fs-2" style="padding-top: 1rem;">1. What genres do you think a movie should consist of?</p>
-			<p id="too_few_liked_genres_chosen" class="text-center fs-3">Choose at least one and maximal seven genres</p>
+			<p id="too_few_liked_genres_chosen" class="text-center fs-3">Choose at least 1 and max. 7 genres</p>
 			<br>
 			<div class="container" style="text-align:center">
+				<!-- Check boxes for checking, which genre user dislikes -->
 				<div id="liked_check_boxes" class="container d-flex flex-row justify-content-evenly align-items-center" style="flex-wrap: wrap; max-width: 65%"></div>
 				<br>
 				<br>
+
+				<!-- Submit button -->
 				<button id="submit_liked_genres" type="button" class="btn btn-secondary btn-lg btn-block" style="margin: auto">Submit</button>
 			</div>
 		</div>
@@ -50,9 +56,12 @@
 			<p class="text-center fs-2" style="padding-top: 1rem;">2. What genres do you dislike in a film?</p>
 			<br>
 			<div class="container" style="text-align:center">
+				<!-- Check boxes for checking, which genre user dislikes -->
 				<div id="disliked_check_boxes" class="container d-flex flex-row justify-content-evenly align-items-center" style="flex-wrap: wrap; max-width: 65%"></div>
 				<br>
 				<br>
+
+				<!-- Submit button -->
 				<button id="submit_disliked_genres" type="button" class="btn btn-secondary btn-lg btn-block" style="margin: auto">Submit</button>
 			</div>
 		</div>
@@ -63,9 +72,17 @@
 			<p class="text-center fs-3">(1 means not much and 100 means very much)</p>
 			<br>
 			<div class="container" style="text-align:center">
-				<div id="genre_proportion_ranges" class="container d-flex flex-row justify-content-evenly align-items-center" style="flex-wrap: wrap; max-width: 90%"></div>
+				<!-- Chart with proportions of all genres -->
+				<div>
+					<canvas id="genre_proportion_chart"></canvas>
+				</div>
+
+				<!-- Ranges/Regulators for regulating all gernes -->
+				<div id="genre_proportion_ranges" class="container d-flex flex-row justify-content-evenly align-items-center" style="flex-wrap: no-wrap; max-width: 100%"></div>
 				<br>
 				<br>
+
+				<!-- Submit button -->
 				<button id="submit_genre_proportion" type="button" class="btn btn-secondary btn-lg btn-block" style="margin: auto">Submit</button>
 			</div>
 		</div>

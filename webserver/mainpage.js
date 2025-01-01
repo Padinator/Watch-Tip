@@ -28,6 +28,8 @@ let disliked_genres = [];
 const liked_genres_check_boxes = [];
 const disliked_genres_check_boxes = [];
 const liked_genres_ranges = [];
+const range_init_value = 50;
+const bar_chart_font_size = 22;
 
 // ------------ Build containers/layouts ------------
 // Define containers
@@ -35,10 +37,29 @@ const liked_genres_check_boxes_div = document.getElementById("liked_check_boxes"
 const disliked_genres_check_boxes_div = document.getElementById("disliked_check_boxes");
 const liked_genres_ranges_div = document.getElementById("genre_proportion_ranges");
 
+// Define variables for the bar chart
+const genre_proportion_chart = document.getElementById('genre_proportion_chart');
+let bar_chart = null;
+
+
+function update_bar_chart_by_range(range_obj) {
+    const id = range_obj.id;
+    const bar_index = id.split("_").at(-1)
+    const data = bar_chart.data.datasets[0];
+
+    // Update data of bar chart
+    data["data"][bar_index] = range_obj.value;
+    bar_chart.update();
+
+    // Update show value
+    range_obj.nextElementSibling.value = range_obj.value;
+}
+
+
 // ============ Create check boxes for genres to liked ============
 for (let i = 0; i < genres.length; ++i) {
     const check_box = document.createElement("div")
-    check_box.innerHTML =`
+    check_box.innerHTML = `
         <input type="checkbox" class="btn-check" id="btn-check-${i}-outlined" autocomplete="off">
 	    <label class="btn btn-outline-secondary" for="btn-check-${i}-outlined">${genres[i]}</label>
     `;
@@ -60,7 +81,7 @@ document.getElementById("submit_liked_genres").addEventListener("click", event =
     }
 
     // Update HTML document
-    if (liked_genres.length == 0) { // No genres were chosen
+    if (liked_genres.length == 0 || 7 < liked_genres.length) { // No genres were chosen
         const error_p = document.getElementById("too_few_liked_genres_chosen");
         error_p.classList.add("text-danger"); // Ephasize error with red text colour
 
@@ -72,7 +93,7 @@ document.getElementById("submit_liked_genres").addEventListener("click", event =
             if (!liked_genres_check_boxes[i].children[0].checked) {
                 // ============ Create check boxes for genres to dislike ============
                 const check_box = document.createElement("div")
-                check_box.innerHTML =`
+                check_box.innerHTML = `
                     <input type="checkbox" class="btn-check" id="btn-check-${genres.length + i}-outlined" autocomplete="off">\
                     <label class="btn btn-outline-secondary" for="btn-check-${genres.length + i}-outlined">${genres[i]}</label>\
                 `;
@@ -103,20 +124,60 @@ document.getElementById("submit_disliked_genres").addEventListener("click", even
     }
 
     // Show for each liked genre a range/regulator
-    for (let liked_genre of liked_genres) {
+    for (let index = 0; index < liked_genres.length; ++index) {
         const regulator = document.createElement("div")
-        regulator.innerHTML =`
-        <label for="liked_genre_${liked_genre}" class="form-label">${genres[liked_genre]}:</label>\
-        <input id="liked_genre_${liked_genre}" type="range" class="form-range" min="0" max="100" value="50" step="1" oninput="this.nextElementSibling.value = this.value">\
-        <output>50</output>\
-        `;
+        const liked_genre = liked_genres[index]
+
+        // Save liked genre and index for identifying the corresponding genre and bar later
+        regulator.innerHTML = `
+        <input id="liked_genre_${liked_genre}_${index}" type="range" class="form-range" min="0" max="100" value="50" step="1" oninput="update_bar_chart_by_range(this)">\
+        <output style="font-size: ${bar_chart_font_size}px;">${range_init_value}</output>\
+        `; // Font size of "output" element is in px, because it's the same one as from the 
+
+        regulator.style = "padding-left: 1em; padding-right: 0.8em;"
+
         liked_genres_ranges.push(regulator); // Add it in a list for easier access later
         liked_genres_ranges_div.appendChild(regulator);
     }
+
+    // Create chart with all liked genres
+    bar_chart = new Chart(genre_proportion_chart, {
+        type: 'bar',
+        data: {
+            labels: liked_genres.map(genre_id => genres[genre_id]),
+            datasets: [{
+                label: 'Proportion (%) of genres in your perfect movie',
+                data: liked_genres.map(_genre => range_init_value),
+                borderWidth: 2,
+                borderRadius: 10,
+                hoverBackgroundColor: 'rgba(255, 99, 132, 0.8)',
+                hoverBorderColor: 'rgba(255, 99, 132, 1)'
+            }]
+        },
+        options: {
+            scales: {
+                x: {
+                    ticks: {
+                        font: {
+                            size: bar_chart_font_size,
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        font: {
+                            size: bar_chart_font_size,
+                        }
+                    }
+                }
+            }
+        }
+    });
 
     // Remove current layout
     document.getElementById("disliked_genres").style.display = 'none'
 
     // Show next layout
-    document.getElementById("genre_proportions").style.display = 'block'    
+    document.getElementById("genre_proportions").style.display = 'block'
 });
