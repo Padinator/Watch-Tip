@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import spacy
 import sys
 import time
 from collections import defaultdict
@@ -36,6 +37,8 @@ all_movies_table = Movies()
 # all_movies = load_object_from_file(Path("ranking/data/all_movies.json"))
 # all_users = load_object_from_file(Path("ranking/data/all_users.json"))
 
+nlp = spacy.load("en_core_web_sm")
+analyzer = SentimentIntensityAnalyzer()
 keybert = KeyBERT()
 
 # The following code is not a official part of the ranking system!
@@ -47,6 +50,10 @@ movies = {
     480105: "47 Meters Down: Uncaged",
     568: "Apollo 13",
     436270: "Black Adam",
+    # 49013: "Cars 2",
+    # 23483: "Kick-Ass",
+    # 268896: "Pacific Rim: Uprising",
+    # 676: "Pearl Harbor"
 }
 
 
@@ -307,7 +314,7 @@ def analyze_aspects_with_tfidf(review, top_n=5):
     sorted_keywords = sorted(tfidf_scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
     # print(f"\nSorted_keywords: {sorted_keywords}")
 
-    return [keyword for keyword, score in sorted_keywords]
+    return [keyword for keyword, _ in sorted_keywords]
 
 
 def extract_keywords_of_a_reviews(review: str, top_n: int) -> List[str]:
@@ -327,8 +334,18 @@ def extract_keywords_of_a_reviews(review: str, top_n: int) -> List[str]:
         A list of the top N keywords extracted from the review.
     """
 
-    keywords = keybert.extract_keywords(review, keyphrase_ngram_range=(1, 2), top_n=top_n, stop_words="english")
-    return [keyword[0] for keyword in keywords]
+    raw_keywords = keybert.extract_keywords(review, keyphrase_ngram_range=(1, 2), top_n=top_n, stop_words="english")
+    raw_keywords = [keyword[0] for keyword in raw_keywords]
+    print(f"Raw_keyboards: {raw_keywords}")
+
+    filtered_keywords = []
+    for keyword in raw_keywords:
+        doc = nlp(keyword)
+        if any(token.pos_ in ["NOUN", "ADJ", "VERB"] for token in doc):
+            filtered_keywords.append((keyword))
+
+    print(f"Filtered_keywords: {filtered_keywords}")
+    return filtered_keywords[:top_n]
 
 
 def analyze_sentiment_for_keywords(review: str, top_n: int) -> Dict[str, int]:
@@ -357,7 +374,6 @@ def analyze_sentiment_for_keywords(review: str, top_n: int) -> Dict[str, int]:
     # print(f"Review: {review},\nkeywords: {keywords}")
     # print(f"\nKeywords: {keywords}")
 
-    analyzer = SentimentIntensityAnalyzer()
     keyword_sentiment = {}
 
     for keyword in keywords:
@@ -385,7 +401,6 @@ def rank_movies(movies_with_their_reviews: Dict[str, List[Dict[str, Any]]]) -> D
         A dictionary where the keys are movie titles and the values are the calculated scores, sorted in descending order.
     """
 
-    analyzer = SentimentIntensityAnalyzer()
     scores = {}
 
     for movie, reviews in movies_with_their_reviews.items():
