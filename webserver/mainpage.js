@@ -150,8 +150,10 @@ document.getElementById("submit_disliked_genres").addEventListener("click", even
                 data: liked_genres.map(_genre => range_init_value),
                 borderWidth: 2,
                 borderRadius: 10,
-                hoverBackgroundColor: 'rgba(255, 99, 132, 0.8)',
-                hoverBorderColor: 'rgba(255, 99, 132, 1)'
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                hoverBackgroundColor: 'rgba(75, 192, 192, 0.5)',
+                hoverBorderColor: 'rgba(75, 192, 192, 1)'
             }]
         },
         options: {
