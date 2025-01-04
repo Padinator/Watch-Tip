@@ -62,7 +62,10 @@ class TestPrepareData(unittest.TestCase):
 
     # ------------ Test function "find_real_genres_to_a_movie" ------------
     @parameterized.expand(
-        [[i, movie, tvars.all_movies, i, movie["movie_id"], movie["real_genres"]] for i, movie in enumerate(tvars.all_movies.values())]
+        [
+            [i, movie, tvars.all_movies, i, movie["movie_id"], movie["real_genres"]]
+            for i, movie in enumerate(tvars.all_movies.values())
+        ]
     )
     def test_find_real_genres_to_a_movie_1(
         self,
@@ -102,7 +105,9 @@ class TestPrepareData(unittest.TestCase):
         self.assertEqual(movie_id, expected_movie_id)
         np.testing.assert_almost_equal(real_genres, expected_real_genres, decimal=3)
 
-    @parameterized.expand([[i, movie, tvars.all_movies, i, movie["movie_id"], None] for i, movie in enumerate(tvars.all_movies.values())])
+    @parameterized.expand(
+        [[i, movie, tvars.all_movies, i, movie["movie_id"], None] for i, movie in enumerate(tvars.all_movies.values())]
+    )
     def test_find_real_genres_to_a_movie_2(
         self,
         user_id: int,
@@ -221,7 +226,9 @@ class TestPrepareData(unittest.TestCase):
             self.assertEqual(user, expected_user)
             self.assertEqual(len(movies), len(expected_movies))
 
-            for (movie_id, real_genres), (expected_movie_id, expected_real_genres) in zip(movies, expected_movies):  # Iterate over all movies of a user
+            for (movie_id, real_genres), (expected_movie_id, expected_real_genres) in zip(
+                movies, expected_movies
+            ):  # Iterate over all movies of a user
                 self.assertEqual(movie_id, expected_movie_id)
                 np.testing.assert_almost_equal(real_genres, expected_real_genres, decimal=3)
 
@@ -240,7 +247,12 @@ class TestPrepareData(unittest.TestCase):
     @parameterized.expand(
         [
             # Test same data but different target dimensions
-            [2, 19, 1, pd.DataFrame({"dim0": [-6974.54099403, 6974.54099403], "username": ["test user"] * 2})],
+            [
+                2,
+                19,
+                1,
+                pd.DataFrame({"dim0": [-6974.54099403, 6974.54099403], "username": ["test user"] * 2, "movie": [0, 1]}),
+            ],
             [
                 2,
                 19,
@@ -250,6 +262,7 @@ class TestPrepareData(unittest.TestCase):
                         "dim0": [4233.793, -4233.793],
                         "dim1": [5542.487, -5542.487],
                         "username": ["test user"] * 2,
+                        "movie": [0, 1],
                     }
                 ),
             ],
@@ -263,6 +276,7 @@ class TestPrepareData(unittest.TestCase):
                         "dim1": [5149.832, -5149.832],
                         "dim2": [-3993.076, 3993.076],
                         "username": ["test user"] * 2,
+                        "movie": [0, 1],
                     }
                 ),
             ],
@@ -281,10 +295,22 @@ class TestPrepareData(unittest.TestCase):
                             2122.484912864419,
                         ],
                         "username": ["test user"] * 5,
+                        "movie": [0, 1, 2, 3, 4],
                     }
                 ),
             ],
-            [4, 2, 1, pd.DataFrame({"dim0": [2704.678, -2703.777, -3994.953, 3994.052], "username": ["test user"] * 4})],
+            [
+                4,
+                2,
+                1,
+                pd.DataFrame(
+                    {
+                        "dim0": [2704.678, -2703.777, -3994.953, 3994.052],
+                        "username": ["test user"] * 4,
+                        "movie": [0, 1, 2, 3],
+                    }
+                ),
+            ],
         ]
     )
     def test_reduce_dimensions_on_user_histories_visualization_1(
@@ -316,6 +342,7 @@ class TestPrepareData(unittest.TestCase):
             dict(
                 [(f"dim{i}", list(np.random.rand(number_of_rows_in_df))) for i in range(original_dimension)]
                 + [("username", ["test user"] * number_of_rows_in_df)]
+                + [("movie", list(range(number_of_rows_in_df)))]
             )
         )
 
@@ -325,12 +352,16 @@ class TestPrepareData(unittest.TestCase):
         )
 
         # Check results
-        # self.assertEqual(result, expected_dimension_reduced_data)
-        # Compare "username" columns
+        # Compare "movie" columns (movie IDs)
         np.testing.assert_equal(result.values[:, -1], expected_dimension_reduced_data.values[:, -1])
 
+        # Compare "username" columns
+        np.testing.assert_equal(result.values[:, -2], expected_dimension_reduced_data.values[:, -2])
+
         # Compare all columns being not the "username" column
-        np.testing.assert_almost_equal(result.values[2:, :-1], expected_dimension_reduced_data.values[2:, :-1], decimal=3)
+        print(result)
+        print(expected_dimension_reduced_data)
+        np.testing.assert_almost_equal(result.values[2:, :-2], expected_dimension_reduced_data.values[2:, :-2], decimal=3)
 
     # ------------ Test function "groupd_movie_histories_by_user" ------------
     @parameterized.expand(
@@ -338,46 +369,62 @@ class TestPrepareData(unittest.TestCase):
             # Test different dimension reduced data (different output dimensions)
             [
                 {0: []},  # Not important contents, only the username/-ID is important
-                pd.DataFrame({"dim0": [1, 2, 3], "username": [0, 0, 0]}),
+                pd.DataFrame({"dim0": [1, 2, 3], "username": [0, 0, 0], "movie": [123, 456, 789]}),
                 {
                     0: [
-                        [1],
-                        [2],
-                        [3],
+                        (123, [1]),
+                        (456, [2]),
+                        (789, [3]),
                     ]
                 },
             ],
             [
                 {0: []},  # Not important contents, only the username/-ID is important
-                pd.DataFrame({"dim0": [1, 2, 3], "dim1": [4, 5, 6], "username": [0, 0, 0]}),
-                {0: [[1, 4], [2, 5], [3, 6]]},
+                pd.DataFrame({"dim0": [1, 2, 3], "dim1": [4, 5, 6], "username": [0, 0, 0], "movie": [123, 456, 789]}),
+                {0: [(123, [1, 4]), (456, [2, 5]), (789, [3, 6])]},
             ],
             [
                 {0: []},  # Not important contents, only the username/-ID is important
-                pd.DataFrame({"dim0": [1, 2, 3], "dim1": [4, 5, 6], "dim2": [7, 8, 9], "username": [0, 0, 0]}),
-                {0: [[1, 4, 7], [2, 5, 8], [3, 6, 9]]},
+                pd.DataFrame(
+                    {
+                        "dim0": [1, 2, 3],
+                        "dim1": [4, 5, 6],
+                        "dim2": [7, 8, 9],
+                        "username": [0, 0, 0],
+                        "movie": [123, 456, 789],
+                    }
+                ),
+                {0: [(123, [1, 4, 7]), (456, [2, 5, 8]), (789, [3, 6, 9])]},
             ],
             # Test different users, who watched movies
             [
                 {0: [], 1: [], 2: []},  # Not important contents, only the username/-ID is important
-                pd.DataFrame({"dim0": [1, 2, 3], "username": [0, 1, 2]}),
+                pd.DataFrame({"dim0": [1, 2, 3], "username": [0, 1, 2], "movie": [123, 456, 789]}),
                 {
-                    0: [[1]],
-                    1: [[2]],
-                    2: [[3]],
+                    0: [(123, [1])],
+                    1: [(456, [2])],
+                    2: [(789, [3])],
                 },
             ],
             [
                 {0: [], 1: [], 2: []},  # Not important contents, only the username/-ID is important
-                pd.DataFrame({"dim0": [1, 2, 3], "dim1": [4, 5, 6], "dim2": [7, 8, 9], "username": [0, 1, 2]}),
-                {0: [[1, 4, 7]], 1: [[2, 5, 8]], 2: [[3, 6, 9]]},
+                pd.DataFrame(
+                    {
+                        "dim0": [1, 2, 3],
+                        "dim1": [4, 5, 6],
+                        "dim2": [7, 8, 9],
+                        "username": [0, 1, 2],
+                        "movie": [123, 456, 789],
+                    }
+                ),
+                {0: [(123, [1, 4, 7])], 1: [(456, [2, 5, 8])], 2: [(789, [3, 6, 9])]},
             ],
             # Test some users are missing in first dict ("user_movie_histories") with users and what they watched
             [
                 {0: []},  # Not important contents, only the username/-ID is important
-                pd.DataFrame({"dim0": [1, 2, 3], "username": [0, 1, 2]}),
+                pd.DataFrame({"dim0": [1, 2, 3], "username": [0, 1, 2], "movie": [123, 456, 789]}),
                 {
-                    0: [[1]],  # Less users with their movies/real genres in the result, because they are unknown
+                    0: [(123, [1])],  # Less users with their movies/real genres in the result, because they are unknown
                 },
             ],
             # Test inserting to each user movies with real genres into first dict ("user_movie_histories")
@@ -390,12 +437,12 @@ class TestPrepareData(unittest.TestCase):
                         [37, 28, 89],
                     ]  # Insert some movies, with real genres -> no change in result
                 },
-                pd.DataFrame({"dim0": [1, 2, 3], "username": [0, 0, 0]}),
+                pd.DataFrame({"dim0": [1, 2, 3], "username": [0, 0, 0], "movie": [123, 456, 789]}),
                 {
                     0: [
-                        [1],
-                        [2],
-                        [3],
+                        (123, [1]),
+                        (456, [2]),
+                        (789, [3]),
                     ]
                 },
             ],
@@ -433,7 +480,13 @@ class TestPrepareData(unittest.TestCase):
         for (user_id, movies), (expected_user_id, expected_movies) in zip(
             user_movie_histories_reduced_dim.items(), expected_user_movie_histories_reduced_dim.items()
         ):
-            self.assertEqual(user_id, expected_user_id)
+            self.assertEqual(user_id, expected_user_id)  # Compare user IDs
 
-            for real_genres, expected_real_genres in zip(movies, expected_movies):
+            print(movies)
+            print(expected_movies)
+            # Compapre movies
+            self.assertEqual(len(movies), len(expected_movies))
+
+            for (movie_id, real_genres), (expected_movie_id, expected_real_genres) in zip(movies, expected_movies):
+                self.assertEqual(movie_id, expected_movie_id)
                 np.testing.assert_almost_equal(real_genres, expected_real_genres)

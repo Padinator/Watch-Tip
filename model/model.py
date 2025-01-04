@@ -722,10 +722,6 @@ if __name__ == "__main__":
         # vars.user_watchings_file_path_with_real_genres  # Netflix prize data
         vars.user_watchings_file_path_with_real_genres_small  # Netflix prize data (small part)
     )
-    print(type(user_movie_histories))
-    print(len(user_movie_histories))
-    print(user_movie_histories[list(user_movie_histories.keys())[0]])
-    exit()
 
     # Compute extracted features
     used_histories, extracted_features = extract_features(
