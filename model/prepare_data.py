@@ -31,7 +31,7 @@ NUMBER_OF_VISUALIZED_NETFLIX_MOVIE_WATCHINGS = 30000
 
 def find_real_genres_to_a_movie(
     user_id: int, movie: Dict[str, Any], all_movies: Dict[int, Dict[str, Any]]
-) -> Tuple[int, np.ndarray]:
+) -> Tuple[int, int, np.ndarray]:
     """
     Searches to a movie the real genres of it. Uses for this the passed dict
     of all movies.\n
@@ -49,10 +49,12 @@ def find_real_genres_to_a_movie(
 
     Returns
     -------
-    Tuple[int, np.ndarray]
-        First enrty contains ID of user, which have watched a movie and
-        second entry contains real genres of a movie.\n
-        Returns None, if a movie has no genres (all genres are very close to zero).
+    Tuple[int, int, np.ndarray]
+        First enrty contains ID of user, which have watched a movie, second
+        entry contains real genres of a movie and the third one the ID of the
+        movie.\n
+        Returns for second entry None, if a movie has no genres (all genres
+        are very close to zero).
     """
 
     # Find watched movie and it's real genres
@@ -61,9 +63,9 @@ def find_real_genres_to_a_movie(
 
     # Skip movies without any real genre
     if all(-1e-3 < genre_value * 100 < 1e-3 for genre_value in real_movie_genres):
-        return user_id, None
+        return user_id, movie_id, None
 
-    return user_id, real_movie_genres
+    return user_id, movie_id, real_movie_genres
 
 
 def find_real_genres_to_all_user_movies(
@@ -72,7 +74,7 @@ def find_real_genres_to_all_user_movies(
     genre_names: List[str],
     cpu_kernels: int = 8,
     output_iterations: int = 1000,
-) -> Tuple[Dict[int, List[np.ndarray]], pd.DataFrame]:
+) -> Tuple[Dict[int, List[Tuple[int, np.ndarray]]], pd.DataFrame]:
     """
     Find real genres of users (= watched movies) with real genres of movies.
     Returns a dict of all movies as real genres = numpy arrays.
@@ -97,11 +99,14 @@ def find_real_genres_to_all_user_movies(
     Returns
     -------
     Tuple[
-                Dict[int, List[np.ndarray]],\n
+                Dict[int, List[Tuple[int, np.ndarray]]],\n
                 pd.DataFrame
     }
-        First entry contains dict with all usernames as IDs and lists of movies users have watched as values.
-        Second entry contains unraveled form of first entry for visualization (row: movie; column: genre anmes + username).
+        First entry contains dict with all usernames as IDs (key) and lists of
+        tuples with movie IDs and real genres of these movies movies users
+        have watched (values).
+        Second entry contains unraveled form of first entry for visualization
+        (row: movie; column: genre anmes + username).
     """
 
     # Define variables
@@ -119,19 +124,21 @@ def find_real_genres_to_all_user_movies(
     # Create raveled dict of all watchings per user
     print("Create raveled dict of all watchings per user")
     for watching in res:
-        if watching is not None:  # Ignore movies withput any genre
-            user_id, real_movie_genres = watching
-            user_movies_raveled[user_id].append(real_movie_genres)
+        user_id, movie_id, real_movie_genres = watching
+
+        if real_movie_genres is not None:  # Ignore movies withput any genre
+            user_movies_raveled[user_id].append((movie_id, real_movie_genres))
 
     # Create unravled dict with all watchings as rows and genre names as columns
     print("Create unraveled dict with all watchings as rows and genre names as columns")
     for watching in res:
-        if watching is not None:  # Ignore movies withput any genre
-            user_id, real_movie_genres = watching
+        user_id, movie_id, real_movie_genres = watching
 
+        if real_movie_genres is not None:  # Ignore movies withput any genre
             for j, genre in enumerate(genre_names):
                 user_movie_histories[genre].append(real_movie_genres[j])
             user_movie_histories["username"].append(user_id)
+            user_movie_histories["movie"].append(movie_id)
 
     return (user_movies_raveled, pd.DataFrame(user_movie_histories))
 
@@ -177,6 +184,7 @@ def reduce_dimensions_on_user_histories_visualization(
         {
             **dimensions,
             "username": df_user_movie_histories["username"].values,
+            "movie": df_user_movie_histories["movie"].values
         }
     )
 
@@ -227,9 +235,14 @@ def groupd_movie_histories_by_user(
 if __name__ == "__main__":
     # Read data from database
     print("Read all movies, all users reviews and all genres from database.")
-    all_movies = Movies().get_all()
-    all_users = Users().get_all()
-    all_genres = Genres().get_all()
+    # all_movies = Movies().get_all()
+    # all_users = Users().get_all()
+    # all_genres = Genres().get_all()
+
+    all_movies = load_object_from_file("tmp_all_movies.pickle")
+    all_users = load_object_from_file("tmp_all_users.pickle")
+    all_genres = load_object_from_file("tmp_all_genres.pickle")
+
     genre_names = np.array([genre["name"] for genre in all_genres.values()])
 
     # Find real genres to movies, users have watched and save them to file
@@ -288,7 +301,7 @@ if __name__ == "__main__":
     ]
     print("Start function")
     user_watchings_with_real_genres, df_user_watchings_with_real_genres = find_real_genres_to_all_user_movies(
-        all_movies, all_user_watchings_unraveled, genre_names=genre_names, cpu_kernels=CPU_KERNELS, output_iterations=10000
+        all_movies, all_user_watchings_unraveled, genre_names=genre_names, cpu_kernels=CPU_KERNELS, output_iterations=100000
     )
 
     print("\nStatistics about user watchings results:")
@@ -303,13 +316,17 @@ if __name__ == "__main__":
     save_object_in_file(vars.user_watchings_file_path_with_real_genres_visualization, df_user_watchings_with_real_genres)
 
     # Prepare Netflix data (small part of data, good for some visualizations)
-    df_user_watchings_with_real_genres_small = df_user_watchings_with_real_genres.iloc[:NUMBER_OF_VISUALIZED_NETFLIX_MOVIE_WATCHINGS, :]
+    df_user_watchings_with_real_genres_small = df_user_watchings_with_real_genres.iloc[
+        :NUMBER_OF_VISUALIZED_NETFLIX_MOVIE_WATCHINGS, :
+    ]
 
     netflix_prize_small_dataset_usernames = set(df_user_watchings_with_real_genres_small["username"])
     netflix_prize_small_dataset_username_dict = dict([(username, []) for username in netflix_prize_small_dataset_usernames])
-    user_watchings_with_real_genres_small = groupd_movie_histories_by_user(netflix_prize_small_dataset_username_dict, df_user_watchings_with_real_genres_small)
+    user_watchings_with_real_genres_small = groupd_movie_histories_by_user(  # Nochmal machen weil gruppieren nicht geht!!!
+        netflix_prize_small_dataset_username_dict, df_user_watchings_with_real_genres_small
+    )
 
-    print("\nSave user watchings per user")
+    print("\nSave user watchings per user of some little part of all users")
     save_object_in_file(vars.user_watchings_file_path_with_real_genres_small, user_watchings_with_real_genres_small)
 
     print("Save user watchings of some little part of all users (DataFrame)")

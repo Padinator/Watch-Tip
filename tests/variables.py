@@ -36,22 +36,22 @@ all_movies = dict([(int(movie_id), movie) for movie_id, movie in all_movies.item
 
 # One user watched many movies
 all_movies_real_genres_per_user_one_user = {
-    0: [np.array(movie["real_genres"], dtype=np.float64) for movie in all_movies.values()]
+    0: [(movie["movie_id"], np.array(movie["real_genres"], dtype=np.float64)) for movie in all_movies.values()]
 }
 max_history_len_one_user = len(list(all_movies_real_genres_per_user_one_user.values())[0])
 all_movies_real_genres_per_user_one_user_unraveled = [(0, movie) for movie in all_movies.values()]
 all_movies_real_genres_per_user_one_user_raveled = pd.DataFrame(
-    dict([(f"m{i}", movie["real_genres"] + [0]) for i, movie in enumerate(all_movies.values())])
+    dict([(f"m{i}", movie["real_genres"] + [0, movie["movie_id"]]) for i, movie in enumerate(all_movies.values())])
 ).T
 
 # Many users watched exactly one movie
 max_history_len_many_users_one_movie = 1
 all_movies_real_genres_per_user_many_users_one_movie = dict(
-    [(i, [np.array(movie["real_genres"], dtype=np.float64)]) for i, movie in enumerate(all_movies.values())]
+    [(i, [(movie["movie_id"], np.array(movie["real_genres"], dtype=np.float64))]) for i, movie in enumerate(all_movies.values())]
 )
 all_movies_real_genres_per_user_many_users_one_movie_unraveled = [(i, movie) for i, movie in enumerate(all_movies.values())]
 all_movies_real_genres_per_user_many_users_one_movie_raveled = pd.DataFrame(
-    dict([(f"m{i}", movie["real_genres"] + [i]) for i, movie in enumerate(all_movies.values())])
+    dict([(f"m{i}", movie["real_genres"] + [i, movie["movie_id"]]) for i, movie in enumerate(all_movies.values())])
 ).T
 
 # Each user watched 10 movies
@@ -61,7 +61,7 @@ all_movies_real_genres_per_user_many_users_equal_movies = dict(
         (
             i // max_history_len_many_users_equal_movies,
             [
-                np.array(movie["real_genres"], dtype=np.float64)
+                (movie["movie_id"], np.array(movie["real_genres"], dtype=np.float64))
                 for movie in list(all_movies.values())[i:i + max_history_len_many_users_equal_movies]
             ],
         )
@@ -74,7 +74,7 @@ all_movies_real_genres_per_user_many_users_equal_movies_unraveled = [
 all_movies_real_genres_per_user_many_users_equal_movies_raveled = pd.DataFrame(
     dict(
         [
-            (f"m{i}", movie["real_genres"] + [i // max_history_len_many_users_equal_movies])
+            (f"m{i}", movie["real_genres"] + [i // max_history_len_many_users_equal_movies, movie["movie_id"]])
             for i, movie in enumerate(all_movies.values())
         ]
     )

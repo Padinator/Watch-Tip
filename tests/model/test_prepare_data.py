@@ -62,7 +62,7 @@ class TestPrepareData(unittest.TestCase):
 
     # ------------ Test function "find_real_genres_to_a_movie" ------------
     @parameterized.expand(
-        [[i, movie, tvars.all_movies, i, movie["real_genres"]] for i, movie in enumerate(tvars.all_movies.values())]
+        [[i, movie, tvars.all_movies, i, movie["movie_id"], movie["real_genres"]] for i, movie in enumerate(tvars.all_movies.values())]
     )
     def test_find_real_genres_to_a_movie_1(
         self,
@@ -70,6 +70,7 @@ class TestPrepareData(unittest.TestCase):
         movie: Dict[str, Any],
         all_movies: Dict[int, Dict[str, Any]],
         expected_user_id: int,
+        expected_movie_id: int,
         expected_real_genres: List[float],
     ) -> None:
         """
@@ -78,33 +79,37 @@ class TestPrepareData(unittest.TestCase):
         Parameters
         ----------
         user_id : int
-            ID of user, who has watched the movie.
+            ID of user, who watched the movie.
         movie : Dict[str, Any]
             Movie to which a movie will be added
         all_movies : Dict[int, Dict[str, Any]]
             List of all movies in which the real genres of the movie will be
             searched
         expected_user_id : int
-            ID of user, who has watched the movie
+            ID of user, who watched the movie
+        expected_movie_id : int
+            ID of movie, user watched
         expected_real_genres : List[float]
             Expected value for testing function
         """
 
         # Execute function to test
-        user_id, real_genres = find_real_genres_to_a_movie(user_id=user_id, movie=movie, all_movies=all_movies)
+        user_id, movie_id, real_genres = find_real_genres_to_a_movie(user_id=user_id, movie=movie, all_movies=all_movies)
         expected_real_genres = np.array(expected_real_genres, dtype=np.float64)
 
         # Assert/Check results
         self.assertEqual(user_id, expected_user_id)
+        self.assertEqual(movie_id, expected_movie_id)
         np.testing.assert_almost_equal(real_genres, expected_real_genres, decimal=3)
 
-    @parameterized.expand([[i, movie, tvars.all_movies, i, None] for i, movie in enumerate(tvars.all_movies.values())])
+    @parameterized.expand([[i, movie, tvars.all_movies, i, movie["movie_id"], None] for i, movie in enumerate(tvars.all_movies.values())])
     def test_find_real_genres_to_a_movie_2(
         self,
         user_id: int,
         movie: Dict[str, Any],
         all_movies: Dict[int, Dict[str, Any]],
         expected_user_id: int,
+        expected_movie_id: int,
         expected_real_genres: List[float],
     ) -> None:
         """
@@ -122,6 +127,8 @@ class TestPrepareData(unittest.TestCase):
             searched
         expected_user_id : int
             ID of user, who has watched the movie
+        expected_movie_id : int
+            ID of movie, user watched
         expected_real_genres : List[float]
             Expected value for testing function
         """
@@ -133,12 +140,13 @@ class TestPrepareData(unittest.TestCase):
             all_movies_with_zero_genres[movie_id]["real_genres"] = np.zeros(len(movie["real_genres"]))
 
         # Execute function to test
-        user_id, real_genres = find_real_genres_to_a_movie(
+        user_id, movie_id, real_genres = find_real_genres_to_a_movie(
             user_id=user_id, movie=movie, all_movies=all_movies_with_zero_genres
         )
 
         # Assert/Check results
         self.assertEqual(user_id, expected_user_id)
+        self.assertEqual(movie_id, expected_movie_id)
         self.assertEqual(real_genres, expected_real_genres)
 
     def test_find_real_genres_to_a_movie_3(self) -> None:
@@ -213,7 +221,8 @@ class TestPrepareData(unittest.TestCase):
             self.assertEqual(user, expected_user)
             self.assertEqual(len(movies), len(expected_movies))
 
-            for real_genres, expected_real_genres in zip(movies, expected_movies):  # Iterate over all movies of a user
+            for (movie_id, real_genres), (expected_movie_id, expected_real_genres) in zip(movies, expected_movies):  # Iterate over all movies of a user
+                self.assertEqual(movie_id, expected_movie_id)
                 np.testing.assert_almost_equal(real_genres, expected_real_genres, decimal=3)
 
         # Check results of real genres (DataFrame)
@@ -223,8 +232,9 @@ class TestPrepareData(unittest.TestCase):
         for (_, row), (_, expected_row) in zip(
             df_real_genres_per_user.iterrows(), expected_real_genres_per_user_df.iterrows()
         ):  # Iterate over all movies
-            self.assertEqual(row.values[-1], expected_row.values[-1])  # Compare usernames
-            np.testing.assert_almost_equal(row.values[:-1], expected_row.values[:-1], decimal=3)  # Compare all genres
+            self.assertEqual(row.values[-2], expected_row.values[-2])  # Compare usernames
+            self.assertEqual(row.values[-1], expected_row.values[-1])  # Compare movie IDs
+            np.testing.assert_almost_equal(row.values[:-2], expected_row.values[:-2], decimal=3)  # Compare all genres
 
     # ------------ Test function "reduce_dimensions_on_user_histories_visualization" ------------
     @parameterized.expand(
