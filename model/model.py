@@ -160,7 +160,6 @@ def extract_features(
             history_feature = (zero_movies + movies, (movie_id, target_label))
             all_extracted_features.append(history_feature)
         else:  # Use history only, if it is long enough
-            print(users_movie_history)
             all_extracted_features.extend(
                 [
                     (
