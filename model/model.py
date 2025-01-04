@@ -28,6 +28,8 @@ from helper.file_system_interaction import load_object_from_file, save_object_in
 MAX_DATA = 50000
 HISTORY_LEN = 50
 MIN_MOVIE_HISTORY_LEN = 20
+FILL_HISTORY_LEN_WITH_ZERO_MOVIES = True
+FINE_GRAINED_EXTRACTING = True
 DISTANCE_TO_OTHER_MOVIES = 0.1
 TRAIN_DATA_RELATIONSHIP = 0.9
 SEED = 1234
@@ -46,7 +48,13 @@ random.seed(SEED)
 tf.random.set_seed(seed=SEED)
 
 # Define variables
-save_dir = Path(f"results/{MAX_DATA}_{TRAIN_DATA_RELATIONSHIP}_{HISTORY_LEN}_{MIN_MOVIE_HISTORY_LEN}")
+save_dir = Path(
+    f"results/{MAX_DATA}_{TRAIN_DATA_RELATIONSHIP}_{HISTORY_LEN}_{MIN_MOVIE_HISTORY_LEN}_{FILL_HISTORY_LEN_WITH_ZERO_MOVIES}_{FINE_GRAINED_EXTRACTING}"
+)
+extracted_features_file_path = (
+    vars.extracted_features_folder
+    / f"extracted_features_{FILL_HISTORY_LEN_WITH_ZERO_MOVIES}_{FINE_GRAINED_EXTRACTING}.pickle"
+)
 
 
 class MinPooling2D(MaxPool1D):
@@ -96,8 +104,8 @@ def extract_features(
         Grouped/Unraveled movies histories per user, e.g.:
         {
             1038924: [
-                [10.2, 39.3, 59.5, 56.4, 12.8, 0.76, 96.4, 21.3, 69.0, 98.5,
-                28.2, 49.1, 19.01, 39.4, 18.9, 38.2, 98.5, 25.6, 9.3],  # Real genres of first movie of user 1038924\n
+                (102, [10.2, 39.3, 59.5, 56.4, 12.8, 0.76, 96.4, 21.3, 69.0, 98.5,
+                28.2, 49.1, 19.01, 39.4, 18.9, 38.2, 98.5, 25.6, 9.3]),  # Real genres of movie 102 of user 1038924\n
                 ...
             ]
         }
@@ -141,7 +149,7 @@ def extract_features(
         ):  # Use has watched enoguh movies, but not many
             # Find movies and target/label
             movies = [real_genres for _, real_genres in users_movie_history[:-1]]
-            target_label = users_movie_history[-1]  # Save in label movie ID and target real genres
+            movie_id, target_label = users_movie_history[-1]  # Save in label movie ID and target real genres
 
             # Fill missing movies with zeros
             number_of_missing_movies = movie_history_len - len(movies)
@@ -149,9 +157,10 @@ def extract_features(
             zero_movies = list(np.tile(zero_movie, (number_of_missing_movies, 1)))
 
             # Create one list with zero movies and watched movies of a user
-            history_feature = (zero_movies + movies, target_label)
+            history_feature = (zero_movies + movies, (movie_id, target_label))
             all_extracted_features.append(history_feature)
         else:  # Use history only, if it is long enough
+            print(users_movie_history)
             all_extracted_features.extend(
                 [
                     (
@@ -377,19 +386,26 @@ def build_LSTM() -> LSTM:
             # Dense(19, activation="sigmoid"),
 
             # LSTM
-            # Conv1D(32, 3, padding="same", activation="relu"),
+            Conv1D(32, 3, padding="same", activation="relu"),
             # SimpleRNN(32, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
-            # GRU(64, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
-            LSTM(128, input_shape=(HISTORY_LEN, 19), return_sequences=True, kernel_initializer="HeUniform"),
-            Conv1D(128, 3, padding="same", activation="relu"),
+            # GRU(32, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
+            LSTM(64, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
 
-            LSTM(64, return_sequences=True, kernel_initializer="HeUniform", ),
-            Conv1D(64, 3, padding="same", activation="relu"),
+            # LSTM(128, input_shape=(HISTORY_LEN, 19), return_sequences=True, kernel_initializer="HeUniform"),
+            # # Conv1D(128, 3, padding="same", activation="relu"),
+            # MaxPool1D(pool_size=2),
 
-            LSTM(32, return_sequences=False, kernel_initializer="HeUniform", ),
+            # LSTM(128, input_shape=(HISTORY_LEN, 19), return_sequences=True, kernel_initializer="HeUniform"),
+            # MaxPool1D(pool_size=2),
 
-            Dense(1024, activation="relu"),
-            Dropout(0.5, seed=SEED),  # Dropout for don't learning by heart
+            # LSTM(64, return_sequences=True, kernel_initializer="HeUniform", ),
+            # # Conv1D(64, 3, padding="same", activation="relu"),
+            # MaxPool1D(pool_size=2),
+
+            # LSTM(32, return_sequences=False, kernel_initializer="HeUniform", ),
+
+            # Dense(1024, activation="relu"),
+            # Dropout(0.5, seed=SEED),  # Dropout for don't learning by heart
             Dense(19, activation="sigmoid"),
 
             # RNN
@@ -699,48 +715,52 @@ if __name__ == "__main__":
     # TODO: Compare genres
     # TODO: Which inputs will be used? -> use a movie not too often as target/label (else biased)
 
-    # # Load all movies from file
-    # user_movie_histories = load_object_from_file(
-    #     # vars.user_history_file_path_with_real_genres  # TMDB data
-    #     # vars.user_history_file_path_with_real_genres_and_reduced_dimensions  # TMDB data dimension reduced
-    #     vars.user_watchings_file_path_with_real_genres  # Netflix prize data
-    #     # vars.user_watchings_file_path_with_real_genres_small  # Netflix prize data (small part)
-    # )
+    # Load all movies from file
+    user_movie_histories = load_object_from_file(
+        # vars.user_history_file_path_with_real_genres  # TMDB data
+        # vars.user_history_file_path_with_real_genres_and_reduced_dimensions  # TMDB data dimension reduced
+        # vars.user_watchings_file_path_with_real_genres  # Netflix prize data
+        vars.user_watchings_file_path_with_real_genres_small  # Netflix prize data (small part)
+    )
+    print(type(user_movie_histories))
+    print(len(user_movie_histories))
+    print(user_movie_histories[list(user_movie_histories.keys())[0]])
+    exit()
 
-    # # Compute extracted features
-    # used_histories, extracted_features = extract_features(
-    #     user_movie_histories,
-    #     HISTORY_LEN,
-    #     MIN_MOVIE_HISTORY_LEN,
-    #     fill_history_len_with_zero_movies=False,
-    #     fine_grained_extracting=False,
-    # )
-    # save_object_in_file(
-    #     vars.extracted_features_file_path, (used_histories, extracted_features)
-    # )
+    # Compute extracted features
+    used_histories, extracted_features = extract_features(
+        user_movie_histories,
+        HISTORY_LEN,
+        MIN_MOVIE_HISTORY_LEN,
+        fill_history_len_with_zero_movies=FILL_HISTORY_LEN_WITH_ZERO_MOVIES,
+        fine_grained_extracting=FINE_GRAINED_EXTRACTING,
+    )
+    save_object_in_file(
+        extracted_features_file_path, (used_histories, extracted_features)
+    )
 
-    # # used_histories, extracted_features = load_object_from_file(vars.extracted_features_file_path)
-    # print(f"Max amount of available data (before): {len(extracted_features)}")
-    # label_occurences = Counter([movie_id for _, (movie_id, _) in extracted_features])
-    # # highest_label_occurences = dict(sorted(label_occurences.items(), key=lambda x: -x[1])[:100])
-    # # lowest_label_occurences = dict(sorted(label_occurences.items(), key=lambda x: -x[1])[-100:])
-    # # print(highest_label_occurences)
-    # # print(lowest_label_occurences)
-    # # print(len([1 for ovvurence in label_occurences.values() if ovvurence == 1]))
+    # used_histories, extracted_features = load_object_from_file(extracted_features_file_path)
+    print(f"Max amount of available data (before): {len(extracted_features)}")
+    label_occurences = Counter([movie_id for _, (movie_id, _) in extracted_features])
+    # highest_label_occurences = dict(sorted(label_occurences.items(), key=lambda x: -x[1])[:100])
+    # lowest_label_occurences = dict(sorted(label_occurences.items(), key=lambda x: -x[1])[-100:])
+    # print(highest_label_occurences)
+    # print(lowest_label_occurences)
+    # print(len([1 for ovvurence in label_occurences.values() if ovvurence == 1]))
 
-    # relevant_histories = []
-    # history_counter = defaultdict(int)
+    relevant_histories = []
+    history_counter = defaultdict(int)
 
-    # for movie_history, (movie_id, target) in extracted_features:
-    #     if history_counter[movie_id] < 100:  # 100 < label_occurences[movie_id] and
-    #         relevant_histories.append((movie_history, target))
-    #         history_counter[movie_id] += 1
-    #     # if 100 < label_occurences[movie_id]:
-    #     #     relevant_histories.append((movie_history, target))
+    for movie_history, (movie_id, target) in extracted_features:
+        if history_counter[movie_id] < 100:  # 100 < label_occurences[movie_id] and
+            relevant_histories.append((movie_history, target))
+            history_counter[movie_id] += 1
+        # if 100 < label_occurences[movie_id]:
+        #     relevant_histories.append((movie_history, target))
 
-    # print(f"Max amount of available data (after): {len(relevant_histories)}")
-    # save_object_in_file("tmp_extracted.pickle", (len(relevant_histories), relevant_histories))
-    # extracted_features = relevant_histories
+    print(f"Max amount of available data (after): {len(relevant_histories)}")
+    save_object_in_file("tmp_extracted.pickle", (len(relevant_histories), relevant_histories))
+    extracted_features = relevant_histories
     # exit()
     #
     #
@@ -767,7 +787,7 @@ if __name__ == "__main__":
     """
 
     # Read extracted features
-    # used_histories, extracted_features = load_object_from_file(vars.extracted_features_file_path)
+    # used_histories, extracted_features = load_object_from_file(extracted_features_file_path)
     used_histories, extracted_features = load_object_from_file("tmp_extracted.pickle")
     random.shuffle(extracted_features)  # Shuffle data
     max_histories_to_use = min(MAX_DATA, len(extracted_features))  # Use MAX_DATA, if MAX_DATA is available
@@ -779,7 +799,9 @@ if __name__ == "__main__":
     print(used_histories, shapes)
 
     # Adjust variables because of new training data
-    save_dir = Path(f"results/{max_histories_to_use}_{TRAIN_DATA_RELATIONSHIP}_{HISTORY_LEN}_{MIN_MOVIE_HISTORY_LEN}")
+    save_dir = Path(
+        f"results/{max_histories_to_use}_{TRAIN_DATA_RELATIONSHIP}_{HISTORY_LEN}_{MIN_MOVIE_HISTORY_LEN}_{FILL_HISTORY_LEN_WITH_ZERO_MOVIES}_{FINE_GRAINED_EXTRACTING}"
+    )
 
     # Split data into train and test data
     X, y = np.array([np.array(x) for x, _ in extracted_features], dtype=np.float64), np.array(
@@ -796,6 +818,10 @@ if __name__ == "__main__":
     predictions, real_save_dir = model.build_train_and_test_model(
         X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test, save_dir=save_dir
     )
+
+    # Save all predictions in file
+    predictions_file_path = real_save_dir / "predictions.pickle"
+    save_object_in_file(f"{predictions_file_path}", (X_test, y_test, predictions))
 
     # Find zero predictions = model predicting only null vectors, because it fits the most
     binary_predictions = [one_hot_encoding_1d_arr(prediction, factor=0.5 * output_factor) for prediction in predictions]

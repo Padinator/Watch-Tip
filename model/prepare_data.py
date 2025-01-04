@@ -167,10 +167,11 @@ def reduce_dimensions_on_user_histories_visualization(
 
     # Ignore column username for dimension reduction
     df_user_movie_histories_without_username = df_user_movie_histories.loc[:, df_user_movie_histories.columns != "username"]
+    df_user_movie_histories_without_username_and_movie = df_user_movie_histories_without_username.loc[:, df_user_movie_histories_without_username.columns != "movie"]
 
     # Reduce dimensions
     user_movie_histories_reduced_dim = TSNE(n_components=n_dimensions, n_jobs=cpu_kernels).fit_transform(
-        df_user_movie_histories_without_username
+        df_user_movie_histories_without_username_and_movie
     )
 
     # Save data with reduced dimensions in a DataFrame
@@ -227,7 +228,8 @@ def groupd_movie_histories_by_user(
             df_user_movie_histories_reduced_dim["username"] == username,
             columns_except_username,
         ]
-        user_movie_histories_reduced_dim[username] = rows.values
+        row_values = [(int(line[-1]), line[:-1]) for line in rows.values]
+        user_movie_histories_reduced_dim[username] = row_values
 
     return user_movie_histories_reduced_dim
 
@@ -235,14 +237,9 @@ def groupd_movie_histories_by_user(
 if __name__ == "__main__":
     # Read data from database
     print("Read all movies, all users reviews and all genres from database.")
-    # all_movies = Movies().get_all()
-    # all_users = Users().get_all()
-    # all_genres = Genres().get_all()
-
-    all_movies = load_object_from_file("tmp_all_movies.pickle")
-    all_users = load_object_from_file("tmp_all_users.pickle")
-    all_genres = load_object_from_file("tmp_all_genres.pickle")
-
+    all_movies = Movies().get_all()
+    all_users = Users().get_all()
+    all_genres = Genres().get_all()
     genre_names = np.array([genre["name"] for genre in all_genres.values()])
 
     # Find real genres to movies, users have watched and save them to file
