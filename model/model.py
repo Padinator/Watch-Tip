@@ -28,8 +28,8 @@ from helper.file_system_interaction import load_object_from_file, save_object_in
 MAX_DATA = 50000
 HISTORY_LEN = 50
 MIN_MOVIE_HISTORY_LEN = 20
-FILL_HISTORY_LEN_WITH_ZERO_MOVIES = True
-FINE_GRAINED_EXTRACTING = True
+FILL_HISTORY_LEN_WITH_ZERO_MOVIES = False
+FINE_GRAINED_EXTRACTING = False
 DISTANCE_TO_OTHER_MOVIES = 0.1
 TRAIN_DATA_RELATIONSHIP = 0.9
 SEED = 1234
@@ -718,8 +718,8 @@ if __name__ == "__main__":
     user_movie_histories = load_object_from_file(
         # vars.user_history_file_path_with_real_genres  # TMDB data
         # vars.user_history_file_path_with_real_genres_and_reduced_dimensions  # TMDB data dimension reduced
-        # vars.user_watchings_file_path_with_real_genres  # Netflix prize data
-        vars.user_watchings_file_path_with_real_genres_small  # Netflix prize data (small part)
+        vars.user_watchings_file_path_with_real_genres  # Netflix prize data
+        # vars.user_watchings_file_path_with_real_genres_small  # Netflix prize data (small part)
     )
 
     # Compute extracted features
@@ -754,9 +754,7 @@ if __name__ == "__main__":
         #     relevant_histories.append((movie_history, target))
 
     print(f"Max amount of available data (after): {len(relevant_histories)}")
-    save_object_in_file("tmp_extracted.pickle", (len(relevant_histories), relevant_histories))
     extracted_features = relevant_histories
-    # exit()
     #
     #
 
@@ -783,7 +781,6 @@ if __name__ == "__main__":
 
     # Read extracted features
     # used_histories, extracted_features = load_object_from_file(extracted_features_file_path)
-    used_histories, extracted_features = load_object_from_file("tmp_extracted.pickle")
     random.shuffle(extracted_features)  # Shuffle data
     max_histories_to_use = min(MAX_DATA, len(extracted_features))  # Use MAX_DATA, if MAX_DATA is available
     print(f"Max amount of available data: {len(extracted_features)}, take only: {max_histories_to_use}")
