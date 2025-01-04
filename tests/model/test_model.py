@@ -24,7 +24,7 @@ np.random.seed(seed=SEED)
 
 
 def generate_full_movies_histories(
-    all_movies_real_genres: Dict[int, List[np.ndarray]], history_len: int
+    all_movies_real_genres: Dict[int, List[Tuple[int, np.ndarray]]], history_len: int
 ) -> List[Tuple[np.ndarray, np.ndarray]]:
     """
     Generates to a passed list of movies the movie histories. It's basically a
@@ -35,8 +35,8 @@ def generate_full_movies_histories(
         Grouped/Unraveled movies histories per user, e.g.:
         {
             1038924: [
-                [10.2, 39.3, 59.5, 56.4, 12.8, 0.76, 96.4, 21.3, 69.0, 98.5,
-                28.2, 49.1, 19.01, 39.4, 18.9, 38.2, 98.5, 25.6, 9.3],  # Real genres of first movie of user 1038924\n
+                (102, [10.2, 39.3, 59.5, 56.4, 12.8, 0.76, 96.4, 21.3, 69.0, 98.5,
+                28.2, 49.1, 19.01, 39.4, 18.9, 38.2, 98.5, 25.6, 9.3]),  # Real genres of movie 102 of user 1038924\n
                 ...
             ]
         }
@@ -52,7 +52,7 @@ def generate_full_movies_histories(
     """
 
     return [
-        (users_movie_history[i:i + history_len], users_movie_history[i + history_len])
+        ([movie for _, movie in users_movie_history[i:i + history_len]], users_movie_history[i + history_len])
         for users_movie_history in all_movies_real_genres.values()
         for i in range(len(users_movie_history) - history_len)
         if 0 < (len(users_movie_history) - history_len)
@@ -129,7 +129,7 @@ class TestModel(unittest.TestCase):
                 - 1,  # Because one user watched only 5 movies
             ],
             # Fill movie history of last user with zero movies, because he has
-            # only 5 movies. So add 5 zero movies (=zero vectors).
+            # only 5 movies. So add 5 zero movies (= zero vectors).
             [
                 tvars.all_movies_real_genres_per_user_many_users_equal_movies,
                 9,  # 9 movies for the input feature and one for the target/label
@@ -142,7 +142,12 @@ class TestModel(unittest.TestCase):
                         np.concatenate(
                             (
                                 np.tile(np.zeros(19), (5, 1)),  # Add 5 zero movies
-                                list(tvars.all_movies_real_genres_per_user_many_users_equal_movies.values())[-1][
+                                [
+                                    movie
+                                    for movie_id, movie in list(
+                                        tvars.all_movies_real_genres_per_user_many_users_equal_movies.values()
+                                    )[-1]
+                                ][
                                     :4
                                 ],  # Use 4 movies from user's movie history
                             ),
@@ -221,7 +226,8 @@ class TestModel(unittest.TestCase):
         for (extracted_feature, target), (expected_extracted_feature, expected_target) in zip(
             extracted_features, expected_extracted_features
         ):
-            np.testing.assert_array_almost_equal(target, expected_target)  # Compare targets/labels
+            self.assertEqual(target[0], expected_target[0])  # Compare movie ID of target/label
+            np.testing.assert_array_almost_equal(target[1], expected_target[1])  # Compare real genres of target/label
 
             # Compare movie histories
             for real_genres, expected_real_genres in zip(extracted_feature, expected_extracted_feature):
