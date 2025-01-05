@@ -26,8 +26,8 @@ from helper.file_system_interaction import load_object_from_file, save_object_in
 
 
 # Define constants
-MAX_DATA = 50000
-HISTORY_LEN = 50
+MAX_DATA = 100000
+HISTORY_LEN = 30
 MIN_MOVIE_HISTORY_LEN = 20
 FILL_HISTORY_LEN_WITH_ZERO_MOVIES = False
 FINE_GRAINED_EXTRACTING = False
@@ -341,6 +341,8 @@ def build_LSTM() -> LSTM:
         [
             Conv1D(32, 3, padding="same", activation="relu"),
             LSTM(64, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
+            # Dense(1024, activation="relu"),
+            # Dropout(0.4),
             Dense(19, activation="sigmoid"),
         ]
     )
@@ -348,7 +350,7 @@ def build_LSTM() -> LSTM:
     # Compile/Set solver, loss and metrics
     lstm.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
-        loss="huber",  # mse (more sensible to outliers and changes) is better than mae (less sensible to outliers -> less different values) and it has less loss => "get both worlds": huber loss
+        loss="log_cosh",  # mse (more sensible to outliers and changes) is better than mae (less sensible to outliers -> less different values) and it has less loss => "get both worlds": huber/log_cosh (less sensible than loss huber) loss
         metrics=[
             "acc"
             # tf.keras.metrics.FalseNegatives(),
@@ -407,7 +409,7 @@ def train_and_test_LSTM(
     return lstm.predict(X_test, batch_size=batch_size)
 
 
-def label_data(genre_names: List[str], all_movies: Dict[int, np.array], movie_ids: List[int], label: str) -> pd.DataFrame:
+def label_data(genre_names: List[str], all_movies: Dict[int, np.ndarray], movie_ids: List[int], label: str) -> pd.DataFrame:
     """
     Creates a DataFrame with genre names as column names and rows for each
     movie from list of passed movie IDs "movie_ids".
@@ -417,7 +419,7 @@ def label_data(genre_names: List[str], all_movies: Dict[int, np.array], movie_id
     genre_names : List[str]
         Names of genres like "Action", "Adventure", ..., which will be used as
         column names for DataFrame
-    all_movies : Dict[int, np.array]
+    all_movies : Dict[int, np.ndarray]
         Dictionary of all movies, where movie IDs are keys and real genres
         values
     movie_ids : List[int]
@@ -441,7 +443,7 @@ def label_data(genre_names: List[str], all_movies: Dict[int, np.array], movie_id
 
 
 def merge_data_for_visualization(
-    label: str, X_movie_ids: List[int], y_movie_ids: List[int], predictions: np.ndarray, genre_names: List[str]
+    label: str, X_movie_ids: List[int], y_movie_ids: List[int], all_movies: Dict[int, np.ndarray], predictions: np.ndarray, genre_names: List[str]
 ) -> pd.DataFrame:
     """
     Merges data (e.g. train data or test data) into one DataFrame for
@@ -456,6 +458,9 @@ def merge_data_for_visualization(
         IDs of input movies (movie histories)
     y_movie_ids : List[int]
         IDs of output movies (targets/labels)
+    all_movies : Dict[int, np.ndarray]
+        Dictionary of all movies, where movie IDs are keys and real genres
+        values
     predictions : np.ndarray
         Predictions of input data
     genre_names: List[str]
@@ -734,7 +739,7 @@ if __name__ == "__main__":
     all_movies = {}  # All movies as dict of {movie_id: real_genres_of_a_movie}
 
     # Öoad data
-    if os.path.exists(extracted_features_file_path):  # Load extracted features from file
+    if False and os.path.exists(extracted_features_file_path):  # Load extracted features from file
         used_histories, extracted_features = load_object_from_file(extracted_features_file_path)
     else:  # Extract features from all data
         # Load all movies from file
@@ -753,7 +758,7 @@ if __name__ == "__main__":
             fill_history_len_with_zero_movies=FILL_HISTORY_LEN_WITH_ZERO_MOVIES,
             fine_grained_extracting=FINE_GRAINED_EXTRACTING,
         )
-        save_object_in_file(extracted_features_file_path, (used_histories, extracted_features))
+        # save_object_in_file(extracted_features_file_path, (used_histories, extracted_features))
 
     # Save all movies to visualize it later
     all_movies_target = dict([(movie_id, target) for _, (movie_id, target) in extracted_features])
@@ -823,9 +828,9 @@ if __name__ == "__main__":
         X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test, save_dir=save_dir
     )
 
-    # Save all predictions in file
-    predictions_file_path = real_save_dir / "predictions.pickle"
-    save_object_in_file(f"{predictions_file_path}", (X_test, y_test, predictions))
+    # # Save all predictions in file
+    # predictions_file_path = real_save_dir / "predictions.pickle"
+    # save_object_in_file(f"{predictions_file_path}", (X_test, y_test, predictions))
 
     # Find zero predictions = model predicting only null vectors, because it fits the most
     binary_predictions = [one_hot_encoding_1d_arr(prediction, factor=0.5 * output_factor) for prediction in predictions]
@@ -875,7 +880,8 @@ if __name__ == "__main__":
         label="train",
         X_movie_ids=movie_ids_X_train,
         y_movie_ids=movie_ids_y_train,
-        predictions=train_predictions,
+        all_movies=all_movies,  # Real genres are from 0 to 100
+        predictions=train_predictions * 100,  # Preds are now from 0 to 100 too
         genre_names=genre_names,
     )
     df_train_performance.to_pickle(real_save_dir / "train_data.dataframe")  # Save train data performance to file
@@ -889,7 +895,8 @@ if __name__ == "__main__":
         label="test",
         X_movie_ids=movie_ids_X_test,
         y_movie_ids=movie_ids_y_test,
-        predictions=predictions,
-        genre_names=genre_names,
+        all_movies=all_movies,
+        predictions=predictions * 100,  # Real genres are from 0 to 100
+        genre_names=genre_names,  # Preds are now from 0 to 100 too
     )
     df_test_performance.to_pickle(real_save_dir / "test_data.dataframe")  # Save test data performance to file
