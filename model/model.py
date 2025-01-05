@@ -22,7 +22,6 @@ sys.path.append(str(project_dir))
 
 import helper.variables as vars
 
-from database.genre import Genres
 from helper.file_system_interaction import load_object_from_file, save_object_in_file
 
 
