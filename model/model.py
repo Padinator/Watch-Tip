@@ -59,15 +59,6 @@ extracted_features_file_path = (
 )
 
 
-# class MinPooling2D(MaxPool1D):
-
-#     def __init__(self, pool_size, strides=None, padding="valid", data_format=None, **kwargs):
-#         super(MaxPool1D, self).__init__(pool_size, strides, padding, data_format, **kwargs)
-
-#     def pooling_function(inputs, pool_size, strides, padding, data_format):
-#         return -backend.pool1d(-inputs, pool_size, strides, padding, data_format, pool_mode="max")
-
-
 def one_hot_encoding_1d_arr(arr: np.array, factor: int = 50) -> np.array:
     """
         Does a one-hot encoding: make features binary = containing only 0 and 1\
@@ -165,7 +156,7 @@ def extract_features(
             all_extracted_features.extend(
                 [
                     (
-                        np.copy(users_movie_history[i : i + movie_history_len]),
+                        np.copy(users_movie_history[i:i + movie_history_len]),
                         users_movie_history[i + movie_history_len],  # Save in label movie ID and target real genres
                     )
                     for i in range(0, len(users_movie_history) - movie_history_len, steps_size)
@@ -349,100 +340,15 @@ def build_LSTM() -> LSTM:
 
     lstm = Sequential(
         [
-            # LSTM
-            # LSTM(128, return_sequences=True, input_shape=(HISTORY_LEN, 19), stateful=True),
-            # LSTM(
-            #     256 * 2,
-            #     return_sequences=True,
-            #     input_shape=(HISTORY_LEN, 19),
-            #     kernel_initializer="HeUniform",
-            #     kernel_regularizer="l1_l2"
-            # ),
-            # Dropout(0.3, seed=SEED),
-            # LSTM(128 * 2, return_sequences=True, kernel_initializer="HeUniform"),
-            # Dropout(0.3, seed=SEED),  # No dropout, else time relevant data/context can be lost
-            # LSTM(64 * 2, return_sequences=False, kernel_initializer="GlorotUniform"),
-            # # Decision layers at the end, using processed data from LSTM
-            # Dense(64 * 4, activation="relu"),
-            # # Dropout(0.4, seed=SEED),  # Dropout for don't learning by heart
-            # Dense(64, activation="relu"),
-            # # Dropout(0.4, seed=SEED),  # Dropout for don't learning by heart
-            # Dense(19, activation="sigmoid"),
-
-            # Convolutional modell
-            # Conv1D(128, 2, activation="relu", padding="same"),
-            # MaxPool1D(2, padding="same", strides=1),
-            # Conv1D(128, 2, activation="relu", padding="same"),
-            # MaxPool1D(2, padding="same", strides=1),
-            # Conv1D(64, 2, activation="relu", padding="same"),
-            # MaxPool1D(2, padding="same", strides=1),
-            # Conv1D(64, 2, activation="relu", padding="same"),
-            # MaxPool1D(2, padding="same", strides=1),
-            # Conv1D(32, 2, activation="relu", padding="same"),
-            # MaxPool1D(2, padding="same", strides=1),
-            # Flatten(),
-            # Dense(64, activation="relu"),
-            # LSTM(8, kernel_initializer="HeUniform"),
-            # Dense(19, activation="sigmoid"),
-            # Dense(19, activation="sigmoid"),
-
-            # LSTM
             Conv1D(32, 3, padding="same", activation="relu"),
-            # SimpleRNN(32, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
-            # GRU(32, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
             LSTM(64, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
-
-            # LSTM(128, input_shape=(HISTORY_LEN, 19), return_sequences=True, kernel_initializer="HeUniform"),
-            # # Conv1D(128, 3, padding="same", activation="relu"),
-            # MaxPool1D(pool_size=2),
-
-            # LSTM(128, input_shape=(HISTORY_LEN, 19), return_sequences=True, kernel_initializer="HeUniform"),
-            # MaxPool1D(pool_size=2),
-
-            # LSTM(64, return_sequences=True, kernel_initializer="HeUniform", ),
-            # # Conv1D(64, 3, padding="same", activation="relu"),
-            # MaxPool1D(pool_size=2),
-
-            # LSTM(32, return_sequences=False, kernel_initializer="HeUniform", ),
-
-            # Dense(1024, activation="relu"),
-            # Dropout(0.5, seed=SEED),  # Dropout for don't learning by heart
             Dense(19, activation="sigmoid"),
-
-            # RNN
-            # SimpleRNN(128, activation="tanh", input_shape=(HISTORY_LEN, 19), return_sequences=True),
-            # Dropout(0.2),  # Avoid learning data by heart
-            # SimpleRNN(64, activation="tanh", input_shape=(HISTORY_LEN, 19), return_sequences=True),
-            # Dropout(0.2),  # Avoid learning data by heart
-            # SimpleRNN(32, activation="tanh", input_shape=(HISTORY_LEN, 19)),
-            # Dense(64, activation="softmax"),
-            # Dropout(0.2),  # Avoid learning data by heart
-            # Dense(32, activation="softmax"),
-            # Dropout(0.2),  # Avoid learning data by heart
-            # Dense(19, activation="sigmoid"),
-
-            # # RNN (dimension reduced data)
-            # SimpleRNN(128, activation="tanh", input_shape=(HISTORY_LEN, 3), return_sequences=True),
-            # Dropout(0.2),  # Avoid learning data by heart
-            # SimpleRNN(64, activation="tanh", input_shape=(HISTORY_LEN, 3), return_sequences=True),
-            # Dropout(0.2),  # Avoid learning data by heart
-            # SimpleRNN(32, activation="tanh", input_shape=(HISTORY_LEN, 3)),
-            # Dense(64, activation="softmax"),
-            # Dropout(0.2),  # Avoid learning data by heart
-            # Dense(32, activation="softmax"),
-            # Dropout(0.2),  # Avoid learning data by heart
-            # Dense(3, activation="linear"),
-            # SimpleRNN < (little bit) LSTM
         ]
     )
 
     # Compile/Set solver, loss and metrics
     lstm.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
-        # optimizer='rmsprop',
-        # loss=tf.keras.losses.BinaryCrossentropy(),
-        # loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True, label_smoothing=0.2),
-        # loss=tf.keras.losses.CosineSimilarity(),
         loss="huber",  # mse (more sensible to outliers and changes) is better than mae (less sensible to outliers -> less different values) and it has less loss => "get both worlds": huber loss
         metrics=[
             "acc"
@@ -874,27 +780,6 @@ if __name__ == "__main__":
 
     print(f"Max amount of available data (after): {len(relevant_histories)}")
     extracted_features = relevant_histories
-
-    """
-    # df_user_movie_histories_reduced_dim = load_object_from_file(vars.user_history_file_path_with_real_genres_and_reduced_dimensions_visualization)
-
-    # # Scale data
-    # transformed_values = StandardScaler().fit_transform(df_user_movie_histories_reduced_dim.loc[:, df_user_movie_histories_reduced_dim.columns != "username"].values)
-    # df_user_movie_histories_reduced_dim = pd.DataFrame({"dim1": transformed_values[:, 0],
-    #                                                 "dim2": transformed_values[:, 1],
-    #                                                 "dim3": transformed_values[:, 2],
-    #                                                 "username": df_user_movie_histories_reduced_dim["username"].values})
-
-    # usernames = list(load_object_from_file(vars.user_history_file_path_with_real_genres).keys())
-    # columns_except_username = [col for col in df_user_movie_histories_reduced_dim if col != "username"]
-    # user_movie_histories_reduced_dim = {}  # Store all dimension reduced real movie genres per user
-
-    # # Group movies by users and use sorting of object "user_movie_histories"
-    # for username in usernames:
-    #     rows = df_user_movie_histories_reduced_dim.loc[df_user_movie_histories_reduced_dim["username"] == username, columns_except_username]
-    #     user_movie_histories_reduced_dim[username] = rows.values
-    # user_movie_histories = user_movie_histories_reduced_dim
-    """
 
     # Read extracted features
     # used_histories, extracted_features = load_object_from_file(extracted_features_file_path)
