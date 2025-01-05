@@ -33,7 +33,7 @@ MIN_MOVIE_HISTORY_LEN = 20
 FILL_HISTORY_LEN_WITH_ZERO_MOVIES = False
 FINE_GRAINED_EXTRACTING = False
 DISTANCE_TO_OTHER_MOVIES = 0.1
-TRAIN_DATA_RELATIONSHIP = 0.9
+TRAIN_DATA_RELATIONSHIP = 0.85
 SEED = 1234
 
 # Constants for computing the difference between multiple values
@@ -379,7 +379,7 @@ def train_and_test_LSTM(
     history = lstm.fit(
         X_train,
         y_train,
-        validation_split=0.1,
+        validation_split=0.0588,
         epochs=epochs,
         # steps_per_epoch=steps_per_epoch,  # Automatically calculated with: len(training_data) // batch_size
         batch_size=batch_size,
