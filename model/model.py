@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pandas as pd
 import random
 import sys
 import tensorflow as tf
@@ -21,6 +22,7 @@ sys.path.append(str(project_dir))
 
 import helper.variables as vars
 
+from database.genre import Genres
 from helper.file_system_interaction import load_object_from_file, save_object_in_file
 
 
@@ -57,13 +59,13 @@ extracted_features_file_path = (
 )
 
 
-class MinPooling2D(MaxPool1D):
+# class MinPooling2D(MaxPool1D):
 
-    def __init__(self, pool_size, strides=None, padding="valid", data_format=None, **kwargs):
-        super(MaxPool1D, self).__init__(pool_size, strides, padding, data_format, **kwargs)
+#     def __init__(self, pool_size, strides=None, padding="valid", data_format=None, **kwargs):
+#         super(MaxPool1D, self).__init__(pool_size, strides, padding, data_format, **kwargs)
 
-    def pooling_function(inputs, pool_size, strides, padding, data_format):
-        return -backend.pool1d(-inputs, pool_size, strides, padding, data_format, pool_mode="max")
+#     def pooling_function(inputs, pool_size, strides, padding, data_format):
+#         return -backend.pool1d(-inputs, pool_size, strides, padding, data_format, pool_mode="max")
 
 
 def one_hot_encoding_1d_arr(arr: np.array, factor: int = 50) -> np.array:
@@ -148,12 +150,12 @@ def extract_features(
             fill_history_len_with_zero_movies and len(users_movie_history) <= movie_history_len
         ):  # Use has watched enoguh movies, but not many
             # Find movies and target/label
-            movies = [real_genres for _, real_genres in users_movie_history[:-1]]
+            movies = users_movie_history[:-1]
             movie_id, target_label = users_movie_history[-1]  # Save in label movie ID and target real genres
 
             # Fill missing movies with zeros
             number_of_missing_movies = movie_history_len - len(movies)
-            zero_movie = np.zeros(len(target_label))  # Create movie containing only 0 for all real genres
+            zero_movie = (-1, np.zeros(len(target_label)))  # Create movie containing only 0 for all real genres with ID -1
             zero_movies = list(np.tile(zero_movie, (number_of_missing_movies, 1)))
 
             # Create one list with zero movies and watched movies of a user
@@ -163,7 +165,7 @@ def extract_features(
             all_extracted_features.extend(
                 [
                     (
-                        np.copy([real_genres for _, real_genres in users_movie_history[i:i + movie_history_len]]),
+                        np.copy(users_movie_history[i : i + movie_history_len]),
                         users_movie_history[i + movie_history_len],  # Save in label movie ID and target real genres
                     )
                     for i in range(0, len(users_movie_history) - movie_history_len, steps_size)
@@ -500,6 +502,99 @@ def train_and_test_LSTM(
     return lstm.predict(X_test, batch_size=batch_size)
 
 
+def label_data(genre_names: List[str], all_movies: Dict[int, np.array], movie_ids: List[int], label: str) -> pd.DataFrame:
+    """
+    Creates a DataFrame with genre names as column names and rows for each
+    movie from list of passed movie IDs "movie_ids".
+
+    Parameters
+    ----------
+    genre_names : List[str]
+        Names of genres like "Action", "Adventure", ..., which will be used as
+        column names for DataFrame
+    all_movies : Dict[int, np.array]
+        Dictionary of all movies, where movie IDs are keys and real genres
+        values
+    movie_ids : List[int]
+        List of all relevant movie IDs to insert into the resulting DataFrame
+    label : str
+        Label which will be added to the inserted data
+
+    Returns
+    -------
+    pd.DataFrame
+        Returns a DataFrame with genre names as column names and rows for each
+        movie from list of passed movie IDs "movie_ids".
+    """
+
+    return pd.DataFrame(
+        dict(
+            [(genre_name, [all_movies[movie_id][i] for movie_id in movie_ids]) for i, genre_name in enumerate(genre_names)]
+            + [("movie", movie_ids), ("label", [label] * len(movie_ids))]
+        )
+    )
+
+
+def merge_data_for_visualization(
+    label: str, X_movie_ids: List[int], y_movie_ids: List[int], predictions: np.ndarray, genre_names: List[str]
+) -> pd.DataFrame:
+    """
+    Merges data (e.g. train data or test data) into one DataFrame for
+    visualizing it. For this label inputs, outputs (targets/labels) and
+    predictions with different labels.
+
+    Parameters
+    ----------
+    label : str
+        A label for naming the current dataset, e.g. "train" or "test"
+    X_movie_ids : List[int]
+        IDs of input movies (movie histories)
+    y_movie_ids : List[int]
+        IDs of output movies (targets/labels)
+    predictions : np.ndarray
+        Predictions of input data
+    genre_names: List[str]
+        Names of genres like "Action", "Adventure", ..., which will be used as
+        column names for DataFrame
+
+    Returns
+    -------
+    pd.DataFrame
+        Returns merged data with different labels (input, target, predictions
+        and unused). Unused is for movies, which weren't used, but still
+        exists.
+    """
+
+    # Merge movies, whiche were used as input or output with predictions into one DataFrame
+    df_X_performance = label_data(genre_names, all_movies, X_movie_ids, f"{label}_data_input")
+    df_y_performance = label_data(genre_names, all_movies, y_movie_ids, f"{label}_data_target")
+    df_preds_preformance = pd.DataFrame(
+        dict(
+            [(genre_name, [movie[i] for movie in predictions]) for i, genre_name in enumerate(genre_names)]
+            + [("movie", [-1] * len(predictions)), ("label", [f"{label}_data_preds"] * len(predictions))]
+        )
+    )
+    df_performance = pd.concat((df_X_performance, df_y_performance, df_preds_preformance))
+
+    # Find other movies, which don't occur in (train/test) data
+    ids_of_unused_movies = [movie_id for movie_id in all_movies.keys() if movie_id not in df_performance["movie"].values]
+    df_other_movies = label_data(genre_names, all_movies, ids_of_unused_movies, "unused_movies")
+    df_performance = pd.concat((df_performance, df_other_movies))
+
+    # Sort DataFrame by IDs of movies
+    df_performance = df_performance.sort_values(by=["movie"])
+
+    # Output results
+    print(f"df_X_{label}_performance: {df_X_performance.shape}")
+    print(f"df_y_{label}_performance: {df_y_performance.shape}")
+    print(f"df_preds_{label}_preformance: {df_preds_preformance.shape}")
+    print(f"df_other_movies_{label}: {df_other_movies.shape}")
+    print(f"df_{label}_performance: {df_performance.shape}")
+    print(df_performance)
+
+    return df_performance
+
+
 class Model:
     """
     Wrapper class for loading and predicting different models
@@ -575,7 +670,7 @@ class Model:
             Returns the results as numpy array, which can be of any type, depending on the model.
         """
 
-        predictions = np.empty()
+        predictions = np.empty(X.shape[0])
 
         if self._model_type == "LSTM":
             predictions = self._model.predict(x=X, batch_size=self._model_args["batch_size"])
@@ -704,59 +799,81 @@ if __name__ == "__main__":
     tf.random.set_seed(SEED)
 
     # Define variables
+    genre_names = [
+        "Action",
+        "Adventure",
+        "Animation",
+        "Comedy",
+        "Crime",
+        "Documentary",
+        "Drama",
+        "Family",
+        "Fantasy",
+        "History",
+        "Horror",
+        "Music",
+        "Mystery",
+        "Romance",
+        "Science Fiction",
+        "TV Movie",
+        "Thriller",
+        "War",
+        "Western",
+    ]
     model_type = "LSTM"  # "RandomForestRegressor", "LSTM"
     normalize_fator = 100
     output_factor = 1
     predictions = []
 
-    # Visualize data
-    # TODO: Look for mean genres
-    # TODO: Compare genres
-    # TODO: Which inputs will be used? -> use a movie not too often as target/label (else biased)
+    # Define variables for data visualization
+    all_movies = {}  # All movies as dict of {movie_id: real_genres_of_a_movie}
 
-    # Load all movies from file
-    user_movie_histories = load_object_from_file(
-        # vars.user_history_file_path_with_real_genres  # TMDB data
-        # vars.user_history_file_path_with_real_genres_and_reduced_dimensions  # TMDB data dimension reduced
-        vars.user_watchings_file_path_with_real_genres  # Netflix prize data
-        # vars.user_watchings_file_path_with_real_genres_small  # Netflix prize data (small part)
-    )
+    # Öoad data
+    if os.path.exists(extracted_features_file_path):  # Load extracted features from file
+        used_histories, extracted_features = load_object_from_file(extracted_features_file_path)
+    else:  # Extract features from all data
+        # Load all movies from file
+        user_movie_histories = load_object_from_file(
+            # vars.user_history_file_path_with_real_genres  # TMDB data
+            # vars.user_history_file_path_with_real_genres_and_reduced_dimensions  # TMDB data dimension reduced
+            vars.user_watchings_file_path_with_real_genres  # Netflix prize data
+            # vars.user_watchings_file_path_with_real_genres_small  # Netflix prize data (small part)
+        )
 
-    # Compute extracted features
-    used_histories, extracted_features = extract_features(
-        user_movie_histories,
-        HISTORY_LEN,
-        MIN_MOVIE_HISTORY_LEN,
-        fill_history_len_with_zero_movies=FILL_HISTORY_LEN_WITH_ZERO_MOVIES,
-        fine_grained_extracting=FINE_GRAINED_EXTRACTING,
+        # Compute extracted features
+        used_histories, extracted_features = extract_features(
+            user_movie_histories,
+            HISTORY_LEN,
+            MIN_MOVIE_HISTORY_LEN,
+            fill_history_len_with_zero_movies=FILL_HISTORY_LEN_WITH_ZERO_MOVIES,
+            fine_grained_extracting=FINE_GRAINED_EXTRACTING,
+        )
+        save_object_in_file(extracted_features_file_path, (used_histories, extracted_features))
+
+    # Save all movies to visualize it later
+    all_movies_target = dict([(movie_id, target) for _, (movie_id, target) in extracted_features])
+    all_movies_feature = dict(
+        [(movie_id, real_genres) for movie_history, _ in extracted_features for movie_id, real_genres in movie_history]
     )
-    save_object_in_file(
-        extracted_features_file_path, (used_histories, extracted_features)
-    )
+    all_movies = {**all_movies_target, **all_movies_feature}
+    print(f"All movies: {len(all_movies)}")
 
     # used_histories, extracted_features = load_object_from_file(extracted_features_file_path)
     print(f"Max amount of available data (before): {len(extracted_features)}")
     label_occurences = Counter([movie_id for _, (movie_id, _) in extracted_features])
-    # highest_label_occurences = dict(sorted(label_occurences.items(), key=lambda x: -x[1])[:100])
-    # lowest_label_occurences = dict(sorted(label_occurences.items(), key=lambda x: -x[1])[-100:])
-    # print(highest_label_occurences)
-    # print(lowest_label_occurences)
-    # print(len([1 for ovvurence in label_occurences.values() if ovvurence == 1]))
-
     relevant_histories = []
     history_counter = defaultdict(int)
 
+    # Filter movies, which occur too often as target -> model gets of subset of data more variance
     for movie_history, (movie_id, target) in extracted_features:
         if history_counter[movie_id] < 100:  # 100 < label_occurences[movie_id] and
-            relevant_histories.append((movie_history, target))
+            relevant_histories.append((movie_history, (movie_id, target)))
             history_counter[movie_id] += 1
         # if 100 < label_occurences[movie_id]:
         #     relevant_histories.append((movie_history, target))
 
     print(f"Max amount of available data (after): {len(relevant_histories)}")
     extracted_features = relevant_histories
-    #
-    #
 
     """
     # df_user_movie_histories_reduced_dim = load_object_from_file(vars.user_history_file_path_with_real_genres_and_reduced_dimensions_visualization)
@@ -787,7 +904,7 @@ if __name__ == "__main__":
     history_step_size = len(extracted_features) // max_histories_to_use
     print(f"history_step_size: {history_step_size}")
     extracted_features = extracted_features[::history_step_size]  # Choose as much as possible different histories
-    shapes = set([len(feature) for feature, label in extracted_features])
+    shapes = set([len(feature) for feature, _ in extracted_features])  # "_" = label
     print(used_histories, shapes)
 
     # Adjust variables because of new training data
@@ -795,15 +912,26 @@ if __name__ == "__main__":
         f"results/{max_histories_to_use}_{TRAIN_DATA_RELATIONSHIP}_{HISTORY_LEN}_{MIN_MOVIE_HISTORY_LEN}_{FILL_HISTORY_LEN_WITH_ZERO_MOVIES}_{FINE_GRAINED_EXTRACTING}"
     )
 
-    # Split data into train and test data
-    X, y = np.array([np.array(x) for x, _ in extracted_features], dtype=np.float64), np.array(
-        [np.array(y, dtype=np.float64) for _, y in extracted_features], dtype=np.float64
-    )  # LSTM
+    # Split data into train and test data + normalize data
+    X = [
+        [(movie_id, np.array(real_genres, dtype=np.float64) / normalize_fator) for movie_id, real_genres in movie_history]
+        for movie_history, _ in extracted_features
+    ]  # LSTM
+    y = [
+        (movie_id, np.array(target, dtype=np.float64) / normalize_fator) for _, (movie_id, target) in extracted_features
+    ]  # LSTM
     # X, y = np.array([one_hot_encoding_2d_arr(x) for x, _ in extracted_features], dtype=np.float64), np.array([one_hot_encoding_1d_arr(y) for _, y in extracted_features], dtype=np.float64)  # LSTM
-    X, y = X / normalize_fator, y / normalize_fator  # Normize data
-    X_train, X_test, y_train, y_test = train_test_split(
+    X_train_raw, X_test_raw, y_train_raw, y_test_raw = train_test_split(
         X, y, train_size=TRAIN_DATA_RELATIONSHIP, random_state=SEED, shuffle=True
     )
+
+    # Remove IDs from data
+    X_train = np.array(
+        [[real_genres for _, real_genres in movie_history] for movie_history in X_train_raw], dtype=np.float64
+    )
+    X_test = np.array([[real_genres for _, real_genres in movie_history] for movie_history in X_test_raw], dtype=np.float64)
+    y_train = np.array([target for _, target in y_train_raw], dtype=np.float64)
+    y_test = np.array([target for _, target in y_test_raw], dtype=np.float64)
 
     # Define hyper parameters of the LSTM
     model = Model(model_type=model_type)
@@ -849,3 +977,35 @@ if __name__ == "__main__":
     print(len([1 for pred in zip(predictions) if np.allclose(predictions[0], pred, atol=0.1)]), len(predictions))
     print(len([1 for pred in zip(predictions) if np.allclose(predictions[0], pred, atol=0.2)]), len(predictions))
     print(len([1 for pred in zip(predictions) if np.allclose(predictions[0], pred, atol=0.3)]), len(predictions))
+
+    # Save data for visualization
+    # Find predictions, which will be done during training
+    # model = Model(model_type=model_type, path_to_model=Path("results/50000_0.9_50_20_False_False_50_47930_32/lstm.keras"), model_args={"batch_size": 32})
+
+    # Save performance of model on train data in file to visualize it later
+    train_predictions = model.predict_many(X_train)
+    movie_ids_X_train = sorted(set([movie_id for movie_history in X_train_raw for movie_id, _ in movie_history]))
+    movie_ids_y_train = sorted(set([movie_id for movie_id, _ in y_train_raw]))
+
+    df_train_performance = merge_data_for_visualization(
+        label="train",
+        X_movie_ids=movie_ids_X_train,
+        y_movie_ids=movie_ids_y_train,
+        predictions=train_predictions,
+        genre_names=genre_names,
+    )
+    df_train_performance.to_pickle(real_save_dir / "train_data.dataframe")  # Save train data performance to file
+
+    # Save performance of model on test data in file to visualize it later
+    # predictions = model.predict_many(X_test)
+    movie_ids_X_test = sorted(set([movie_id for movie_history in X_test_raw for movie_id, _ in movie_history]))
+    movie_ids_y_test = sorted(set([movie_id for movie_id, _ in y_test_raw]))
+
+    df_test_performance = merge_data_for_visualization(
+        label="test",
+        X_movie_ids=movie_ids_X_test,
+        y_movie_ids=movie_ids_y_test,
+        predictions=predictions,
+        genre_names=genre_names,
+    )
+    df_test_performance.to_pickle(real_save_dir / "test_data.dataframe")  # Save test data performance to file

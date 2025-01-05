@@ -151,3 +151,8 @@ user_watchings_file_path_with_real_genres_visualization_small = (
 # Define some variables for feature extraction
 extracted_features_folder = model_path / "extracted_features"
 extracted_features_file_path = extracted_features_folder / "extracted_features.pickle"
+
+# Define paths for train and test data visualizations
+result_folder = model_path / "results"
+train_data_visualization_path = result_folder / "train_data.dataframe"
+test_data_visualization_path = result_folder / "test_data.dataframe"
