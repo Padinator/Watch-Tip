@@ -63,9 +63,7 @@ class TestDatabaseModel(unittest.TestCase):
 
         result = model.get_one_by_attr(attr, attr_value)
 
-        get_one_by_attr.assert_called_once_with(
-            table="mock_table", attr=attr, attr_value=attr_value
-        )
+        get_one_by_attr.assert_called_once_with(table="mock_table", attr=attr, attr_value=attr_value)
 
         self.assertEqual(result, {"name": "Actor 1", "age": 30})
 
@@ -98,9 +96,7 @@ class TestDatabaseModel(unittest.TestCase):
         attr_to_update = "age"
         attr_to_update_value = 35
 
-        result = model.update_one_by_attr(
-            attr, attr_value, attr_to_update, attr_to_update_value
-        )
+        result = model.update_one_by_attr(attr, attr_value, attr_to_update, attr_to_update_value)
 
         update_one_by_attr.assert_called_once_with(
             table="mock_table",
@@ -148,9 +144,7 @@ class TestDatabaseModel(unittest.TestCase):
 
         result = model.delete_one_by_attr(attr, attr_value)
 
-        delete_one_by_attr.assert_called_once_with(
-            table="mock_table", attr=attr, attr_value=attr_value
-        )
+        delete_one_by_attr.assert_called_once_with(table="mock_table", attr=attr, attr_value=attr_value)
 
         self.assertEqual(result, {"_id": 1, "name": "Actor 1", "age": 30})
 

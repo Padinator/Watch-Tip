@@ -44,3 +44,7 @@
     - Save data in database persistently
     -> Only in file, because 86 million data entries will take too long to store in database and it would take also to long for
        requesting all this data
+
+6. Ranking: ("ranking.py")
+    - With large and more than one user feedback, it can become problematic because the token limit is reached after a certain number and then the LLM no longer “works” properly
+    - 
