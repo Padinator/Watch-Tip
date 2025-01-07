@@ -1,10 +1,8 @@
 import json
-import os
 import re
 import spacy
 import sys
 import time
-from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -21,9 +19,6 @@ sys.path.append(str(project_dir))
 
 from database.movie import Movies
 from database.user import Users
-from helper import variables as vars
-from helper.api_requester import request_url
-from helper.file_system_interaction import load_object_from_file, save_object_in_file
 
 all_users_table = Users()
 all_movies_table = Movies()
