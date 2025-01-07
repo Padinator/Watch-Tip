@@ -33,6 +33,18 @@
     --> Use for this e.g. Levenshtein distance
     => Hardware for doing this is missing!!! => cannot be used, request reviews from TMDB and later form IMDB (many more reviews than TMDB)
 
-5. Ranking: ("ranking.py")
+5. Find matchings between movies from database (TMDB) and Netflix movies (Netflix prize data):
+    - Given names and year of Netflix movies are not always correct (only ~10,000 from 17,000 movies are correct)
+    -> Fix that with a matching algorithm based on an algorithm like Levenshtein distance
+    --> Here it's: 2 * <#matching chars> / ([len(s1) + len(s2)]^2)
+    --> Many iterations (13 runs, 15-20 min) with an efficient usage of data structures/exploit data structures (dictionaries), else
+        ~30 hours per iteration (17,000 Netflix movies * 1,000,000 movies from database = 17,000,000 iterations)
+    => Quadratic effort
+    - Find to each matched movies user ratings -> "get user movie history"
+    - Save data in database persistently
+    -> Only in file, because 86 million data entries will take too long to store in database and it would take also to long for
+       requesting all this data
+
+6. Ranking: ("ranking.py")
     - With large and more than one user feedback, it can become problematic because the token limit is reached after a certain number and then the LLM no longer “works” properly
     - 

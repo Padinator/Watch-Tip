@@ -17,7 +17,7 @@ from helper.api_requester import (
 
 
 # Define constants
-BASIC_PATH = project_dir / "tests/test_jsons_files/test_api_requester_jsons"
+BASIC_PATH = project_dir / "tests/jsons_files/test_api_requester_jsons"
 
 
 class TestApiRequester(unittest.TestCase):

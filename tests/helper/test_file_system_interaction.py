@@ -6,6 +6,10 @@ import unittest
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+# ---------- Import own python modules ----------
+project_dir = Path(__file__).parents[2]
+sys.path.append(str(project_dir))
+
 from helper.file_system_interaction import (
     save_object_in_file,
     load_object_from_file,
@@ -13,14 +17,10 @@ from helper.file_system_interaction import (
     load_json_objects_from_file,
 )
 
-# ---------- Import own python modules ----------
-project_dir = Path(__file__).parents[2]
-sys.path.append(str(project_dir))
-
 
 # Define constants
 BASIC_PATH = (
-    project_dir / "tests/test_jsons_files/test_file_system_interaction_jsons"
+    project_dir / "tests/jsons_files/test_file_system_interaction_jsons"
 )
 
 
