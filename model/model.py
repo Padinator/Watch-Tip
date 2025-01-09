@@ -6,13 +6,15 @@ import random
 import sys
 import tensorflow as tf
 
+from gensim.models import Word2Vec
 from collections import Counter, defaultdict
 from pathlib import Path
 from scipy.spatial.distance import cdist
+from sklearn.cluster import DBSCAN
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from tensorflow.keras.layers import Dense, Dropout, LSTM, GRU, Conv1D, SimpleRNN, AveragePooling1D, MaxPool1D, Flatten
+from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, LambdaCallback
+from tensorflow.keras.layers import Dense, Dropout, LSTM, GRU, Conv1D, SimpleRNN, AveragePooling1D, MaxPool1D, Flatten, Embedding
 from tensorflow.keras import Sequential, backend
 from typing import Any, Dict, List, Tuple
 
@@ -22,26 +24,40 @@ sys.path.append(str(project_dir))
 
 import helper.variables as vars
 
+from database.movie import Movies
 from helper.file_system_interaction import load_object_from_file, save_object_in_file
 
 
-# Define constants
+# Define constants for feature extraction
 MAX_DATA = 100000
-HISTORY_LEN = 30
-MIN_MOVIE_HISTORY_LEN = 20
-FILL_HISTORY_LEN_WITH_ZERO_MOVIES = False
-FINE_GRAINED_EXTRACTING = False
+HISTORY_LEN = 10
+MIN_MOVIE_HISTORY_LEN = 5
+NUMBER_OF_PREDICTED_MOVIES = 1
+FILL_HISTORY_LEN_WITH_ZERO_MOVIES = True
+FINE_GRAINED_EXTRACTING = True
 DISTANCE_TO_OTHER_MOVIES = 0.1
+EMBEDDING = {"embedding": "real_genres"}
+EMBEDDING_SIZE = 19
+WINDOW_SIZE = 2
+
+# Define constants for training the model
 TRAIN_DATA_RELATIONSHIP = 0.85
-SEED = 1234
+# EMBEDDING_SIZE = EMBEDDING_SIZE  # Is also important for training
+TRAIN_EMBEDDING = True
 
 # Constants for computing the difference between multiple values
 EPSILON = 1  # This mean thah prediction can lay one genre next to the correct one
 INDEPENDENT_MAX_DIFF_PER_GENRE = 5
 NUMBER_OF_INTERVALS = 5
 
+# Define loss function to use
+LOSS_FUNCTION = tf.keras.losses.LogCosh(reduction=tf.keras.losses.Reduction.NONE)
+
+# Define other constants
+SEED = 1234
+
 # Set print options for numpy
-np.set_printoptions(formatter={"all": lambda x: "{0:0.3f}".format(x)})
+# np.set_printoptions(formatter={"all": lambda x: "{0:0.3f}".format(x)})
 
 # Set seeds
 np.random.seed(seed=SEED)
@@ -50,11 +66,11 @@ tf.random.set_seed(seed=SEED)
 
 # Define variables
 save_dir = Path(
-    f"results/{MAX_DATA}_{TRAIN_DATA_RELATIONSHIP}_{HISTORY_LEN}_{MIN_MOVIE_HISTORY_LEN}_{FILL_HISTORY_LEN_WITH_ZERO_MOVIES}_{FINE_GRAINED_EXTRACTING}"
+    f"results/{MAX_DATA}_{TRAIN_DATA_RELATIONSHIP}_{HISTORY_LEN}_{MIN_MOVIE_HISTORY_LEN}_{NUMBER_OF_PREDICTED_MOVIES}_{FILL_HISTORY_LEN_WITH_ZERO_MOVIES}_{FINE_GRAINED_EXTRACTING}"
 )
 extracted_features_file_path = (
     vars.extracted_features_folder
-    / f"extracted_features_{FILL_HISTORY_LEN_WITH_ZERO_MOVIES}_{FINE_GRAINED_EXTRACTING}.pickle"
+    / f"extracted_features_{HISTORY_LEN}_{MIN_MOVIE_HISTORY_LEN}_{NUMBER_OF_PREDICTED_MOVIES}_{FILL_HISTORY_LEN_WITH_ZERO_MOVIES}_{FINE_GRAINED_EXTRACTING}.pickle"
 )
 
 
@@ -77,12 +93,65 @@ def one_hot_encoding_2d_arr(arr: np.array) -> np.array:
     return np.array([one_hot_encoding_1d_arr(x) for x in arr], dtype=np.float64)
 
 
+def one_hot_encode_with_mapping(element: Any, mapping: Dict[Any, int]) -> np.ndarray:
+    """
+    Creates and returns a one hot encoding of an element. This element must
+    exist/be contained in the passed mapping "mapping".
+
+    Parameters
+    ----------
+    element : Any
+        Element to one hot encode, e.g. "The lord of the rings"
+    mapping : Dict[Any, int]
+        Map for finding elements and their index in the one hot encoded array.
+        Passed map "mapping" must contain element, e.g.:\n
+        {\n
+            "The lord of the rings": 0,\n
+            "Spider Man 1": 1,\n
+            "Spider Man 2": 2\n
+            ...\n
+        }
+
+    Returns
+    -------
+    np.ndarray
+        Returns the one hot encoding of the passed element.
+    """
+
+    # size = len(mapping)
+    # index_of_one_entry = mapping[element]
+    # one_hot_encoding = tf.sparse.SparseTensor(indices=[[0, index_of_one_entry]], values=[1], dense_shape=[1, size])  # Add trailing zero, so that each sparse vector has the same length
+    # return one_hot_encoding
+
+    # one_hot_encoding = np.zeros(len(mapping))
+    # index_of_one_entry = mapping[element]
+    # one_hot_encoding[index_of_one_entry] = 1
+    # return tf.sparse.from_dense(one_hot_encoding)
+
+    # size = len(mapping)
+    # index_of_one_entry = mapping[element]
+    # one_hot_encoding = sp.sparse.csr_matrix(([1, 0], ([0, 0], [index_of_one_entry, size - 1])), shape=(1, size))  # Add trailing zero, so that each sparse vector has the same length
+    # return one_hot_encoding
+
+    # size = len(mapping)
+    # index_of_one_entry = mapping[element]
+    # one_hot_encoding = sp.sparse.csr_array(([1, 0], ([index_of_one_entry, size],)))  # Add trailing zero, so that each sparse vector has the same length
+    # return one_hot_encoding
+
+    one_hot_encoding = np.zeros(len(mapping))
+    index_of_one_entry = mapping[element]
+    one_hot_encoding[index_of_one_entry] = 1
+    return one_hot_encoding
+
+
 def extract_features(
     user_movie_histories: Dict[int, List[Tuple[int, np.array]]],
     movie_history_len: int,
     min_movie_history_len: int = MIN_MOVIE_HISTORY_LEN,
     fill_history_len_with_zero_movies: bool = True,
     fine_grained_extracting: bool = False,
+    embedding: Dict[str, Any] = {},
+    one_hot_encode_features: bool = False,
 ) -> List[Tuple[np.array, np.array]]:
     """
     Extract features: partionate user histories into parts with length
@@ -118,47 +187,123 @@ def extract_features(
         "movie_history_len", else it will happen like the following example:\n
         movies: [a, b, c, d]; movie_history_len = 3\n
         packates: [a, b, c], [b, c, d]
+    embedding : Dict[tr, Any], default False
+        Pass {"embedding": "random", "embedding_dim": <int>} for creating a
+        random embedding.\n
+        Pass {"embedding": "real_genres"} for creating an embedding wih real
+        genres. The "embedding_dim" will be automatically set to 19.\n
+        Pass {"embedding": "skip_grams", "embedding_dim": <int>} for creating an
+        embedding based on skip grams.\n
+        Pass {"embedding": "Word2Vec", "embedding_dim": <int>, "window_size": <int>}
+        for creating an embedding based on Word2Vec (use concatenated movie
+        IDs), uses its weights.
+    one_hot_encode_features : bool, default False,
+        If True, all movies will be one hot encoded and sorted by movie ID.
 
     Returns
     -------
-    List[Tuple[np.array, np.array]]
-        Returns tuples consisting of the last seen movies (= input) and the
-        next one to predict (= target, label) out ot the previous ones.
+    Tuple[\n
+        List[Tuple[np.array, np.array]],\n
+        np.nradday\n
+    ]
+        Returns as first element a list of tuples consisting of the last seen
+        movies (= input) and the next one to predict (= target, label) out ot
+        the previous ones. The second/last element contains the embedding, if
+        requested, else None.
     """
 
+    global NUMBER_OF_PREDICTED_MOVIES
+
+    # Define variables
     all_extracted_features = []
     skipped_histories, used_histories = 0, 0
     steps_size = 1 if fine_grained_extracting else movie_history_len
+    embedding_matrix = None  # Overwritten, if embedding is required
 
+    # If the data will be embedded in the neural network or data should be one hot encoded
+    if embedding or one_hot_encode_features:
+        all_movie_ids_sorted = sorted(set([movie_id for user_movies in user_movie_histories.values() for movie_id, _ in user_movies]))
+        movie_number_mapping = dict([(movie_id, i) for i, movie_id in enumerate(all_movie_ids_sorted)])
+        total_number_of_movies = len(movie_number_mapping)
+
+        # Create matrix for embedding
+        if embedding["embedding"] == "random":  # Random ebedding
+            embedding_matrix = np.random.rand(total_number_of_movies, embedding["embedding_dim"])
+        elif embedding["embedding"] == "real_genres":  # Embedding based on counted real genres
+            embedding_matrix = np.zeros((total_number_of_movies, 19))
+            one_hot_encode_features = True  # One hot encode movies, because real genres are stored in the embedding matrix
+
+            # Find real genres of all passed movies and save them in a dict
+            all_movies_real_genres_mapping = dict([(movie_id, real_genres) for _, user_movies in user_movie_histories.items() for movie_id, real_genres in user_movies])
+            # print(len(all_movies_real_genres_mapping))  # TODO: some movies get lost, because some will be skipped (users have to few movies watched) -> do embedding at the end
+
+            # Save real genres of users in the embedding matrix
+            for i, movie_id in enumerate(all_movie_ids_sorted):
+                embedding_matrix[i] = all_movies_real_genres_mapping[movie_id]
+        elif embedding["embedding"] == "skip_grams":  # Embedding based on counted skip grams
+            # embedding_matrix = np.zeros((total_number_of_movies, embedding["embedding_dim"]))
+            pass
+        elif embedding["embedding"] == "Word2Vec":  # Embedding based on Word2Vec
+            embedding_matrix = np.zeros((total_number_of_movies, embedding["embedding_dim"]))
+            # one_hot_encode_features = True  # One hot encode movies, because learn new relationships between movies
+
+            # Create model Word2Vec with movie IDs and their context
+            word2vec_sentences = [[str(movie_id) for movie_id, _ in user_movies] for user_movies in user_movie_histories.values()]
+            model = Word2Vec(sentences=word2vec_sentences, vector_size=embedding["embedding_dim"], window=embedding["window_size"], min_count=1, sg=1)
+
+            # Extract from Word2Vec model the embeddings
+            for i, movie_id in all_movie_ids_sorted:
+                embedding_matrix[i] = model.wv[str(movie_id)]
+
+            # TODO: Compute own skip gram variant
+            pass
+        elif embedding:  # Found unknown embedding
+            raise Exception(f"Unknown embedding: {embedding}")
+
+        # Convert a movie into one hot encoded vectors
+        if one_hot_encode_features:
+            for user_id, user_movies in user_movie_histories.items():  # Iterate over each user
+                for i, (movie_id, _) in enumerate(user_movies):  # Iterate over each user movie history
+                    user_movie_histories[user_id][i] = (movie_id, one_hot_encode_with_mapping(element=movie_id, mapping=movie_number_mapping))
+
+    # Extract features
     for users_movie_history in user_movie_histories.values():  # Iterate over all users' histories
         if len(users_movie_history) < min_movie_history_len or (
-            (not fill_history_len_with_zero_movies) and len(users_movie_history) <= movie_history_len
+            not fill_history_len_with_zero_movies
+            and len(users_movie_history) <= movie_history_len + NUMBER_OF_PREDICTED_MOVIES
         ):  # User has not enough movies watched
             skipped_histories += 1
             continue
         elif (
-            fill_history_len_with_zero_movies and len(users_movie_history) <= movie_history_len
+            fill_history_len_with_zero_movies and len(users_movie_history) < movie_history_len + NUMBER_OF_PREDICTED_MOVIES
         ):  # Use has watched enoguh movies, but not many
             # Find movies and target/label
-            movies = users_movie_history[:-1]
-            movie_id, target_label = users_movie_history[-1]  # Save in label movie ID and target real genres
+            movies = users_movie_history[:-NUMBER_OF_PREDICTED_MOVIES]  # Movies, which will be used as input
+            target_movies_with_ids = users_movie_history[
+                -NUMBER_OF_PREDICTED_MOVIES:
+            ]  # Save in label movie ID and target real genres
 
             # Fill missing movies with zeros
             number_of_missing_movies = movie_history_len - len(movies)
-            zero_movie = (-1, np.zeros(len(target_label)))  # Create movie containing only 0 for all real genres with ID -1
+            zero_movie = (
+                -1,  # ID of a zero movie
+                np.zeros(len(target_movies_with_ids[0][1])),  # Take size from first target movie
+            )  # Create movie containing only 0 for all real genres with ID -1
             zero_movies = list(np.tile(zero_movie, (number_of_missing_movies, 1)))
 
             # Create one list with zero movies and watched movies of a user
-            history_feature = (zero_movies + movies, (movie_id, target_label))
+            history_feature = (zero_movies + movies, target_movies_with_ids)
             all_extracted_features.append(history_feature)
         else:  # Use history only, if it is long enough
             all_extracted_features.extend(
                 [
                     (
-                        np.copy(users_movie_history[i:i + movie_history_len]),
-                        users_movie_history[i + movie_history_len],  # Save in label movie ID and target real genres
+                        np.copy(users_movie_history[i:i + movie_history_len]),  # Input feature
+                        users_movie_history[
+                            i + movie_history_len:i + movie_history_len + NUMBER_OF_PREDICTED_MOVIES
+                        ],  # Target/Label: save movie ID and real genres/one hot encoding
                     )
-                    for i in range(0, len(users_movie_history) - movie_history_len, steps_size)
+                    for i in range(0, len(users_movie_history) - movie_history_len - (NUMBER_OF_PREDICTED_MOVIES - 1), steps_size)
                 ]
             )
 
@@ -169,7 +314,7 @@ def extract_features(
         + f"{min_movie_history_len} movies in their history of movies"
     )
 
-    return used_histories, all_extracted_features
+    return used_histories, all_extracted_features, embedding_matrix
 
 
 def calc_distance_relative(
@@ -332,27 +477,227 @@ def train_random_forest_and_predict(
     return rf.predict(X_test)
 
 
-def build_LSTM() -> LSTM:
+def compute_loss_per_option(y_true: np.ndarray, y_pred: np.ndarray, loss_to_use=LOSS_FUNCTION) -> np.ndarray:
     """
-    Builds and returns LSTM.
+    Compute loss per predictable movie in list of target movies and return
+    list of possible losses to possible targets.
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+        True values/targets/possible movies to predict, shape: (batch_size, HISTORY_LEN, 19)
+    y_pred : np.ndarray
+        Predictions with shape: (batch_size, 19)
+    loss_to_use, default LOSS_FUNCTION
+        Loss function to use for computing loss
+    """
+    # Reshape size of y_pred to (batch_size, 1, 19)
+    y_pred_expanded = tf.expand_dims(y_pred, axis=1)  # (batch_size, 1, 19)
+
+    # Compute loss per target movie in list of possible target movies
+    loss_per_option = loss_to_use(y_true, y_pred_expanded)
+
+    return loss_per_option
+
+
+def custom_loss_max(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+    """
+    Computes the train loss value for a neural network. The highest loss value of
+    all possible targets in y_true will be chosen.
+
+    Parameters
+    ----------
+    y_true : tf.Tensor
+        True target/label batches with shape: (batch_size, HISTORY_LEN, 19)
+    y_pred: tf.Tensor
+        Prediction batches with shape: (batch_size, 19)
+    Returns
+    -------
+    tf.Tensor
+        Returns the train loss value as tensor object.
     """
 
-    lstm = Sequential(
-        [
-            Conv1D(32, 3, padding="same", activation="relu"),
-            LSTM(64, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
-            # Dense(1024, activation="relu"),
-            # Dropout(0.4),
-            Dense(19, activation="sigmoid"),
-        ]
-    )
+    loss_per_option = compute_loss_per_option(y_true=y_true, y_pred=y_pred)  # Loss per movie prediction
+    loss = tf.reduce_max(loss_per_option, axis=-1)  # Search for maximal loss value
+    return tf.reduce_mean(loss)  # Return train loss
+
+
+def custom_loss_min(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+    """
+    Computes the train loss value for a neural network. The lowest loss value of
+    all possible targets in y_true will be chosen.
+
+    Parameters
+    ----------
+    y_true : tf.Tensor
+        True target/label batches with shape: (batch_size, HISTORY_LEN, 19)
+    y_pred: tf.Tensor
+        Prediction batches with shape: (batch_size, 19)
+    Returns
+    -------
+    tf.Tensor
+        Returns the train loss value as tensor object.
+    """
+
+    loss_per_option = compute_loss_per_option(y_true=y_true, y_pred=y_pred)  # Loss per movie prediction
+    loss = tf.reduce_min(loss_per_option, axis=-1)  # Search for minimal loss value
+    return tf.reduce_mean(loss)  # Return train loss
+
+
+def custom_loss_rand(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+    """
+    Computes the train loss value for a neural network. A random loss value of
+    all possible targets in y_true will be chosen.
+
+    Parameters
+    ----------
+    y_true : tf.Tensor
+        True target/label batches with shape: (batch_size, HISTORY_LEN, 19)
+    y_pred: tf.Tensor
+        Prediction batches with shape: (batch_size, 19)
+    Returns
+    -------
+    tf.Tensor
+        Returns the train loss value as tensor object.
+    """
+
+    loss_per_option = compute_loss_per_option(y_true=y_true, y_pred=y_pred)  # Loss per movie prediction
+    random_index = tf.random.uniform(shape=[tf.shape(loss_per_option)[0]], minval=0, maxval=tf.shape(loss_per_option)[1], dtype=tf.int32)
+    loss = tf.gather(loss_per_option, random_index, batch_dims=1)  # Select random loss value
+    return tf.reduce_mean(loss)  # Return train loss
+
+
+def custom_loss_gauss_sum(y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+    """
+    Computes the train loss value for a neural network. All loss values of
+    possible movies to predict will be chosen. The more a movie is away from
+    the present, the less it will be weighted in the train loss.
+
+    Parameters
+    ----------
+    y_true : tf.Tensor
+        True target/label batches with shape: (batch_size, HISTORY_LEN, 19)
+    y_pred: tf.Tensor
+        Prediction batches with shape: (batch_size, 19)
+    Returns
+    -------
+    tf.Tensor
+        Returns the train loss value as tensor object.
+    """
+
+    # Compute loss per option
+    loss_per_option = compute_loss_per_option(y_true=y_true, y_pred=y_pred)  # Loss per movie prediction
+
+    # Create weights for different weighted lossed (future = less weight)
+    num_options = tf.shape(loss_per_option)[1]
+    weights = tf.linspace(1.0, 0.1, num_options)  # Start at 1.0, end at 0.1, evenly spaced
+    weights = tf.expand_dims(weights, axis=0)  # Reshape to (1, HISTORY_LEN) to match batch dimensions
+
+    # Compute train loss
+    weighted_losses = loss_per_option * weights  # Weighted loss
+    loss = tf.reduce_sum(weighted_losses, axis=1)
+    return tf.reduce_mean(loss)  # Return train loss
+
+
+def acc(y_true: tf.Tensor, y_pred: tf.Tensor, threshold: tf.Tensor = 0.19) -> tf.Tensor:
+    """
+    Compute the accuracy for a neural network.
+
+    Parameters
+    ----------
+    y_true : tf.Tensor
+        True target/label batches with shape: (batch_size, HISTORY_LEN, 19)
+    y_pred : tf.Tensor
+        Prediction batches with shape: (batch_size, 19)
+    threshold : tf.Tensor, default 0.19
+        Threshold for minimal distance between a prediction and the correct
+        target/label. It will be calculated with following formula:
+        sqrt(0.1^2 * 19)^2 = 0.19 which means that in average each value/field
+        a prediciton can be 0.1 away from the correct target/label, so that
+        the overall distance between a predicted point and the true point
+        should be maximal 0.19.
+
+    Returns
+    -------
+    tf.Tensor
+        Returns the accuracy as tensor object.
+    """
+
+    loss_per_option = compute_loss_per_option(y_true=y_true, y_pred=y_pred)  # Loss per movie prediction
+
+    # Choose highest loss
+    best_loss_index = tf.argmax(loss_per_option, axis=-1)
+    best_y_true = tf.gather(y_true, best_loss_index, batch_dims=1)
+
+    # Compute accuarcy that works with the squaed euclidean distance
+    squared_distance = tf.reduce_sum(tf.square(best_y_true - y_pred), axis=-1)  # Squared euclidean distance
+    within_threshold = squared_distance < threshold
+    accuracy = tf.reduce_mean(tf.cast(within_threshold, tf.float64))
+
+    # Compute more restrictive accuracy that allows each value to be maximal 0.1 away from correct value
+    # abs_diff = tf.abs(best_y_true - y_pred)
+    # correct_predictions = tf.reduce_all(abs_diff < threshold, axis=-1)  # Use as threshold 0.1
+    # accuracy = tf.reduce_mean(tf.cast(correct_predictions, tf.float32))
+
+    return accuracy
+
+
+def build_LSTM(embedding_matrix: np.ndarray = None, trainable_embedding: bool = False) -> LSTM:
+    """
+    Builds and returns LSTM.
+
+    Parameter
+    ---------
+    embedding_matrix : np.ndarray, default None
+        Possibility to pass an embedding.
+    trainable_embedding: bool, default False
+        If True, embedding wll be trained/changed during model training
+
+    Returns
+    -------
+    LSTM
+        Returns trained model object from type LSTM.
+    """
+
+    if embedding_matrix is not None:  # Embedding will be used
+        vocab_size, embedding_dim = embedding_matrix.shape
+        print(vocab_size, embedding_dim)
+
+        lstm = Sequential(
+            [
+                Embedding(
+                    input_dim=vocab_size,
+                    output_dim=embedding_dim,
+                    weights=[embedding_matrix],
+                    input_length=embedding_dim,
+                    trainable=trainable_embedding),
+                Conv1D(32, 3, padding="same"),
+                LSTM(64, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
+                # Dense(1024, activation="relu"),
+                # Dropout(0.4),
+                Dense(vocab_size, activation="softmax"),
+            ]
+        )
+    else:  # No embedding will be used
+        lstm = Sequential(
+            [
+                Embedding(),
+                Conv1D(32, 3, padding="same"),
+                LSTM(64, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
+                # Dense(1024, activation="relu"),
+                # Dropout(0.4),
+                Dense(19, activation="sigmoid"),
+            ]
+        )
 
     # Compile/Set solver, loss and metrics
     lstm.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
-        loss="log_cosh",  # mse (more sensible to outliers and changes) is better than mae (less sensible to outliers -> less different values) and it has less loss => "get both worlds": huber/log_cosh (less sensible than loss huber) loss
+        loss=custom_loss_gauss_sum,  # mse (more sensible to outliers and changes) is better than mae (less sensible to outliers -> less different values) and it has less loss => "get both worlds": huber/log_cosh (less sensible than loss huber) loss
+        # loss="huber",
         metrics=[
-            "acc"
+            acc,
+            # "acc",
             # tf.keras.metrics.FalseNegatives(),
         ],
     )
@@ -394,10 +739,10 @@ def train_and_test_LSTM(
     lstm.save(save_dir / "lstm.keras")  # Save model
 
     # Plot accuracy and save it to file
-    plt.plot(history.history["acc"], label="accuracy")
-    plt.legend()
-    plt.savefig(save_dir / "accuracy.png", bbox_inches="tight")
-    plt.show()
+    # plt.plot(history.history["acc"], label="accuracy")
+    # plt.legend()
+    # plt.savefig(save_dir / "accuracy.png", bbox_inches="tight")
+    # plt.show()
 
     # Plot loss and save it to file
     plt.plot(history.history["loss"], label="loss")
@@ -443,7 +788,12 @@ def label_data(genre_names: List[str], all_movies: Dict[int, np.ndarray], movie_
 
 
 def merge_data_for_visualization(
-    label: str, X_movie_ids: List[int], y_movie_ids: List[int], all_movies: Dict[int, np.ndarray], predictions: np.ndarray, genre_names: List[str]
+    label: str,
+    X_movie_ids: List[int],
+    y_movie_ids: List[int],
+    all_movies: Dict[int, np.ndarray],
+    predictions: np.ndarray,
+    genre_names: List[str],
 ) -> pd.DataFrame:
     """
     Merges data (e.g. train data or test data) into one DataFrame for
@@ -540,7 +890,7 @@ class Model:
             print("Try to load model from file ...")
 
             if model_type == "LSTM":
-                self._model = tf.keras.models.load_model(path_to_model)
+                self._model = tf.keras.models.load_model(path_to_model, custom_objects={"custom_loss_rand": custom_loss_rand, "acc": acc})
             elif model_type == "RandomForestRegressor":
                 self._model = load_object_from_file(path_to_model)
             else:
@@ -591,11 +941,13 @@ class Model:
 
     def build_train_and_test_model(
         self,
-        X_train: np.array,
-        X_test: np.array,
-        y_train: np.array,
-        y_test: np.array,
+        X_train: np.ndarray,
+        X_test: np.ndarray,
+        y_train: np.ndarray,
+        y_test: np.ndarray,
         save_dir: Path,
+        embedding_matrix: np.ndarray = None,
+        trainable_embedding: bool = False,
     ) -> Tuple[np.ndarray, Path]:
         """
         Builds, trains, eventually tests model and returns predictions for passed
@@ -615,6 +967,10 @@ class Model:
             y values of test data
         save_dir : Path
             Directory to store/save model into
+        embedding_matrix : np.ndarray, default None
+            Possibility to pass an embedding.
+        trainable_embedding: bool, default False
+            If True, embedding wll be trained/changed during model training
 
         Returns
         -------
@@ -644,18 +1000,19 @@ class Model:
             # Define variables
             epochs = 50
             steps_per_epoch = X_train.shape[0]  # Currently irrelevant
-            batch_size = 32
+            batch_size = 64
             self._model_args["batch_size"] = batch_size  # Save bacth size for predicting values
             callbacks = [
-                EarlyStopping(monitor="val_loss", patience=10, min_delta=0.0005, restore_best_weights=True),
+                EarlyStopping(monitor="val_loss", patience=10, min_delta=0.001, restore_best_weights=True),
                 ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=8, min_lr=1e-6),
             ]
+
             save_dir = Path(f"{save_dir}_{epochs}_{steps_per_epoch}_{batch_size}")
 
             # Build LSTM
-            lstm = build_LSTM()
+            lstm = build_LSTM(embedding_matrix=embedding_matrix, trainable_embedding=trainable_embedding)
             predictions = train_and_test_LSTM(
-                lstm, X_train, X_test, y_train, y_test, epochs, steps_per_epoch, batch_size, callbacks, save_dir
+                lstm, X_train, X_test, y_train, y_test, epochs, steps_per_epoch, batch_size, callbacks, save_dir,
             )
             self._model = lstm  # Save trained model
         else:
@@ -704,9 +1061,59 @@ class Model:
 
 
 if __name__ == "__main__":
-    # Set seeds
-    np.random.seed(SEED)
-    tf.random.set_seed(SEED)
+    #
+    #
+    #
+    # all_movies = Movies().get_all()
+    # all_movies_real_genres = np.array([np.array(movie["real_genres"], dtype=np.float64) for movie in all_movies.values()], dtype=np.float64)
+    # save_object_in_file("tmp_all_movie_real_genres.pickle", all_movies_real_genres)
+    # all_movies_real_genres = load_object_from_file("tmp_all_movie_real_genres.pickle")[:100000]
+    # db = DBSCAN(eps=30, min_samples=30).fit(all_movies_real_genres)
+    # labels = db.labels_
+    # n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+    # n_noise_ = list(labels).count(-1)
+
+    # print("Estimated number of clusters: %d" % n_clusters_)
+    # print("Estimated number of noise points: %d" % n_noise_)
+
+    # unique_labels = set(labels)
+    # core_samples_mask = np.zeros_like(labels, dtype=bool)
+    # core_samples_mask[db.core_sample_indices_] = True
+
+    # colors = [plt.cm.Spectral(each) for each in np.linspace(0, 1, len(unique_labels))]
+    # for k, col in zip(unique_labels, colors):
+    #     if k == -1:
+    #         # Black used for noise.
+    #         col = [0, 0, 0, 1]
+
+    #     class_member_mask = labels == k
+
+    #     xy = all_movies_real_genres[class_member_mask & core_samples_mask]
+    #     plt.plot(
+    #         xy[:, 0],
+    #         xy[:, 1],
+    #         "o",
+    #         markerfacecolor=tuple(col),
+    #         markeredgecolor="k",
+    #         markersize=14,
+    #     )
+
+    #     xy = all_movies_real_genres[class_member_mask & ~core_samples_mask]
+    #     plt.plot(
+    #         xy[:, 0],
+    #         xy[:, 1],
+    #         "o",
+    #         markerfacecolor=tuple(col),
+    #         markeredgecolor="k",
+    #         markersize=6,
+    #     )
+
+    # plt.title(f"Estimated number of clusters: {n_clusters_}")
+    # plt.show()
+    # exit()
+    #
+    #
+    #
 
     # Define variables
     genre_names = [
@@ -731,59 +1138,72 @@ if __name__ == "__main__":
         "Western",
     ]
     model_type = "LSTM"  # "RandomForestRegressor", "LSTM"
-    normalize_fator = 100
+    normalize_fator = 1  # 100 for real genres
     output_factor = 1
     predictions = []
 
     # Define variables for data visualization
     all_movies = {}  # All movies as dict of {movie_id: real_genres_of_a_movie}
 
-    # Öoad data
-    if False and os.path.exists(extracted_features_file_path):  # Load extracted features from file
-        used_histories, extracted_features = load_object_from_file(extracted_features_file_path)
+    # Load data
+    if os.path.exists(extracted_features_file_path):  # Load extracted features from file
+        used_histories, extracted_features, embedding_matrix = load_object_from_file(extracted_features_file_path)
     else:  # Extract features from all data
         # Load all movies from file
         user_movie_histories = load_object_from_file(
-            # vars.user_history_file_path_with_real_genres  # TMDB data
+            vars.user_history_file_path_with_real_genres  # TMDB data
             # vars.user_history_file_path_with_real_genres_and_reduced_dimensions  # TMDB data dimension reduced
-            vars.user_watchings_file_path_with_real_genres  # Netflix prize data
+            # vars.user_watchings_file_path_with_real_genres  # Netflix prize data
             # vars.user_watchings_file_path_with_real_genres_small  # Netflix prize data (small part)
         )
 
         # Compute extracted features
-        used_histories, extracted_features = extract_features(
+        used_histories, extracted_features, embedding_matrix = extract_features(
             user_movie_histories,
             HISTORY_LEN,
             MIN_MOVIE_HISTORY_LEN,
             fill_history_len_with_zero_movies=FILL_HISTORY_LEN_WITH_ZERO_MOVIES,
             fine_grained_extracting=FINE_GRAINED_EXTRACTING,
+            embedding=EMBEDDING,
         )
-        # save_object_in_file(extracted_features_file_path, (used_histories, extracted_features))
+        save_object_in_file(extracted_features_file_path, (used_histories, extracted_features, embedding_matrix))
 
-    # Save all movies to visualize it later
-    all_movies_target = dict([(movie_id, target) for _, (movie_id, target) in extracted_features])
+    extracted_features = extracted_features[:len(extracted_features) // 10]
+
+    # Output results of extracting
+    print(f"Extracted {len(extracted_features)} features with following format:")
+    print(extracted_features[0], "\n")
+
+    if embedding_matrix is not None:
+        print(f"Embedding matrix has shape {embedding_matrix.shape} with following format:")
+        print(embedding_matrix[0], "\n")
+
+    # Save all movies to visualize them later
+    all_movies_target = dict(
+        [(movie_id, target) for _, target_movies in extracted_features for movie_id, target in target_movies]
+    )
     all_movies_feature = dict(
-        [(movie_id, real_genres) for movie_history, _ in extracted_features for movie_id, real_genres in movie_history]
+        [(movie_id, input_features) for movie_history, _ in extracted_features for movie_id, input_features in movie_history]
     )
     all_movies = {**all_movies_target, **all_movies_feature}
     print(f"All movies: {len(all_movies)}")
 
     # used_histories, extracted_features = load_object_from_file(extracted_features_file_path)
     print(f"Max amount of available data (before): {len(extracted_features)}")
-    label_occurences = Counter([movie_id for _, (movie_id, _) in extracted_features])
-    relevant_histories = []
-    history_counter = defaultdict(int)
+    # label_occurences = Counter([movie_id for _, (movie_id, _) in extracted_features])
+    # relevant_histories = []
+    # history_counter = defaultdict(int)
 
-    # Filter movies, which occur too often as target -> model gets of subset of data more variance
-    for movie_history, (movie_id, target) in extracted_features:
-        if history_counter[movie_id] < 100:  # 100 < label_occurences[movie_id] and
-            relevant_histories.append((movie_history, (movie_id, target)))
-            history_counter[movie_id] += 1
-        # if 100 < label_occurences[movie_id]:
-        #     relevant_histories.append((movie_history, target))
+    # # Filter movies, which occur too often as target -> model gets of subset of data more variance
+    # for movie_history, (movie_id, target) in extracted_features:
+    #     if history_counter[movie_id] < 100:  # 100 < label_occurences[movie_id] and
+    #         relevant_histories.append((movie_history, (movie_id, target)))
+    #         history_counter[movie_id] += 1
+    #     # if 100 < label_occurences[movie_id]:
+    #     #     relevant_histories.append((movie_history, target))
 
-    print(f"Max amount of available data (after): {len(relevant_histories)}")
-    extracted_features = relevant_histories
+    # print(f"Max amount of available data (after): {len(relevant_histories)}")
+    # extracted_features = relevant_histories
 
     # Read extracted features
     # used_histories, extracted_features = load_object_from_file(extracted_features_file_path)
@@ -793,40 +1213,42 @@ if __name__ == "__main__":
     history_step_size = len(extracted_features) // max_histories_to_use
     print(f"history_step_size: {history_step_size}")
     extracted_features = extracted_features[::history_step_size]  # Choose as much as possible different histories
-    shapes = set([len(feature) for feature, _ in extracted_features])  # "_" = label
+    shapes = set([len(feature) for feature, _ in extracted_features])  # "_" = label/target
     print(used_histories, shapes)
 
     # Adjust variables because of new training data
     save_dir = Path(
-        f"results/{max_histories_to_use}_{TRAIN_DATA_RELATIONSHIP}_{HISTORY_LEN}_{MIN_MOVIE_HISTORY_LEN}_{FILL_HISTORY_LEN_WITH_ZERO_MOVIES}_{FINE_GRAINED_EXTRACTING}"
+        f"results/{max_histories_to_use}_{TRAIN_DATA_RELATIONSHIP}_{HISTORY_LEN}_{MIN_MOVIE_HISTORY_LEN}_{NUMBER_OF_PREDICTED_MOVIES}_{FILL_HISTORY_LEN_WITH_ZERO_MOVIES}_{FINE_GRAINED_EXTRACTING}"
     )
+    print(f"Save dir for model to train: {save_dir}")
 
     # Split data into train and test data + normalize data
     X = [
-        [(movie_id, np.array(real_genres, dtype=np.float64) / normalize_fator) for movie_id, real_genres in movie_history]
+        [(movie_id, np.array(input_feature, dtype=np.float64) / normalize_fator) for movie_id, input_feature in movie_history]
         for movie_history, _ in extracted_features
-    ]  # LSTM
+    ]
     y = [
-        (movie_id, np.array(target, dtype=np.float64) / normalize_fator) for _, (movie_id, target) in extracted_features
-    ]  # LSTM
-    # X, y = np.array([one_hot_encoding_2d_arr(x) for x, _ in extracted_features], dtype=np.float64), np.array([one_hot_encoding_1d_arr(y) for _, y in extracted_features], dtype=np.float64)  # LSTM
+        [(movie_id, np.array(target, dtype=np.float64) / normalize_fator) for movie_id, target in target_movies]
+        for _, target_movies in extracted_features
+    ]
     X_train_raw, X_test_raw, y_train_raw, y_test_raw = train_test_split(
         X, y, train_size=TRAIN_DATA_RELATIONSHIP, random_state=SEED, shuffle=True
     )
 
     # Remove IDs from data
     X_train = np.array(
-        [[real_genres for _, real_genres in movie_history] for movie_history in X_train_raw], dtype=np.float64
+        [[input_feature for _, input_feature in movie_history] for movie_history in X_train_raw], dtype=np.float64
     )
-    X_test = np.array([[real_genres for _, real_genres in movie_history] for movie_history in X_test_raw], dtype=np.float64)
-    y_train = np.array([target for _, target in y_train_raw], dtype=np.float64)
-    y_test = np.array([target for _, target in y_test_raw], dtype=np.float64)
+    X_test = np.array([[input_feature for _, input_feature in movie_history] for movie_history in X_test_raw], dtype=np.float64)
+    y_train = np.array([[target for _, target in target_movies] for target_movies in y_train_raw], dtype=np.float64)
+    y_test = np.array([[target for _, target in target_movies] for target_movies in y_test_raw], dtype=np.float64)
 
     # Define hyper parameters of the LSTM
     model = Model(model_type=model_type)
     predictions, real_save_dir = model.build_train_and_test_model(
-        X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test, save_dir=save_dir
+        X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test, embedding_matrix=embedding_matrix, trainable_embedding=TRAIN_EMBEDDING, save_dir=save_dir
     )
+    print(f"Modified save dir for trained model: {real_save_dir}")
 
     # # Save all predictions in file
     # predictions_file_path = real_save_dir / "predictions.pickle"
@@ -863,18 +1285,20 @@ if __name__ == "__main__":
             )
             print(f"Distance: {distance}\n", file=file)
 
-    print(len([1 for pred in zip(predictions) if np.allclose(predictions[0], pred, atol=0.1)]), len(predictions))
-    print(len([1 for pred in zip(predictions) if np.allclose(predictions[0], pred, atol=0.2)]), len(predictions))
-    print(len([1 for pred in zip(predictions) if np.allclose(predictions[0], pred, atol=0.3)]), len(predictions))
+        print(f"Same values from all {len(predictions)} entries (only one value of prediction array must differ):")
+        print("0.1\t0.2\t0.3")
+        print(len([1 for pred in zip(predictions) if np.allclose(predictions[0], pred, atol=0.1)]), len(predictions), end="\t", file=file)
+        print(len([1 for pred in zip(predictions) if np.allclose(predictions[0], pred, atol=0.2)]), len(predictions), end="\t", file=file)
+        print(len([1 for pred in zip(predictions) if np.allclose(predictions[0], pred, atol=0.3)]), len(predictions), end="\t", file=file)
 
     # Save data for visualization
+    # -------- Save performance of model on train data in file to visualize it later --------
     # Find predictions, which will be done during training
-    # model = Model(model_type=model_type, path_to_model=Path("results/50000_0.9_50_20_False_False_50_47930_32/lstm.keras"), model_args={"batch_size": 32})
-
-    # Save performance of model on train data in file to visualize it later
+    # model_path = Path("results/100000_0.85_30_20_10_False_False_50_85164_32")
+    # model = Model(model_type=model_type, path_to_model=model_path / "lstm.keras", model_args={"batch_size": 32})
     train_predictions = model.predict_many(X_train)
     movie_ids_X_train = sorted(set([movie_id for movie_history in X_train_raw for movie_id, _ in movie_history]))
-    movie_ids_y_train = sorted(set([movie_id for movie_id, _ in y_train_raw]))
+    movie_ids_y_train = sorted(set([movie_id for target_movies in y_train_raw for movie_id, _ in target_movies]))
 
     df_train_performance = merge_data_for_visualization(
         label="train",
@@ -885,11 +1309,12 @@ if __name__ == "__main__":
         genre_names=genre_names,
     )
     df_train_performance.to_pickle(real_save_dir / "train_data.dataframe")  # Save train data performance to file
+    # df_train_performance.to_pickle(model_path / "train_data.dataframe")  # Save train data performance to file
 
-    # Save performance of model on test data in file to visualize it later
+    # -------- Save performance of model on test data in file to visualize it later --------
     # predictions = model.predict_many(X_test)
     movie_ids_X_test = sorted(set([movie_id for movie_history in X_test_raw for movie_id, _ in movie_history]))
-    movie_ids_y_test = sorted(set([movie_id for movie_id, _ in y_test_raw]))
+    movie_ids_y_test = sorted(set([movie_id for target_movies in y_test_raw for movie_id, _ in target_movies]))
 
     df_test_performance = merge_data_for_visualization(
         label="test",
@@ -900,3 +1325,6 @@ if __name__ == "__main__":
         genre_names=genre_names,  # Preds are now from 0 to 100 too
     )
     df_test_performance.to_pickle(real_save_dir / "test_data.dataframe")  # Save test data performance to file
+    # df_test_performance.to_pickle(model_path / "test_data.dataframe")  # Save test data performance to file
+
+    # TODO: Extract custom object for model loading into a paramater

@@ -20,7 +20,7 @@ Necessary packages:
 - cudatoolkit=10.1.243
 
 # Commands for building anaconda environment under Windows
-conda create --name kint python=3 pymongo pandas numba numpy matplotlib plotly pathlib scipy seaborn statsmodels numba scikit-learn cudnn nvidia::cuda-cupti cudatoolkit=10.1.243\
+conda create --name kint python=3 pymongo pandas numba numpy matplotlib plotly pathlib scipy seaborn statsmodels numba scikit-learn cudnn nvidia::cuda-cupti cudatoolkit=10.1.243 word2vec gensim\
 conda activate kint\
 python -m pip install "tensorflow<2.11"
 conda install conda-forge::multicore-tsne
