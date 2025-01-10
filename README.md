@@ -1,6 +1,12 @@
 # Watch-Tip
 Recommendation engine for movies
 
+# How to?
+This recommendation engine is based on the psychological aspect that people are watching always the same king of movies and actors playing always the smae kind of movies, same for producers.
+To make this aspect useful and create an AI learning from these patterns, the "real genres" (the real contents of a movie) of movies of will be computed. These will be done by counting in which genres (per movie) an actor has played, a producer has produced and a company has financed. Normalize it and you know the real content of a movie.
+The second step is to sort the proposed content based matching movies by another AI e.g. sentimal analysis. So we evaluate not only the users' votings. We also take the reviews into account!
+The UI is coming soon.
+
 # Setup anaconda environment for using GPU under Windows
 Necessary packages:
 - python=3
