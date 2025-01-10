@@ -1,0 +1,5 @@
+
+Correct classifications: 12280,false classifications: 2881, accuracy: 0.8099729569289624
+Correct classifications deviations: 0.7172658645395446
+False classifications deviations: 1.1895890785427483
+Overall mean deviation: 0.8070200482703804
