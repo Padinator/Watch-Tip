@@ -2,4 +2,4 @@
 prepared_data/user_watchings*
 extracted_features/*
 results/target_prob_distr/**/*.keras
-results/target_real_genres_distr/_*
+results/target_real_genres/_*
