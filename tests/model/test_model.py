@@ -13,7 +13,7 @@ sys.path.append(str(project_dir))
 
 import tests.variables as tvars
 
-from model.model import extract_features, Model
+from model.model_target_real_genres import extract_features, Model
 
 
 # Define constants
