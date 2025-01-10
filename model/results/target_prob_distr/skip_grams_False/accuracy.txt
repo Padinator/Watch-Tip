@@ -1,3 +1,3 @@
-Accuracy predefined genres: 0.013718360055326026
-Accuracy real genres (allowed deviation: 43.58898943540674): 0.02070700507553556
-Average real genre distance per prediction: 115.23543223994089
+Accuracy predefined genres: 0.013653140113936113
+Accuracy real genres (allowed deviation: 43.58898943540674): 0.020686021466830372
+Average real genre distance per prediction: 115.2982138824539
