@@ -1,3 +1,4 @@
+import copy as cp
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -112,6 +113,7 @@ def extract_features(
     min_movie_history_len: int = MIN_MOVIE_HISTORY_LEN,
     fill_history_len_with_zero_movies: bool = True,
     fine_grained_extracting: bool = False,
+    number_of_predicted_movies: int = NUMBER_OF_PREDICTED_MOVIES,
 ) -> List[Tuple[np.array, np.array]]:
     """
     Extract features: partionate user histories into parts with length
@@ -147,6 +149,8 @@ def extract_features(
         "movie_history_len", else it will happen like the following example:\n
         movies: [a, b, c, d]; movie_history_len = 3\n
         packates: [a, b, c], [b, c, d]
+    number_of_predicted_movies : int, default NUMBER_OF_PREDICTED_MOVIES
+        Number of movies in one target/label to predict by AI
 
     Returns
     -------
@@ -155,8 +159,7 @@ def extract_features(
         next one to predict (= target, label) out ot the previous ones.
     """
 
-    global NUMBER_OF_PREDICTED_MOVIES
-
+    # Define variables
     all_extracted_features = []
     skipped_histories, used_histories = 0, 0
     steps_size = 1 if fine_grained_extracting else movie_history_len
@@ -164,17 +167,17 @@ def extract_features(
     for users_movie_history in user_movie_histories.values():  # Iterate over all users' histories
         if len(users_movie_history) < min_movie_history_len or (
             not fill_history_len_with_zero_movies
-            and len(users_movie_history) < movie_history_len + NUMBER_OF_PREDICTED_MOVIES
+            and len(users_movie_history) < movie_history_len + number_of_predicted_movies
         ):  # User has not enough movies watched
             skipped_histories += 1
             continue
         elif (
-            fill_history_len_with_zero_movies and len(users_movie_history) <= movie_history_len + NUMBER_OF_PREDICTED_MOVIES
+            fill_history_len_with_zero_movies and len(users_movie_history) <= movie_history_len + number_of_predicted_movies
         ):  # Use has watched enoguh movies, but not many
             # Find movies and target/label
-            movies = users_movie_history[:-NUMBER_OF_PREDICTED_MOVIES]
+            movies = users_movie_history[:-number_of_predicted_movies]
             target_movies_with_ids = users_movie_history[
-                -NUMBER_OF_PREDICTED_MOVIES:
+                -number_of_predicted_movies:
             ]  # Save in label movie ID and target real genres
 
             # Fill missing movies with zeros
@@ -192,13 +195,13 @@ def extract_features(
             all_extracted_features.extend(
                 [
                     (
-                        np.copy(users_movie_history[i:i + movie_history_len]),
+                        cp.copy(users_movie_history[i:i + movie_history_len]),
                         users_movie_history[
-                            i + movie_history_len:i + movie_history_len + NUMBER_OF_PREDICTED_MOVIES
+                            i + movie_history_len:i + movie_history_len + number_of_predicted_movies
                         ],  # Save in label movie ID and target real genres
                     )
                     for i in range(
-                        0, len(users_movie_history) - movie_history_len - (NUMBER_OF_PREDICTED_MOVIES - 1), steps_size
+                        0, len(users_movie_history) - movie_history_len - (number_of_predicted_movies - 1), steps_size
                     )
                 ]
             )

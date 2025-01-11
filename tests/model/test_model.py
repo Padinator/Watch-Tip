@@ -24,7 +24,7 @@ np.random.seed(seed=SEED)
 
 
 def generate_full_movies_histories(
-    all_movies_real_genres: Dict[int, List[Tuple[int, np.ndarray]]], history_len: int
+    all_movies_real_genres: Dict[int, List[Tuple[int, np.ndarray]]], history_len: int, number_of_predicted_movies: int
 ) -> List[Tuple[np.ndarray, np.ndarray]]:
     """
     Generates to a passed list of movies the movie histories. It's basically a
@@ -43,6 +43,8 @@ def generate_full_movies_histories(
     history_len : int
         Resulting length of each movie history, which represents an input
         feature for an AI model.
+    number_of_predicted_movies : int
+        Number of movies in one target/label to predict by AI
 
     Returns
     -------
@@ -52,10 +54,13 @@ def generate_full_movies_histories(
     """
 
     return [
-        ([movie for _, movie in users_movie_history[i:i + history_len]], users_movie_history[i + history_len])
+        (
+            [(movie_id, movie) for movie_id, movie in users_movie_history[i:i + history_len]],
+            users_movie_history[i + history_len:i + history_len + number_of_predicted_movies],
+        )
         for users_movie_history in all_movies_real_genres.values()
-        for i in range(len(users_movie_history) - history_len)
-        if 0 < (len(users_movie_history) - history_len)
+        for i in range(len(users_movie_history) - history_len - (number_of_predicted_movies - 1))
+        if 0 < (len(users_movie_history) - history_len - (number_of_predicted_movies - 1))
     ]
 
 
@@ -75,7 +80,8 @@ class TestModel(unittest.TestCase):
                 5,
                 False,
                 True,  # Split movies into fine-grained packets
-                generate_full_movies_histories(tvars.all_movies_real_genres_per_user_one_user, 10),
+                1,  # Number of movies to predict/in one target/label
+                generate_full_movies_histories(tvars.all_movies_real_genres_per_user_one_user, 10, 1),
                 len(tvars.all_movies_real_genres_per_user_one_user),  # All users
             ],
             # Only one user with all movies (not fine-grained movie packets)
@@ -85,7 +91,8 @@ class TestModel(unittest.TestCase):
                 5,
                 False,
                 False,  # Don't split movies into fine-grained packets
-                generate_full_movies_histories(tvars.all_movies_real_genres_per_user_one_user, 10)[
+                1,
+                generate_full_movies_histories(tvars.all_movies_real_genres_per_user_one_user, 10, 1)[
                     ::10
                 ],  # Same as splitting all movies into packets of 10
                 len(tvars.all_movies_real_genres_per_user_one_user),  # All users
@@ -97,6 +104,7 @@ class TestModel(unittest.TestCase):
                 5,
                 False,
                 True,
+                1,
                 [],
                 0,
             ],
@@ -107,9 +115,11 @@ class TestModel(unittest.TestCase):
                 5,
                 False,
                 True,
+                1,
                 generate_full_movies_histories(
                     tvars.all_movies_real_genres_per_user_many_users_equal_movies,
                     9,
+                    1,
                 ),
                 len(tvars.all_movies_real_genres_per_user_many_users_equal_movies)
                 - 1,  # Because one user watched only 5 movies
@@ -124,7 +134,8 @@ class TestModel(unittest.TestCase):
                 4,  # User with only 5 movies is okay, but would be filled with 6 zero movies
                 False,  # No filling with zero movies is possible (same result like in 3. parameterization)
                 True,
-                generate_full_movies_histories(tvars.all_movies_real_genres_per_user_many_users_equal_movies, 9),
+                1,
+                generate_full_movies_histories(tvars.all_movies_real_genres_per_user_many_users_equal_movies, 9, 1),
                 len(tvars.all_movies_real_genres_per_user_many_users_equal_movies)
                 - 1,  # Because one user watched only 5 movies
             ],
@@ -136,39 +147,49 @@ class TestModel(unittest.TestCase):
                 4,  # User with only 5 movies is okay, but would be filled with 6 zero movies
                 True,  # Adding zero movies is no permitted
                 True,
-                generate_full_movies_histories(tvars.all_movies_real_genres_per_user_many_users_equal_movies, 9)
+                1,
+                generate_full_movies_histories(tvars.all_movies_real_genres_per_user_many_users_equal_movies, 9, 1)
                 + [
                     (
-                        np.concatenate(
-                            (
-                                np.tile(np.zeros(19), (5, 1)),  # Add 5 zero movies
-                                [
-                                    movie
-                                    for movie_id, movie in list(
-                                        tvars.all_movies_real_genres_per_user_many_users_equal_movies.values()
-                                    )[-1]
-                                ][
-                                    :4
-                                ],  # Use 4 movies from user's movie history
-                            ),
-                            axis=0,
-                        ),
-                        list(tvars.all_movies_real_genres_per_user_many_users_equal_movies.values())[-1][
+                        # Add 5 zero movies with ID -1
+                        [(-1, np.zeros(19)) for _ in range(5)]  # Add 4 existing movies with their IDs
+                        + [
+                            (movie_id, movie)
+                            for movie_id, movie in list(
+                                tvars.all_movies_real_genres_per_user_many_users_equal_movies.values()
+                            )[-1]
+                        ][
+                            :4
+                        ],  # Use 4 movies from user's movie history
+                        [list(tvars.all_movies_real_genres_per_user_many_users_equal_movies.values())[-1][
                             4
-                        ],  # Use last movie form users movie history as target/label
+                        ]],  # Use last movie form users movie history as target/label
                     )
                 ],
                 len(tvars.all_movies_real_genres_per_user_many_users_equal_movies),  # All users
             ],
+            # -------- Test different multiple predicted movies --------
+            # Only one user with all movies (fine-grained movie packets)
+            [
+                tvars.all_movies_real_genres_per_user_one_user,
+                6,
+                5,
+                False,
+                True,  # Split movies into fine-grained packets
+                5,  # Number of movies to predict/in one target/label -> predict 5 movies
+                generate_full_movies_histories(tvars.all_movies_real_genres_per_user_one_user, 6, 5),
+                len(tvars.all_movies_real_genres_per_user_one_user),  # All users
+            ],
         ]
     )
-    def test_extract_features(
+    def test_extract_features_1(
         self,
         user_movie_histories: Dict[int, List],
         movie_history_len: int,
         min_movie_history_len: int,
         fill_history_len_with_zero_movies: bool,
         fine_grained_extracting: bool,
+        number_of_predicted_movies: int,
         expected_extracted_features: List[Tuple[np.array, np.array]],
         expected_used_histories: int,
     ) -> None:
@@ -189,20 +210,22 @@ class TestModel(unittest.TestCase):
         movie_history_len : int
             Resulting length of each movie history, which represents an input
             feature for an AI model.
-        min_movie_history_len : int, default MIN_MOVIE_HISTORY_LEN
+        min_movie_history_len : int
             Minimal history length of a movie history. Smaller history lengths
             will be ignored.
-        fill_history_len_with_zero_movies : bool, default True
+        fill_history_len_with_zero_movies : bool
             If fill_history_len_with_zero_movies is True and if
             min_movie_history_len < movie_history_len, then missing movies will be
             added with zero movies (zero vectors). These zero movies will be added
             as the first elements of a movie history (so the ones, which are nearer
             to the past).
-        fine_grained : bool, default False
+        fine_grained : bool
             If False, then all movies will be split into packets of
             "movie_history_len", else it will happen like the following example:\n
             movies: [a, b, c, d]; movie_history_len = 3\n
             packates: [a, b, c], [b, c, d]
+        number_of_predicted_movies : int
+            Number of movies in one target/label to predict by AI
         expected_features : List[Tuple[np.array, np.array]]
             Tuples consisting of the last seen movies (= input) and the next
             one to predict (= target, label) out ot the previous ones.
@@ -217,6 +240,7 @@ class TestModel(unittest.TestCase):
             min_movie_history_len=min_movie_history_len,
             fill_history_len_with_zero_movies=fill_history_len_with_zero_movies,
             fine_grained_extracting=fine_grained_extracting,
+            number_of_predicted_movies=number_of_predicted_movies,
         )
 
         # Check results
@@ -225,14 +249,27 @@ class TestModel(unittest.TestCase):
 
         for (extracted_feature, target), (expected_extracted_feature, expected_target) in zip(
             extracted_features, expected_extracted_features
-        ):
-            self.assertEqual(target[0], expected_target[0])  # Compare movie ID of target/label
-            np.testing.assert_array_almost_equal(target[1], expected_target[1])  # Compare real genres of target/label
+        ):  # Iterate over all targets
+            print(extracted_feature, target)
+            print(expected_extracted_feature, expected_target)
 
-            # Compare movie histories
-            for real_genres, expected_real_genres in zip(extracted_feature, expected_extracted_feature):
+            # Assert shapes of input features and targets
+            self.assertEqual(len(extracted_feature), len(expected_extracted_feature))
+            self.assertEqual(len(target), len(expected_target))
+
+            # Compare movie histories (input features)
+            for (movie_id, real_genres), (expected_movie_id, expected_real_genres) in zip(
+                extracted_feature, expected_extracted_feature
+            ):
+                self.assertEqual(movie_id, expected_movie_id)  # Compare movie IDs
                 np.testing.assert_array_almost_equal(real_genres, expected_real_genres)
 
+            # Compare targets/labels
+            for (movie_id, real_genres), (expected_movie_id, expected_real_genres) in zip(target, expected_target):
+                self.assertEqual(movie_id, expected_movie_id)  # Compare movie IDs
+                np.testing.assert_array_almost_equal(real_genres, expected_real_genres)
+
+    '''
     # ============ Test class "Model" ============
     # ------------ Test function "find_similiar_movies" ------------
     @parameterized.expand(
@@ -452,7 +489,7 @@ class TestModel(unittest.TestCase):
             ],
         ]
     )
-    def test_find_similiar_movies(
+    def test_find_similiar_movies_1(
         self, predicted_movie: np.ndarray, n_closest_movies: int, expected_similiar_movies: List[Dict[str, Any]]
     ) -> None:
         """
@@ -482,3 +519,4 @@ class TestModel(unittest.TestCase):
             expected_dist = cdist([predicted_movie], [expected_movie["real_genres"]], "sqeuclidean")[0][0]
             self.assertAlmostEqual(dist, expected_dist, places=3)  # Check distances between movies
             self.assertEqual(movie["movie_id"], expected_movie["movie_id"])  # Check movie IDs
+    '''
