@@ -82,20 +82,14 @@ class ThreadPool:
         result_storage[thread_number] = results
         result_storage_sem.release()
 
-    def join(
-        self,
-        task: Callable,
-        args: Iterable,
-        print_iteration: int = 1000,
-        no_print: bool = False
-    ) -> List[Any]:
+    def join(self, task: Callable, args: Iterable, print_iteration: int = 1000, no_print: bool = False) -> List[Any]:
         """
         Executes a passed function "task" with passed arguments "args"
         and returns results of each thread summarized in a list.\n
         The results will be sorted after each thread and each thread executes
         it's function sequentially. Overall the results will be sorted same as
         calling the function "task" sequentially with the passed arguments.\n
-        
+
         If no iteration print is desired, then set "print_iteration = 0" or
         "print_iteration = None".
 

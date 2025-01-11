@@ -218,9 +218,7 @@ def extract_features(
             real_genres = all_movies_real_genres_mapping[movie_id]
             embedding_matrix[i] = real_genres / np.max(real_genres)  # Normalize real genres
     elif embedding["embedding"] == "skip_grams":  # Embedding based on counted skip grams
-        embedding_matrix = np.zeros(
-            (total_number_of_movies, total_number_of_movies)
-        )  # Quadratic matrix over all movies
+        embedding_matrix = np.zeros((total_number_of_movies, total_number_of_movies))  # Quadratic matrix over all movies
 
         # Copy all occurences
         for i, movie_id in enumerate(relevant_movie_ids):
@@ -543,17 +541,17 @@ if __name__ == "__main__":
                 # Output structure of model
                 print(model.summary())
 
-                # # Plot accuracy and save it to file
-                # plt.plot(history.history["accuracy"], label="accuracy")
-                # plt.legend()
-                # # plt.savefig(save_dir / "accuracy.png", bbox_inches="tight")
-                # plt.show()
+                # Plot accuracy and save it to file
+                plt.plot(history.history["accuracy"], label="accuracy")
+                plt.legend()
+                # plt.savefig(save_dir / "accuracy.png", bbox_inches="tight")
+                plt.show()
 
-                # # Plot loss and save it to file
-                # plt.plot(history.history["loss"], label="loss")
-                # plt.legend()
-                # # plt.savefig(save_dir / "loss.png", bbox_inches="tight")
-                # plt.show()
+                # Plot loss and save it to file
+                plt.plot(history.history["loss"], label="loss")
+                plt.legend()
+                # plt.savefig(save_dir / "loss.png", bbox_inches="tight")
+                plt.show()
 
             # Test and evaluate model
             model.evaluate(X_test, y_test, batch_size=BATCH_SIZE)

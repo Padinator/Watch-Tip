@@ -2,10 +2,8 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 
 from sklearn.manifold import TSNE
-from sklearn.cluster import KMeans
 from gensim.models import Word2Vec
 from pathlib import Path
 
