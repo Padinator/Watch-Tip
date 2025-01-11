@@ -269,7 +269,6 @@ class TestModel(unittest.TestCase):
                 self.assertEqual(movie_id, expected_movie_id)  # Compare movie IDs
                 np.testing.assert_array_almost_equal(real_genres, expected_real_genres)
 
-    '''
     # ============ Test class "Model" ============
     # ------------ Test function "find_similiar_movies" ------------
     @parameterized.expand(
@@ -519,4 +518,3 @@ class TestModel(unittest.TestCase):
             expected_dist = cdist([predicted_movie], [expected_movie["real_genres"]], "sqeuclidean")[0][0]
             self.assertAlmostEqual(dist, expected_dist, places=3)  # Check distances between movies
             self.assertEqual(movie["movie_id"], expected_movie["movie_id"])  # Check movie IDs
-    '''
