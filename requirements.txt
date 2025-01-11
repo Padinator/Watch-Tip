@@ -8,8 +8,8 @@ pymongo==4.10.1
 requests==2.32.3
 scikit-learn==1.5.1
 
-# Data visualization
-MulticoreTSNE
+# Data visualization (MulticoreTSNE must be installed with conda under Windows/GitHub)
+# MulticoreTSNE
 
 # AI stuff
 tensorflow-cpu==2.18.0; sys_platform == "windows" and "3.10" < python_version  # Tensorflow for Windows
