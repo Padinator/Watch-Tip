@@ -186,7 +186,7 @@ def extract_features(
                 -1,
                 np.zeros(len(target_movies_with_ids[0][1])),
             )  # Create movie containing only 0 for all real genres with ID -1
-            zero_movies = list(np.tile(zero_movie, (number_of_missing_movies, 1)))
+            zero_movies = [zero_movie for _ in range(number_of_missing_movies)]
 
             # Create one list with zero movies and watched movies of a user
             history_feature = (zero_movies + movies, target_movies_with_ids)
