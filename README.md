@@ -18,8 +18,10 @@ WATCH-TIP<br>
 |---- docs &emsp;&ensp;&nbsp; - Some documentation about the project<br>
 |---- helper &emsp; - Helper files with some helpful functions etc.<br>
 |---- model &emsp; - Implementation/Usages of AI techniques/models to predict the real genres of the next movie or the next movie itself<br>
-&emsp;&ensp; |---- model_target_prob_distr.py &nbsp; - Trains and test an AI model: input: one hot encoded movies or real genres of a movie + different embeddings; output/target label: probability distribution of all movies<br>
+&emsp;&ensp; |---- data_visualization.ipynb &emsp;&emsp;&nbsp;- Visualtization of real genres of all movies and movie histories of users (TMDB dataset and Netflix prize dataset)<br>
 &emsp;&ensp; |---- model_target_real_genres.py - Trains and test an AI model: input: movie (real genres) histories of users; output/target/label: real genres<br>
+&emsp;&ensp; |---- results_visualization.ipynb &emsp;&nbsp;- Visualtization of real genres of all movies and movie histories of users (TMDB dataset and Netflix prize dataset)<br>
+&emsp;&ensp; |---- model_target_prob_distr.py &nbsp; - Trains and test an AI model: input: one hot encoded movies or real genres of a movie + different embeddings; output/target label: probability distribution of all movies<br>
 |---- ranking &emsp;&ensp;&nbsp; - Rank proposed/suggested movies (from AIs from directory model) to show the best at first<br>
 |---- slides-decks - Slides and presentations<br>
 |---- tests &emsp;&emsp;&emsp; - Tests ensuring quality of several modules<br>
