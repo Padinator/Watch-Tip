@@ -1,5 +1,5 @@
 # Watch-Tip
-Recommendation engine for movies
+A user focussed recommendation engine for movies
 
 # How to?
 This recommendation engine is based on the psychological aspect that people are watching always the same king of movies and actors playing always the smae kind of movies, same for producers.<br>
