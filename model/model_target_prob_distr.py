@@ -450,7 +450,7 @@ if __name__ == "__main__":
     )
 
     # Test all input/output and embedding possibilities
-    for embedding in ALL_EMBEDDINGS[4:]:  # Test all different embeddings
+    for embedding in ALL_EMBEDDINGS:  # Test all different embeddings
         for encoding_type in [False, True]:  # Test one hot encoded input features and not encoded ones
             emedding_type = embedding["embedding"] if "embedding" in embedding else "no-embedding"
             print("============ {}-{} ============".format(emedding_type, str(encoding_type)))
