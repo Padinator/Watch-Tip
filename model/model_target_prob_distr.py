@@ -336,7 +336,7 @@ def prepare_data(
     print("Train shapes:")
     print(f"X_train: {X_train.shape}, y_train: {y_train.shape}")
     print("Test shapes:")
-    print(f"X_test: {X_train.shape}, y_test: {y_train.shape}")
+    print(f"X_test: {X_test.shape}, y_test: {y_test.shape}")
     print(X_train[0].shape, y_train[0].shape)
     print(X_train[0], y_train[0])
 
@@ -386,7 +386,7 @@ def build_model(
         model.add(Flatten())
 
     # Add other layers
-    model.add(Dense(100, activation="relu"))
+    # model.add(Dense(100, activation="relu"))
     # model.add(Dropout(0.3))
     model.add(Dense(total_number_of_movies, activation="softmax"))
 
@@ -450,7 +450,7 @@ if __name__ == "__main__":
     )
 
     # Test all input/output and embedding possibilities
-    for embedding in ALL_EMBEDDINGS:  # Test all different embeddings
+    for embedding in ALL_EMBEDDINGS[4:]:  # Test all different embeddings
         for encoding_type in [False, True]:  # Test one hot encoded input features and not encoded ones
             emedding_type = embedding["embedding"] if "embedding" in embedding else "no-embedding"
             print("============ {}-{} ============".format(emedding_type, str(encoding_type)))
@@ -490,6 +490,7 @@ if __name__ == "__main__":
                 )
 
             # Use only an handable amount of data
+            random.shuffle(extracted_features)  # Shuffle data before using a handable part
             extracted_features = extracted_features[:MAX_DATA]
 
             # Output results of extracting
@@ -499,10 +500,6 @@ if __name__ == "__main__":
                 print(f"Embedding matrix has shape {embedding_matrix.shape} with following format:")
                 print(embedding_matrix[0])
             print()
-
-            # Use only handable part of data
-            # random.shuffle(extracted_features)  # Shuffle data before using a handable part
-            # extracted_features = extracted_features[:30000]
 
             # Prepare data: negative sampling + split train and test data
             X_train, X_test, y_train, y_test = prepare_data(
