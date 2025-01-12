@@ -9,16 +9,19 @@ from typing import Any, Dict
 project_dir = Path(__file__).parents[1]
 sys.path.append(str(project_dir))
 
-import helper.parallelizer as para
 import helper.variables as vars
 
 from database.actor import Actors
 from database.genre import Genres
 from database.model import DatabaseModel
 from database.movie import Movies
+from helper.parallelizer import ThreadPool
 from database.producer import Producers
 from database.production_company import ProductionCompanies
 
+
+# Define constants
+CPU_KERNELS = 16
 
 # Define variables
 all_actors = {}
@@ -116,9 +119,7 @@ for i, (movie_id, movie) in enumerate(all_movies.items()):
     # Count genres of all actors of a movie
     for actor_id in movie["credits"]["cast"]:
         try:
-            all_actors[actor_id]["genres"][
-                movie_genres
-            ] += 1  # Increment counters of each genre
+            all_actors[actor_id]["genres"][movie_genres] += 1  # Increment counters of each genre
             all_actors[actor_id]["played_movies"] += 1
         except Exception as e:
             if actor_id not in all_actors:  # Actor not in database
@@ -137,9 +138,7 @@ for i, (movie_id, movie) in enumerate(all_movies.items()):
     for producer_id in movie["credits"]["crew"]:
         try:
             producer_id = int(producer_id)
-            all_producers[producer_id]["genres"][
-                movie_genres
-            ] += 1  # Increment counters of each genre
+            all_producers[producer_id]["genres"][movie_genres] += 1  # Increment counters of each genre
             all_producers[producer_id]["produced_movies"] += 1
         except Exception as e:
             if producer_id not in all_producers:  # Producer not in database
@@ -157,14 +156,10 @@ for i, (movie_id, movie) in enumerate(all_movies.items()):
     # Count genres of all production companies of a movie
     for company_id in movie["production_companies"]:
         try:
-            all_production_companies[company_id]["genres"][
-                movie_genres
-            ] += 1  # Increment counters of each genre
+            all_production_companies[company_id]["genres"][movie_genres] += 1  # Increment counters of each genre
             all_production_companies[company_id]["financed_movies"] += 1
         except Exception as e:
-            if (
-                company_id not in all_production_companies
-            ):  # Production company not in database
+            if company_id not in all_production_companies:  # Production company not in database
                 if movie_id not in missing_production_companies:
                     missing_production_companies[movie_id] = []
                 missing_production_companies[movie_id].append(company_id)
@@ -204,56 +199,20 @@ def insert_one(table: "DatabaseModel", id: int, entity: Dict[str, Any]) -> None:
     table.insert_one(entity)
 
 
+# Save all data in database
+thread_pool = ThreadPool(CPU_KERNELS)
+
 # Write all updated actors into database
 print("\nWrite all updated actors into database")
-para.parallelize_task_without_return_values(
-    insert_one,
-    [(all_actors_table, actor_id, actor) for actor_id, actor in all_actors.items()],
-    16,
-    500000,
-)
+args = [(all_actors_table, actor_id, actor) for actor_id, actor in all_actors.items()]
+thread_pool.join(insert_one, args, print_iteration=500000)
 
-# for i, (actor_id, actor) in enumerate(all_actors.items()):
-#     if i % 500000 == 0:
-#         print(f"Iteration: {i}")
-#     actor["id"] = actor_id
-#     actor["genres"] = actor["genres"].tolist()
-#     all_actors_table.insert_one(actor)
-
-# # Write all updated producers into database
+# Write all updated producers into database
 print("\nWrite all updated producers into database")
-para.parallelize_task_without_return_values(
-    insert_one,
-    [
-        (all_producers_table, producer_id, producer)
-        for producer_id, producer in all_producers.items()
-    ],
-    16,
-    500000,
-)
+args = [(all_producers_table, producer_id, producer) for producer_id, producer in all_producers.items()]
+thread_pool.join(insert_one, args, print_iteration=500000)
 
-# for i, (producer_id, producer) in enumerate(all_producers.items()):
-#     if i % 500000 == 0:
-#         print(f"Iteration: {i}")
-#     producer["id"] = producer_id
-#     producer["genres"] = producer["genres"].tolist()
-#     all_producers_table.insert_one(producer)
-
-# # Write all updated production companies into database
+# Write all updated production companies into database
 print("\nWrite all updated production companies into database")
-para.parallelize_task_without_return_values(
-    insert_one,
-    [
-        (all_production_companies_table, company_id, company)
-        for company_id, company in all_production_companies.items()
-    ],
-    16,
-    50000,
-)
-
-# for i, (company_id, company) in enumerate(all_production_companies.items()):
-#     if i % 50000 == 0:
-#         print(f"Iteration: {i}")
-#     company["id"] = company_id
-#     company["genres"] = company["genres"].tolist()
-#     all_production_companies_table.insert_one(company)
+args = [(all_production_companies_table, company_id, company) for company_id, company in all_production_companies.items()]
+thread_pool.join(insert_one, args, print_iteration=50000)

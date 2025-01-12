@@ -46,5 +46,5 @@
        requesting all this data
 
 6. Ranking: ("ranking.py")
-    - With large and more than one user feedback, it can become problematic because the token limit is reached after a certain number and then the LLM no longer “works” properly
+    - With large and more than one user feedback, it can become problematic because the token limit is reached after a certain number and then the LLM no longer "works" properly
     - 

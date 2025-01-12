@@ -630,7 +630,7 @@ if __name__ == "__main__":
     found_netflix_movies, netflix_series, missing_movies_in_db = [], [], []
     all_movies_table = Movies()  # Connect to database
 
-    # # Read all movies from database
+    # Read all movies from database
     all_movies = all_movies_table.get_all()
     all_movies_from_database = [
         {
@@ -745,9 +745,11 @@ if __name__ == "__main__":
     # Read user ratings from files (Netflix prize data)
     print("Read user ratings from files (Netflix prize data)")
     user_watchings = defaultdict(list)
-    watched_netflix_movie_ratings = defaultdict(list)
-    relevant_movies_ids = [int(movie["netflix_movie_id"]) for movie in found_netflix_movies]
 
+    # Transform list of all Netflix movies into fast accessable/readable dict
+    netflix_movies_mapped_to_database_movies = dict([(int(movie["netflix_movie_id"]), int(movie["id"])) for movie in found_netflix_movies])
+
+    # Read watchings from all Netflix users and save them with movie IDs from database
     for netflix_movies_file_path in vars.local_netflix_movies_watched_file_paths:
         i = 0
 
@@ -763,17 +765,25 @@ if __name__ == "__main__":
                     print(f"Read already {round(i / len(lines) * 100, 3)} %")
 
                 if re.match("[0-9]+:\n$", line):  # Get ID of next movie and check, if it's a movie in database
-                    current_movie_id = int(line[:-2])  # Ignore ":" and "\n"
-                    save_movies_ratings = current_movie_id in relevant_movies_ids
+                    netflix_movie_id = int(line[:-2])  # Ignore ":" and "\n"
+                    save_movies_ratings = netflix_movie_id in netflix_movies_mapped_to_database_movies
+
+                    if save_movies_ratings:
+                        current_movie_id = netflix_movies_mapped_to_database_movies[netflix_movie_id]
                 elif save_movies_ratings:  # Save users to a movie, which have watched this movie
                     user_id, rating, watching_date = line.strip().split(",")
                     user_watchings[int(user_id)].append(
-                        {"watched_movie": current_movie_id, "rating": rating, "watching_date": watching_date}
+                        {"movie_id": current_movie_id, "rating": rating, "watching_date": watching_date}
                     )
 
     # Sort each user movies history by date
+    print("Sort each user movies history by date")
     for user_id, watchings in user_watchings.items():
         user_watchings[user_id] = sorted(watchings, key=lambda x: x["watching_date"])
+
+    # Output results
+    print(f"Read overall Netflix users: {len(user_watchings)}")
+    print(f"Read overall {sum([len(watchings) for watchings in user_watchings.values()])} user watchings/ratings")
 
     # Output an example user movie history
     print("Output an example user movie history:")
@@ -781,8 +791,3 @@ if __name__ == "__main__":
 
     # Save dict in temporary file
     save_object_in_file(vars.netflix_movies_watchings_path, user_watchings)
-
-    # Load Netflix movie watchings from temporary file
-    # user_watchings = load_object_from_file(vars.netflix_movies_watchings_path)
-    print(f"Read overall Netflix users: {len(user_watchings)}")
-    print(f"Read overall {sum([len(watchings) for watchings in user_watchings.values()])} user watchings/ratings")

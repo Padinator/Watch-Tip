@@ -4,7 +4,7 @@ from pathlib import Path
 project_dir_vars = Path(__file__).parents[1]
 
 
-# --------------- Define some variables for pre processing ---------------
+# --------------- Define some variables for preprocessing ---------------
 data_preprocessing_path = project_dir_vars / "data_preprocessing"
 
 # Define some basic paths, where (updated) data will be stored
@@ -117,6 +117,8 @@ model_path = project_dir_vars / "model"
 
 # Define some variables for data preparation
 prepared_data_folder = model_path / "prepared_data"
+
+# User histories
 user_history_file_path_with_real_genres = (
     prepared_data_folder / "user_histories_with_real_genres.pickle"
 )
@@ -132,6 +134,25 @@ user_history_file_path_with_real_genres_and_reduced_dimensions_visualization = (
     / "user_histories_with_real_genres_and_reduced_dimensions.dataframe"
 )
 
+# User watchings (Netflix prize data)
+user_watchings_file_path_with_real_genres = (
+    prepared_data_folder / "user_watchings_with_real_genres.pickle"
+)
+user_watchings_file_path_with_real_genres_visualization = (
+    prepared_data_folder / "user_watchings_with_real_genres.dataframe"
+)
+user_watchings_file_path_with_real_genres_small = (
+    prepared_data_folder / "user_watchings_with_real_genres_small.pickle"
+)
+user_watchings_file_path_with_real_genres_visualization_small = (
+    prepared_data_folder / "user_watchings_with_real_genres_small.dataframe"
+)
+
 # Define some variables for feature extraction
 extracted_features_folder = model_path / "extracted_features"
 extracted_features_file_path = extracted_features_folder / "extracted_features.pickle"
+
+# Define paths for train and test data visualizations
+result_folder = model_path / "results"
+train_data_visualization_path = result_folder / "train_data.dataframe"
+test_data_visualization_path = result_folder / "test_data.dataframe"

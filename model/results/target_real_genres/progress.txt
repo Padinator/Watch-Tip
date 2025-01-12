@@ -1,0 +1,489 @@
+Output of models have following format
+Tensorflow: loss: <loss value for test data> - acc: <accuracy value for test data>
+Same values from all <amount of test data> entries (only one value of prediction array must differ):
+   0.1      0.2     0.3
+<number> <number> <number>
+=> 3 numbers:
+	1. First number represents how many predictions doen't differ from first prediction (no value of this vectors differs with a maximum of 0.1)
+	2. Same as first one but with a maximum threshold of 0.2
+	3. Same as first one but with a maximum threshold of 0.3
+
+
+500,000 data sequences:
+	1 LSTM Layer (64 units):
+		Tensorflow: loss: 0.0185 - acc: 0.4651
+		Same values from all 54579 entries (only one value of prediction array must differ):
+		 0.1   0.2	 0.3
+		13138 50954 54572
+
+	1. SimpleRNN layer (64 units):
+		Tensorflow: loss: 0.0187 - acc: 0.4495
+		Same values from all 52840 entries (only one value of prediction array must differ):
+		 0.1   0.2	 0.3
+		38566 52775 52839
+
+	1. SimpleRNN layer (128 units):
+		Tensorflow: loss: 0.0187 - acc: 0.4545
+		Same values from all 52840 entries (only one value of prediction array must differ):
+		 0.1   0.2   0.3
+		23842 51413 52840
+
+
+50,000 data sequences:
+	------------ Insert/Test some layers ------------
+	1 'LSTM(64, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform")' layer + one 'Dense(19, activation="sigmoid")' layer:
+		Tensorflow: loss: 0.0185 - acc: 0.4574
+		Same values from all 5081 entries (only one value of prediction array must differ):
+		 0.1  0.2  0.3
+		1882 4336 5081
+
+	-> Added one 'Dense(64, activation="relu")' Layer:
+		Tensorflow: loss: 0.0186 - acc: 0.4515
+		Same values from all 5081 entries (only one value of prediction array must differ):
+		 0.1  0.2  0.3
+		3247 4830 5081
+		
+	-> Added one Dropout(0.4) Layer between two Dense layers:
+		Tensorflow: loss: 0.0185 - acc: 0.4527
+		Same values from all 5081 entries (only one value of prediction array must differ):
+		 0.1  0.2  0.3
+		2845 4847 5081
+
+	-> Removed added Dropout and Dense layers and added 'Conv1D(64, 2)' layer:
+		Tensorflow: loss: 0.0183 - acc: 0.4588
+		Same values from all 5081 entries (only one value of prediction array must differ):
+		 0.1  0.2  0.3
+		1226 3724 4995
+
+
+
+	------------ Insert convolutional layer ------------
+	Convolutional layer should not contain more units than LSTM layer
+	LSTM (128) und Conv1d (128):
+	Tensorflow: loss: 0.0186 - acc: 0.4517
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	2279 4383 5081
+
+	LSTM (128) und Conv1D (64):
+	Tensorflow: loss: 0.0186 - acc: 0.4507
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	2709 4604 5081
+
+	LSTM (64) und Conv1D (128):
+	93/93 [==============================] - 0s 2ms/step - loss: 0.0188 - acc: 0.4550
+	93/93 [==============================] - 0s 3ms/step
+	2255 5081
+	5078 5081
+	5081 5081
+	vscode-terminal:/20c959f5f5418558b30543edf9c9c5f7/4
+
+	LSTM (64) und Conv1D (64):
+	Tensorflow: loss: 0.0183 - acc: 0.4588
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1226 3724 4995
+
+	LSTM (64) und Conv1D (32):
+	Tensorflow: loss: 0.0184 - acc: 0.4554
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1082 3342 4997
+
+	LSTM (32) und Conv1D (64):
+	93/93 [==============================] - 0s 5ms/step - loss: 0.0186 - acc: 0.4537
+	93/93 [==============================] - 1s 4ms/step
+	2358 5081
+	4859 5081
+	5081 5081
+
+
+	LSTM (32) und Conv1d (32):
+	Tensorflow: loss: 0.0188 - acc: 0.4550
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	2255 5078 5081
+
+	LSTM (16) und Conv1d (32):
+	Tensorflow: loss: 0.0189 - acc: 0.4489
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	4955 5081 5081
+
+	LSTM (32) und Conv1d (16):
+	Tensorflow: loss: 0.0188 - acc: 0.4550
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	2255 5078 5081
+
+
+	LSTM (16) und Conv1d (16):
+	Tensorflow: loss: 0.0189 - acc: 0.4489
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	5016 5073 5081
+
+
+
+	=> Try to improve size of convolutional layer and LSTM
+	LSTM (128):
+	LSTM (128) und Conv1d (16):
+	Tensorflow: loss: 0.0186 - acc: 0.4521
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1623 4970 5081
+
+	LSTM (128) und Conv1d (32):
+	Tensorflow: loss: 0.0186 - acc: 0.4521
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1623 4970 5081
+
+	LSTM (128) und Conv1D (64) (from above):
+	Tensorflow: loss: 0.0186 - acc: 0.4507
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	2709 4604 5081
+
+
+	LSTM (64):
+	LSTM (64) und Conv1D (16):
+	Tensorflow: loss: 0.0185 - acc: 0.4570
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	2212 4732 5081
+
+	LSTM (64) und Conv1D (32) (from above):
+	Tensorflow: loss: 0.0184 - acc: 0.4554
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1082 3342 4997
+
+
+
+	------------ Vary batch size ------------
+	Use LSTM(64) and Conv1D(32) with batch size 16:
+	Tensorflow: loss: 0.0187 - acc: 0.4507
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	2119 5052 5081
+
+	Use LSTM(64) and Conv1D(32) with batch size 25:
+	Tensorflow: loss: 0.0183 - acc: 0.4619
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	0.1  0.2  0.3
+	845 3258 4853
+
+	Use LSTM(64) and Conv1D(32) with batch size 32:
+	Tensorflow: loss: 0.0183 - acc: 0.4576
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	0.1  0.2  0.3
+	933 3198 4753
+
+	Use LSTM(64) and Conv1D(32) with batch size 40:
+	Tensorflow: loss: 0.0184 - acc: 0.4568
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1018 3211 4913
+
+	Use LSTM(64) and Conv1D(32) with batch size 55 (from above):
+	Tensorflow: loss: 0.0184 - acc: 0.4554
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1082 3342 4997
+
+	Use LSTM(64) and Conv1D(32) with batch size 64:
+	Tensorflow: loss: 0.0184 - acc: 0.4552
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1178 3478 5031
+
+
+
+	------------ Dropout (transformation of the inputs) in LSTM layer ------------
+	Dropout of 0.2:
+	Tensorflow: loss: 0.0184 - acc: 0.4564
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1163 3394 4965
+
+	Recurrent dropout of 0.2:
+	Tensorflow: loss: 0.0183 - acc: 0.4558
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	0.1  0.2  0.3
+	955 3248 4780
+
+	Dropout of 0.2 and recurrent dropout of 0.2:
+	Tensorflow: loss: 0.0184 - acc: 0.4568
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1340 3674 5009
+
+
+	Dropout of 0.1 and recurrent dropout of 0.1:
+	Tensorflow: loss: 0.0184 - acc: 0.4558
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1114 3418 4959
+
+
+
+	------------ Additional LSTM layer (kernel_initializer="HeUniform") ------------
+	Add LSTM(16):
+	Tensorflow: loss: 0.0186 - acc: 0.4495
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	2642 5070 5081
+
+	Add LSTM(32):
+	Tensorflow: loss: 0.0184 - acc: 0.4584
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1874 4200 5054
+
+	Add LSTM(64):
+	Tensorflow: loss: 0.0187 - acc: 0.4509
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	3165 5081 5081
+
+	Add LSTM(128):
+	Tensorflow: loss: 0.0185 - acc: 0.4546
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1778 4099 5079
+
+	Add LSTM(256):
+	Tensorflow: loss: 0.0184 - acc: 0.4537
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1307 3866 5059
+
+	Add LSTM(256) + add a 'Dropout(0.1)' layer before:
+	Tensorflow: loss: 0.0184 - acc: 0.4544
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1500 3947 5049
+
+
+
+	------------ Change configuration of convolutional layer ------------
+	Set padding to "same":
+	Tensorflow: loss: 0.0183 - acc: 0.4574
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	0.1  0.2  0.3
+	850 3138 4711
+
+		============ LSTM ============
+		Tensorflow: loss: 0.0183 - acc: 0.4574
+		Same values from all 5081 entries (only one value of prediction array must differ):
+		0.1  0.2  0.3
+		854 3138 4711
+
+		============ GRU ============
+		Tensorflow: loss: 0.0184 - acc: 0.4590
+		Same values from all 5081 entries (only one value of prediction array must differ):
+		0.1  0.2  0.3
+		842 3254 4950
+
+		============ SimpleRNN ============
+		Tensorflow: loss: 0.0185 - acc: 0.4548
+		Same values from all 5081 entries (only one value of prediction array must differ):
+		 0.1  0.2  0.3
+		2251 4279 5078
+
+	Set activation to "relu":
+	Tensorflow: loss: 0.0184 - acc: 0.4578
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1200 3388 4977
+
+	Set padding to "same" and set activation to "relu":
+	Tensorflow: loss: 0.0184 - acc: 0.4580
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1108 3258 4946
+
+
+
+	------------ Additional Convolutional layer ------------											------------ Additional Convolutional layer + max pooling ------------								------------ Additional Convolutional layer + max pooling ------------
+	Add as first layer Conv1D(8):																		Add a 'MaxPool1D(2)' layer:																			Add a 'AveragePooling1D(1, padding="same", strides=1)' layer:
+	159/159 [==============================] - 1s 5ms/step - loss: 0.0185 - acc: 0.4519					159/159 [==============================] - 1s 5ms/step - loss: 0.0189 - acc: 0.4489					159/159 [==============================] - 1s 5ms/step - loss: 0.0185 - acc: 0.4517
+	159/159 [==============================] - 1s 4ms/step												159/159 [==============================] - 1s 4ms/step												159/159 [==============================] - 1s 4ms/step
+	1720 5081																							4305 5081																							1457 5081
+	4001 5081																							5081 5081																							3876 5081
+	5081 5081																							5081 5081																							5072 5081
+
+	Add as first layer Conv1D(16):																		Add a 'MaxPool1D(2)' layer:																			Add a 'AveragePooling1D(1, padding="same", strides=1)' layer:
+	159/159 [==============================] - 0s 2ms/step - loss: 0.0188 - acc: 0.4487					159/159 [==============================] - 0s 2ms/step - loss: 0.0184 - acc: 0.4633					159/159 [==============================] - 1s 6ms/step - loss: 0.0184 - acc: 0.4564
+	159/159 [==============================] - 1s 3ms/step												159/159 [==============================] - 1s 2ms/step												159/159 [==============================] - 1s 4ms/step
+	3625 5081																							1692 5081																							1844 5081
+	5078 5081																							3978 5081																							4204 5081
+	5081 5081																							5041 5081																							5081 5081
+
+																										Add a 'MaxPool1D(2, padding="same")' layer:
+																										159/159 [==============================] - 0s 2ms/step - loss: 0.0184 - acc: 0.4633
+																										159/159 [==============================] - 0s 1ms/step
+																										1683 5081
+																										3968 5081
+																										5039 5081
+
+																										Add a 'MaxPool1D(2, strides=1)' layer:
+																										159/159 [==============================] - 0s 2ms/step - loss: 0.0184 - acc: 0.4594
+																										159/159 [==============================] - 1s 3ms/step
+																										1689 5081
+																										4027 5081
+																										5065 5081
+
+																										Add a 'MaxPool1D(2, padding="same", strides=1)' layer:
+																										159/159 [==============================] - 1s 5ms/step - loss: 0.0184 - acc: 0.4603
+																										159/159 [==============================] - 1s 4ms/step
+																										1681 5081
+																										3991 5081
+																										5057 5081
+																										
+	Add as first layer Conv1D(32):																		Add a 'MaxPool1D(2, padding="same", strides=1)' layer:
+	159/159 [==============================] - 1s 5ms/step - loss: 0.0187 - acc: 0.4497					159/159 [==============================] - 0s 2ms/step - loss: 0.0188 - acc: 0.4487
+	159/159 [==============================] - 1s 4ms/step												159/159 [==============================] - 1s 3ms/step
+	2301 5081																							3504 5081
+	5001 5081																							5081 5081
+	5081 5081																							5081 5081
+
+	Add as first layer Conv1D(64):																		Add a 'MaxPool1D(2, padding="same", strides=1)' layer:
+	159/159 [==============================] - 0s 2ms/step - loss: 0.0187 - acc: 0.4489					159/159 [==============================] - 1s 5ms/step - loss: 0.0183 - acc: 0.4619
+	159/159 [==============================] - 1s 2ms/step												159/159 [==============================] - 1s 4ms/step
+	2623 5081																							1156 5081
+	4972 5081																							3700 5081
+	5081 5081																							4983 5081
+
+	Add as first layer Conv1D(128):																		Add a 'MaxPool1D(2, padding="same", strides=1)' layer:
+	159/159 [==============================] - 0s 2ms/step - loss: 0.0186 - acc: 0.4531					159/159 [==============================] - 1s 6ms/step - loss: 0.0187 - acc: 0.4489
+	159/159 [==============================] - 1s 3ms/step												159/159 [==============================] - 1s 4ms/step
+	2010 5081																							3213 5081
+	4796 5081																							5081 5081
+	5081 5081																							5081 5081
+
+
+	Add as second layer Conv1D(16):																		Add a 'MaxPool1D(2, padding="same", strides=1)' layer:
+	159/159 [==============================] - 0s 2ms/step - loss: 0.0188 - acc: 0.4489					159/159 [==============================] - 0s 2ms/step - loss: 0.0188 - acc: 0.4489
+	159/159 [==============================] - 1s 3ms/step												159/159 [==============================] - 1s 3ms/step
+	3289 5081																							2576 5081
+	5081 5081																							5081 5081
+	5081 5081																							5081 5081
+
+	Add as first layer Conv1D(32) (from above):															Add a 'MaxPool1D(2, padding="same", strides=1)' layer (from above):
+	159/159 [==============================] - 1s 5ms/step - loss: 0.0187 - acc: 0.4497					159/159 [==============================] - 0s 2ms/step - loss: 0.0188 - acc: 0.4487
+	159/159 [==============================] - 1s 4ms/step												159/159 [==============================] - 1s 3ms/step
+	2301 5081																							3504 5081
+	5001 5081																							5081 5081
+	5081 5081																							5081 5081
+
+	Add as second layer Conv1D(64):																		Add a 'MaxPool1D(2, padding="same", strides=1)' layer (from above):
+	159/159 [==============================] - 0s 2ms/step - loss: 0.0188 - acc: 0.4495					159/159 [==============================] - 1s 6ms/step - loss: 0.0188 - acc: 0.4489
+	159/159 [==============================] - 1s 3ms/step												159/159 [==============================] - 1s 4ms/step
+	3343 5081																							3329 5081
+	5081 5081																							5081 5081
+	5081 5081																							5081 5081
+
+	Add as second layer Conv1D(128):																	Add a 'MaxPool1D(2, padding="same", strides=1)' layer (from above):
+	159/159 [==============================] - 1s 5ms/step - loss: 0.0187 - acc: 0.4489					159/159 [==============================] - 0s 2ms/step - loss: 0.0187 - acc: 0.4489
+	159/159 [==============================] - 1s 4ms/step												159/159 [==============================] - 1s 3ms/step
+	2699 5081																							2697 5081
+	5081 5081																							5081 5081
+	5081 5081																							5081 5081
+
+
+
+	------------ Use only convolutional images ------------
+	Use only convolutional model/layers:
+	Tensorflow: loss: 0.0190 - acc: 0.4489
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	5008 5081 5081
+
+
+	Added a 'Dense(64, activation="relu")' layer:
+	Tensorflow: loss: 0.0189 - acc: 0.4489
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	5051 5081 5081
+
+
+	Conv1D from 32, 64, 128, 128, Flatten, Dense(64), Dense(19):
+	Tensorflow: loss: 0.0186 - acc: 0.4542
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	1999 4655 5076
+
+
+	Conv1D from 128, 128, 64, 32, Flatten, Dense(64), Dense(19):
+	Tensorflow: loss: 0.0183 - acc: 0.4611
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	0.1  0.2  0.3
+	955 3731 4987
+
+
+	Conv1D from 128, 128, 64, 64, 32, Flatten, Dense(64), Dense(19):
+	Tensorflow: loss: 0.0185 - acc: 0.4525
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	2294 4623 5081
+
+
+	Conv1D from 256, 256, 128, 128, 64, 64, 32, Flatten, Dense(64), Dense(19):
+	Tensorflow: loss: 0.0189 - acc: 0.4489
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	3009 5007 5081
+
+
+	------------ Add additionally LSTM to convolutional model ------------
+	Conv1D from 256, 256, 128, 128, 64, 64, 32, LSTM(8), Dense(19):
+	Tensorflow: loss: 0.0188 - acc: 0.4489
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	2739 5081 5081
+
+	Conv1D from 256, 256, 128, 128, 64, 64, 32, LSTM(16), Dense(19):
+	Tensorflow: loss: 0.0191 - acc: 0.4489
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	5080 5081 5081
+
+	Conv1D from 256, 256, 128, 128, 64, 64, 32, LSTM(32), Dense(19):
+	Tensorflow: loss: 0.0185 - acc: 0.4533
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	2089 4144 5081
+
+	Conv1D from 256, 256, 128, 128, 64, 64, 32, LSTM(64), Dense(19):
+	Tensorflow: loss: 0.0186 - acc: 0.4489
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	2520 4484 5081
+
+	Conv1D from 256, 256, 128, 128, 64, 64, 32, LSTM(128), Dense(19):
+	Tensorflow: loss: 0.0187 - acc: 0.4489
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	2440 4413 5081
+
+	Conv1D from 256, 256, 128, 128, 64, 64, 32, LSTM(256), Dense(19):
+	Tensorflow: loss: 0.0187 - acc: 0.4489
+	Same values from all 5081 entries (only one value of prediction array must differ):
+	 0.1  0.2  0.3
+	2448 4429 5081
+
+
+
+1,000,000 data sequences:
+	Model:
+		Conv1D(32, 2, padding="same"),
+		LSTM(64, input_shape=(HISTORY_LEN, 19), kernel_initializer="HeUniform"),
+		Dense(19, activation="sigmoid"),
+	-> Results:
+		Tensorflow: loss: 0.0184 - acc: 0.4624
+		Same values from all 132099 entries (only one value of prediction array must differ):
+		 0.1  0.2  0.3
+		78535 128041 131555

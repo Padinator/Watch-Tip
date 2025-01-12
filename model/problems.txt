@@ -1,0 +1,17 @@
+1. Format Netflix prize data for visualization + AI training
+    - After finding 86 million "watchings" to use for training (data preprocessing),
+      they have to be brought into the correct format (same format as for user reviews 
+      from TMDB)
+    - Processing of 86 million entries takes much time
+    -> Some outputs of current iterations of the running process, wouuld be very nice
+    -> Working in parallel is good, but e.g. ThreadPool takes care that there are
+       always n threads working, if not it creates some. This results in creating
+       86 million threads, which will fail at round about 8 million threads.
+    --> Not possible to execute with ThreadPool, which would output iterations
+    => Write own ThreadPool with outputting iterations
+    ==> Much faster than the ThreadPool
+    ==> Alternative: Use ThreadPool of Python as the own implementation, so that
+                     only e.g. 16 threads will be created and that each thread
+                     has e.g. 1/16 of the whole work.
+                     -> Misusage of ThreadPool, because then you could easily
+                        create e.g. 16 threads and that would be the same results
