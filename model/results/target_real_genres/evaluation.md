@@ -20,4 +20,4 @@ Now you can see that the predictions are far away from the real values more than
 Overall PCA shows the correct figure/accuracy.
 
 # Model parameterizations
-The file [a relative link](progress.txt) contains different parameterizations with different layers of the described model/variants of the model.
+The file [Progress](progress.txt) contains different parameterizations with different layers of the described model/variants of the model.

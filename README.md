@@ -9,23 +9,27 @@ The UI is coming soon.
 
 # Project structure
 WATCH-TIP<br>
-|---- data_preprocessing - Preprocess data<br>
-&emsp;&ensp; |---- fil_db_with_test_data.py &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;- Search in TMDB for movie detail data, movie reviews, movie producers and production companies --> insert in database<br>
-&emsp;&ensp; |---- count_genres.py &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp; - Count genres in which each actor plays, each producer produces and each company finances<br>
-&emsp;&ensp; |---- calculate_real_gernes.py &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;- Compute real genres based on counted genres --> insert in database<br>
-&emsp;&ensp; |---- match_netflix_prize_data_to_database.py - Read Netflix prize data and match movies (not series) from it to TMDB data/movies --> write to file<br>
-|---- database - Interaction with database (create, read update delete)<br>
-|---- docs &emsp;&ensp;&nbsp; - Some documentation about the project<br>
-|---- helper &emsp; - Helper files with some helpful functions etc.<br>
-|---- model &emsp; - Implementation/Usages of AI techniques/models to predict the real genres of the next movie or the next movie itself<br>
-&emsp;&ensp; |---- data_visualization.ipynb &emsp;&emsp;&nbsp;- Visualtization of real genres of all movies and movie histories of users (TMDB dataset and Netflix prize dataset)<br>
-&emsp;&ensp; |---- model_target_real_genres.py - Trains and test an AI model: input: movie (real genres) histories of users; output/target/label: real genres<br>
-&emsp;&ensp; |---- results_visualization.ipynb &emsp;&nbsp;- Visualtization of real genres of all movies and movie histories of users (TMDB dataset and Netflix prize dataset)<br>
-&emsp;&ensp; |---- model_target_prob_distr.py &nbsp; - Trains and test an AI model: input: one hot encoded movies or real genres of a movie + different embeddings; output/target label: probability distribution of all movies<br>
-|---- ranking &emsp;&ensp;&nbsp; - Rank proposed/suggested movies (from AIs from directory model) to show the best at first<br>
-|---- slides-decks - Slides and presentations<br>
-|---- tests &emsp;&emsp;&emsp; - Tests ensuring quality of several modules<br>
-|---- webserver &ensp; - Contains not fully implemented UI --> coming soon
+├── data_preprocessing - Preprocess data<br>
+&emsp;&emsp; ├── fil_db_with_test_data.py &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;- Search in TMDB for movie detail data, movie reviews, movie producers and production companies --> insert in database<br>
+&emsp;&emsp; ├── count_genres.py &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp; - Count genres in which each actor plays, each producer produces and each company finances<br>
+&emsp;&emsp; ├── calculate_real_gernes.py &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;- Compute real genres based on counted genres --> insert in database<br>
+&emsp;&emsp; ├── match_netflix_prize_data_to_database.py - Read Netflix prize data and match movies (not series) from it to TMDB data/movies --> write to file<br>
+├── database - Interaction with database (create, read update delete)<br>
+├── docs &emsp;&ensp;&nbsp; - Some documentation about the project<br>
+├── helper &emsp; - Helper files with some helpful functions etc.<br>
+├── model &emsp; - Implementation/Usages of AI techniques/models to predict the real genres of the next movie or the next movie itself<br>
+&emsp;&emsp; ├── data_visualization.ipynb &emsp;&emsp;&nbsp;- Visualtization of real genres of all movies and movie histories of users (TMDB dataset and Netflix prize dataset)<br>
+&emsp;&emsp; ├── model_target_real_genres.py - Trains and test an AI model: input: movie (real genres) histories of users; output/target/label: real genres<br>
+&emsp;&emsp; ├── results_visualization.ipynb &emsp;&nbsp;- Visualtization of real genres of all movies and movie histories of users (TMDB dataset and Netflix prize dataset)<br>
+&emsp;&emsp; ├── target_real_genres - Contains result files of model (predicting real genres) training and testing<br>
+&emsp;&emsp; │ &emsp; ├── [Evaluation real genres](model/results/target_real_genres/evaluation.md) - Evaluates the model predicting real genres<br>
+&emsp;&emsp; │<br>
+&emsp;&emsp; ├── model_target_prob_distr.py &nbsp; - Trains and test an AI model: input: one hot encoded movies or real genres of a movie + different embeddings; output/target label: probability distribution of all movies<br>
+&emsp;&emsp;&emsp;&emsp; ├── [Evaluation probability distribution](model/results/target_prob_distr/evaluation.md) - Evaluates the model predicting possible similiar movies<br>
+├── ranking &emsp;&ensp;&nbsp; - Rank proposed/suggested movies (from AIs from directory model) to show the best at first<br>
+├── slides-decks - Slides and presentations<br>
+├── tests &emsp;&emsp;&emsp; - Tests ensuring quality of several modules<br>
+├── webserver &ensp; - Contains not fully implemented UI --> coming soon
 
 # Setup anaconda environment for using GPU under Windows
 Necessary packages:
