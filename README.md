@@ -5,7 +5,7 @@
 - [Project structure](#project-structure)
 - [Setup anaconda environment for using GPU under Windows](#setup-anaconda-environment-for-using-gpu-under-windows)
 - [Commands for building anaconda environment under Windows](#commands-for-building-anaconda-environment-under-windows)
-- [Documentation](#documentation)
+- [Code documentation](#code-documentation)
 
 # Description
 Watch Tip is a recommendation engine currently exclusive for movies.
@@ -43,6 +43,6 @@ conda activate kint<br>
 python -m pip install "tensorflow<2.11"<br>
 conda install conda-forge::multicore-tsne
 
-# Documentation
+# Code documentation
 The code documentation is written with the numpy-style: [Numpy-Style](https://numpydoc.readthedocs.io/en/latest/format.html)<br>
 There are also some diagrams representing the runtime behaviour of the files/algorithms. See for this in the "docs" directory.
