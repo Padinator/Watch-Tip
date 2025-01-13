@@ -1,0 +1,20 @@
+# Description
+Here will be described, how you can get the data for reproducing the data collection step, so that you can train the models on your own.
+
+# Data preprocessing directory structure
+data_preprocessing<br>
+├── fil_db_with_test_data.py - Search in TMDB for movie detail data, movie reviews, movie producers and production companies --> insert in database<br>
+├── count_genres.py - Count genres in which each actor plays, each producer produces and each company finances<br>
+├── calculate_real_gernes.py - Compute real genres based on counted genres --> insert in database<br>
+├── match_netflix_prize_data_to_database.py - Read Netflix prize data and match movies (not series) from it to TMDB data/movies --> write to file
+
+# Steps for collecting data
+1. Setup docker container for the database (mongodb) with the [docker-compose.yml](docker-compose.yml).<br>
+   If you already have a the collected and prepared data, you can uncomment the lines in the "docker-compose.yml" for restoring this file to the database.
+2. Edit API token for TMDB in [helper/variables.py](../helper/variables.py)
+3. Execute [fil_db_with_test_data.py](fil_db_with_test_data.py)
+4. Execute [count_genres.py](count_genres.py)
+5. Execute [calculate_real_gernes.py](calculate_real_gernes.py)
+5. Execute [match_netflix_prize_data_to_database.py](match_netflix_prize_data_to_database.py)
+9. Now you can execute the model files, e.g. [First model](../model/model_target_prob_distr.py), [Second model](../model/model_target_prob_distr.py)<br>
+   Read more about models in [model/README.md](../model/README.md)
