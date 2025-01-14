@@ -1,3 +1,10 @@
+# Table of contents
+- [Table of contents](#table-of-contents)
+- [Model behaviour](#model-behaviour)
+- [Model structure](#model-structure)
+- [Evaluation](#evaluation)
+- [Self evaluation of models](#self-evaluation-of-models)
+
 # Model behaviour
 The model uses movies to lean the context of each movie, so which movies a user may watch next time.<br>
 So the grounded truth looks like the following:<br>
@@ -17,3 +24,6 @@ The current results are independent from the used embedding or the layers and th
 - The genres of the proposed movies match to the predefined genres with 1.3 %
 - The genres of the proposed movies match to the relal genres with 2 %
 - The mean deviation of real genres is above 1
+
+# Self evaluation of models
+The different result directories contain different architectures with (e.g. two dense layer or one) and different emebddings (no embedding, random embedding real genres as embedding, skip grams, Word2Vec).
